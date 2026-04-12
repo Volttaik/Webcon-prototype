@@ -1,7 +1,7 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { integer, pgTable, text } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 
-export const sessionsTable = sqliteTable("sessions", {
+export const sessionsTable = pgTable("sessions", {
   id: text("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   expiresAt: text("expires_at").notNull(),

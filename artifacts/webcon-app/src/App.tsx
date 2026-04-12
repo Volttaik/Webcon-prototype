@@ -15,6 +15,7 @@ import Billing from '@/pages/Billing';
 import Projects from '@/pages/Projects';
 import Workspace from '@/pages/Workspace';
 import AuthCallback from '@/pages/AuthCallback';
+import AdminDeployment from '@/pages/AdminDeployment';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,6 +47,7 @@ function AppRoutes() {
       <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
       <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
       <Route path="/workspace" element={<ProtectedRoute><Workspace /></ProtectedRoute>} />
+      <Route path="/admin/deployment" element={<ProtectedRoute><AdminDeployment /></ProtectedRoute>} />
       <Route path="/auth/callback" element={<AuthCallback />} />
     </Routes>
   );

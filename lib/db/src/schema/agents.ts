@@ -1,10 +1,10 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { boolean, integer, pgTable, serial, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
 
-export const agentsTable = sqliteTable("agents", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const agentsTable = pgTable("agents", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   subject: text("subject").notNull(),
@@ -19,8 +19,8 @@ export const agentsTable = sqliteTable("agents", {
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdateFn(() => new Date().toISOString()),
 });
 
-export const agentMemoryTable = sqliteTable("agent_memory", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const agentMemoryTable = pgTable("agent_memory", {
+  id: serial("id").primaryKey(),
   agentId: integer("agent_id").notNull().references(() => agentsTable.id, { onDelete: "cascade" }),
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   memoryType: text("memory_type").notNull().default("long_term"),
@@ -29,13 +29,13 @@ export const agentMemoryTable = sqliteTable("agent_memory", {
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdateFn(() => new Date().toISOString()),
 });
 
-export const agentSubscriptionsTable = sqliteTable("agent_subscriptions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const agentSubscriptionsTable = pgTable("agent_subscriptions", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   agentId: integer("agent_id").notNull().references(() => agentsTable.id, { onDelete: "cascade" }),
   creditsCost: integer("credits_cost").notNull().default(100),
   expiresAt: text("expires_at").notNull(),
-  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  active: boolean("active").notNull().default(true),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 

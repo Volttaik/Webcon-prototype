@@ -5,7 +5,7 @@ import {
   Box, Settings, User, HelpCircle, LogOut, X,
   Brain, BookOpen, CalendarDays, BarChart2, LayoutDashboard,
   Plus, ChevronDown, MessageSquare, Clock, Zap,
-  FolderKanban, Briefcase,
+  FolderKanban, Briefcase, ServerCog,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -30,6 +30,7 @@ const PROGRESS_ITEMS = [
 
 const ACCOUNT_ITEMS = [
   { label: 'Settings',     href: '/settings',     icon: Settings },
+  { label: 'Vercel Admin', href: '/admin/deployment', icon: ServerCog },
 ];
 
 const USER_MENU = [
@@ -345,6 +346,7 @@ function UserDropdown({ open, onClose }: { open: boolean; onClose: () => void })
     onClose();
     if (action === 'settings') navigate('/settings');
     if (action === 'profile')  navigate('/settings');
+    if (action === 'admin') navigate('/admin/deployment');
   };
 
   const displayName = profile?.first_name && profile?.last_name

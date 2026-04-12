@@ -1,15 +1,15 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { boolean, integer, pgTable, serial, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const usersTable = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const usersTable = pgTable("users", {
+  id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   firstName: text("first_name").notNull().default(""),
   lastName: text("last_name").notNull().default(""),
   institution: text("institution"),
-  emailVerified: integer("email_verified", { mode: "boolean" }).notNull().default(false),
+  emailVerified: boolean("email_verified").notNull().default(false),
   emailVerifyToken: text("email_verify_token"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
