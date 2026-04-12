@@ -52,7 +52,7 @@ IMPORTANT: Only use tools when the user EXPLICITLY asks for them. Do NOT call to
   return `${base}${soulBlock}${memoryBlock}${toolGuidance}`;
 }
 
-const TOOLS: Groq.Chat.CompletionCreateParams.Tool[] = [
+const TOOLS: Groq.Chat.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
