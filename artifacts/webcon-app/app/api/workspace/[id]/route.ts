@@ -33,7 +33,7 @@ export async function PATCH(
     }
 
     const { title, content, pinned, starred, subject } = await request.json();
-    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
     if (title !== undefined) updates.title = title;
     if (content !== undefined) updates.content = content;
     if (pinned !== undefined) updates.pinned = pinned;

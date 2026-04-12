@@ -27,7 +27,7 @@ router.get("/whatsapp", requireAuth, async (req: AuthRequest, res) => {
       initMessage,
       whatsappLink: `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(initMessage)}`,
       phoneNumber: link.phoneNumber ?? null,
-      connectedAt: link.connectedAt?.toISOString() ?? null,
+      connectedAt: link.connectedAt ?? null,
     });
   } catch (err) {
     console.error(err);

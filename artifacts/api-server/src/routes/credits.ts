@@ -20,7 +20,7 @@ router.get("/credits/balance", requireAuth, async (req: AuthRequest, res) => {
       .from(creditBalancesTable)
       .where(eq(creditBalancesTable.userId, req.userId!))
       .limit(1);
-    res.json({ balance: balance?.balance ?? 0, updatedAt: balance?.updatedAt ?? new Date() });
+    res.json({ balance: balance?.balance ?? 0, updatedAt: balance?.updatedAt ?? new Date().toISOString() });
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
@@ -141,7 +141,7 @@ router.get("/credits/verify/:reference", requireAuth, async (req: AuthRequest, r
       await db
         .insert(creditBalancesTable)
         .values({ userId: req.userId!, balance: newBalance })
-        .onConflictDoUpdate({ target: creditBalancesTable.userId, set: { balance: newBalance, updatedAt: new Date() } });
+        .onConflictDoUpdate({ target: creditBalancesTable.userId, set: { balance: newBalance, updatedAt: new Date().toISOString() } });
       await db.insert(creditTransactionsTable).values({
         userId: req.userId!,
         amount: credits,
@@ -161,7 +161,7 @@ router.get("/credits/verify/:reference", requireAuth, async (req: AuthRequest, r
         .from(creditBalancesTable)
         .where(eq(creditBalancesTable.userId, req.userId!))
         .limit(1);
-      res.json({ balance: balance?.balance ?? 0, updatedAt: balance?.updatedAt ?? new Date() });
+      res.json({ balance: balance?.balance ?? 0, updatedAt: balance?.updatedAt ?? new Date().toISOString() });
     }
   } catch (err) {
     console.error(err);

@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         title,
         agentId: agentId ?? undefined,
         subject,
-        date: new Date(date),
+        date: new Date(date).toISOString(),
         duration,
         type,
         notes,

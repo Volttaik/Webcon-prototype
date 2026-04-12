@@ -19,7 +19,7 @@ export async function GET() {
 
     return NextResponse.json({
       balance: balance?.balance ?? 0,
-      updatedAt: balance?.updatedAt ?? new Date(),
+      updatedAt: balance?.updatedAt ?? new Date().toISOString(),
     });
   } catch (err) {
     console.error(err);

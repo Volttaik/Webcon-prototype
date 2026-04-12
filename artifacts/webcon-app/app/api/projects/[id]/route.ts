@@ -58,12 +58,12 @@ export async function PATCH(
     }
 
     const { title, subject, type, status, dueDate } = await request.json();
-    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
     if (title !== undefined) updates.title = title;
     if (subject !== undefined) updates.subject = subject;
     if (type !== undefined) updates.type = type;
     if (status !== undefined) updates.status = status;
-    if (dueDate !== undefined) updates.dueDate = dueDate ? new Date(dueDate) : null;
+    if (dueDate !== undefined) updates.dueDate = dueDate ? new Date(dueDate).toISOString() : null;
 
     const [p] = await db
       .update(projectsTable)

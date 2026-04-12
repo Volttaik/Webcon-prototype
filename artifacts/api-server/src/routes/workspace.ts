@@ -50,7 +50,7 @@ router.patch("/workspace/:id", requireAuth, async (req: AuthRequest, res) => {
       .where(and(eq(workspaceItemsTable.id, id), eq(workspaceItemsTable.userId, req.userId!))).limit(1);
     if (!existing[0]) { res.status(404).json({ error: "Not found" }); return; }
     const { title, content, pinned, starred, subject } = req.body;
-    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
     if (title !== undefined) updates.title = title;
     if (content !== undefined) updates.content = content;
     if (pinned !== undefined) updates.pinned = pinned;

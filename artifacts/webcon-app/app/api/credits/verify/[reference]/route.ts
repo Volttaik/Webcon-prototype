@@ -59,7 +59,7 @@ export async function GET(
     const newBalance = (balance?.balance ?? 0) + credits;
     await db
       .update(creditBalancesTable)
-      .set({ balance: newBalance, updatedAt: new Date() })
+      .set({ balance: newBalance, updatedAt: new Date().toISOString() })
       .where(eq(creditBalancesTable.userId, session.userId));
 
     await db.insert(creditTransactionsTable).values({

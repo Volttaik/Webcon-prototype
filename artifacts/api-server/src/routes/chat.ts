@@ -388,7 +388,7 @@ router.post("/chat/conversations/:id/messages", requireAuth, async (req: AuthReq
 
     await db
       .update(creditBalancesTable)
-      .set({ balance: balance.balance - COST_PER_MESSAGE, updatedAt: new Date() })
+      .set({ balance: balance.balance - COST_PER_MESSAGE, updatedAt: new Date().toISOString() })
       .where(eq(creditBalancesTable.userId, req.userId!));
     await db.insert(creditTransactionsTable).values({
       userId: req.userId!,
@@ -397,7 +397,7 @@ router.post("/chat/conversations/:id/messages", requireAuth, async (req: AuthReq
       description: `Chat message to ${agent?.name || "agent"}`,
     });
 
-    await db.update(conversations).set({ updatedAt: new Date() }).where(eq(conversations.id, id));
+    await db.update(conversations).set({ updatedAt: new Date().toISOString() }).where(eq(conversations.id, id));
 
     sendEvent("done", {
       userMessageId: userMsg.id,

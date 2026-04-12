@@ -22,7 +22,7 @@ router.post("/schedule", requireAuth, async (req: AuthRequest, res) => {
     const { title, agentId, subject, date, duration = 60, type = "study", notes } = req.body;
     if (!title || !date) { res.status(400).json({ error: "title and date required" }); return; }
     const [session] = await db.insert(scheduleSessionsTable).values({
-      userId: req.userId!, title, agentId: agentId ?? undefined, subject, date: new Date(date), duration, type, notes,
+      userId: req.userId!, title, agentId: agentId ?? undefined, subject, date: new Date(date).toISOString(), duration, type, notes,
     }).returning();
     const [agent] = session.agentId ? await db.select().from(agentsTable).where(eq(agentsTable.id, session.agentId)).limit(1) : [null];
     res.status(201).json({ ...session, agentId: session.agentId ?? null, agentName: agent?.name ?? null, subject: session.subject ?? null, notes: session.notes ?? null });
@@ -38,7 +38,7 @@ router.patch("/schedule/:id", requireAuth, async (req: AuthRequest, res) => {
     const updates: Record<string, unknown> = {};
     if (title !== undefined) updates.title = title;
     if (subject !== undefined) updates.subject = subject;
-    if (date !== undefined) updates.date = new Date(date);
+    if (date !== undefined) updates.date = new Date(date).toISOString();
     if (duration !== undefined) updates.duration = duration;
     if (type !== undefined) updates.type = type;
     if (completed !== undefined) updates.completed = completed;

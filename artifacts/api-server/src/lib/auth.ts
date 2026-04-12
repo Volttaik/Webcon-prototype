@@ -21,7 +21,7 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
     .where(
       and(
         eq(sessionsTable.id, token),
-        gt(sessionsTable.expiresAt, new Date())
+        gt(sessionsTable.expiresAt, new Date().toISOString())
       )
     )
     .limit(1);
@@ -38,7 +38,7 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
 
 export async function createSession(userId: number): Promise<string> {
   const id = uuidv4();
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
   await db.insert(sessionsTable).values({ id, userId, expiresAt });
   return id;
 }

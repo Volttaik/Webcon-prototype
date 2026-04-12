@@ -1,5 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
+
+export const runtime = "nodejs";
+
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "liquid4*";
 
 function present(value: string | undefined) {
   return Boolean(value && value.trim().length > 0);
@@ -9,7 +14,42 @@ function configuredEnv(keys: string[]) {
   return keys.some((key) => present(process.env[key]));
 }
 
-export async function GET() {
+function isAuthorized(request: NextRequest) {
+  const header = request.headers.get("authorization");
+  if (!header?.startsWith("Basic ")) return false;
+
+  try {
+    const decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
+    const separator = decoded.indexOf(":");
+    if (separator === -1) return false;
+
+    const username = decoded.slice(0, separator);
+    const password = decoded.slice(separator + 1);
+
+    return username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
+  } catch {
+    return false;
+  }
+}
+
+function unauthorized() {
+  return NextResponse.json(
+    { error: "Admin credentials required" },
+    {
+      status: 401,
+      headers: {
+        "WWW-Authenticate": 'Basic realm="WebCon Admin", charset="UTF-8"',
+        "Cache-Control": "no-store",
+      },
+    }
+  );
+}
+
+export async function GET(request: NextRequest) {
+  if (!isAuthorized(request)) {
+    return unauthorized();
+  }
+
   const databaseConfigured = configuredEnv([
     "SUPABASE_DATABASE_URL",
     "DATABASE_URL",

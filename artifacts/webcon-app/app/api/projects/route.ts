@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         agentId: agentId ?? undefined,
         subject,
         type,
-        dueDate: dueDate ? new Date(dueDate) : undefined,
+        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
       })
       .returning();
 

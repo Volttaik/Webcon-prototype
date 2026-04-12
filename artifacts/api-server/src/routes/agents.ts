@@ -100,7 +100,7 @@ router.patch("/agents/:id", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
     const { name, subject, level, tone, systemPrompt } = req.body;
-    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
     if (name !== undefined) updates.name = name;
     if (subject !== undefined) updates.subject = subject;
     if (level !== undefined) updates.level = level;

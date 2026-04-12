@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { AlertCircle, CheckCircle2, Clock, Database, ExternalLink, RefreshCw, ServerCog, ShieldCheck } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, Database, ExternalLink, LockKeyhole, RefreshCw, ServerCog, ShieldCheck } from 'lucide-react';
 import AppHeader from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +25,8 @@ interface DeploymentStatus {
   checks: DeploymentCheck[];
 }
 
+const ADMIN_AUTH_STORAGE_KEY = 'webcon-admin-auth';
+
 function StatusPill({ healthy, configured }: { healthy: boolean; configured: boolean }) {
   const label = healthy ? 'Ready' : configured ? 'Needs attention' : 'Missing';
   return (
@@ -43,21 +45,58 @@ function CheckIcon({ healthy, configured }: { healthy: boolean; configured: bool
 export default function AdminDeployment() {
   const [status, setStatus] = useState<DeploymentStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authRequired, setAuthRequired] = useState(false);
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const loadStatus = async () => {
+  const loadStatus = async (authOverride?: string) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/admin/deployment', { cache: 'no-store' });
+      const auth = authOverride ?? window.sessionStorage.getItem(ADMIN_AUTH_STORAGE_KEY);
+      if (!auth) {
+        setAuthRequired(true);
+        setStatus(null);
+        return;
+      }
+
+      const response = await fetch('/api/admin/deployment', {
+        cache: 'no-store',
+        headers: { Authorization: `Basic ${auth}` },
+      });
       const data = await response.json();
+
+      if (response.status === 401) {
+        window.sessionStorage.removeItem(ADMIN_AUTH_STORAGE_KEY);
+        setAuthRequired(true);
+        setStatus(null);
+        setError('Invalid admin username or password.');
+        return;
+      }
+
       if (!response.ok) throw new Error(data.error || 'Could not load deployment status');
       setStatus(data as DeploymentStatus);
+      setAuthRequired(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load deployment status');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const auth = btoa(`${username}:${password}`);
+    window.sessionStorage.setItem(ADMIN_AUTH_STORAGE_KEY, auth);
+    await loadStatus(auth);
+  };
+
+  const handleSignOut = () => {
+    window.sessionStorage.removeItem(ADMIN_AUTH_STORAGE_KEY);
+    setStatus(null);
+    setAuthRequired(true);
+    setPassword('');
   };
 
   useEffect(() => {
@@ -68,6 +107,64 @@ export default function AdminDeployment() {
     if (!status?.requiredCount) return 0;
     return Math.round((status.readyCount / status.requiredCount) * 100);
   }, [status]);
+
+  if (authRequired) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <AppHeader />
+        <main className="pt-24 px-4 pb-12 max-w-md mx-auto">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+            <Card className="bg-card/70">
+              <CardHeader>
+                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-secondary/50">
+                  <LockKeyhole className="h-5 w-5" />
+                </div>
+                <CardTitle>Admin access</CardTitle>
+                <CardDescription>This page is hidden from the normal website. Enter the admin credentials to view deployment readiness.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {error && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Access denied</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="admin-username" className="text-sm font-medium">Username</label>
+                    <input
+                      id="admin-username"
+                      value={username}
+                      onChange={(event) => setUsername(event.target.value)}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40"
+                      autoComplete="username"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="admin-password" className="text-sm font-medium">Password</label>
+                    <input
+                      id="admin-password"
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40"
+                      autoComplete="current-password"
+                      autoFocus
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading || !username || !password}>
+                    {loading ? 'Checking…' : 'Open admin page'}
+                  </Button>
+                </form>
+                <p className="mt-4 text-xs text-muted-foreground">Manual path: /admin/deployment</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -85,10 +182,13 @@ export default function AdminDeployment() {
                 Check the services Vercel needs for WebCon: Supabase Postgres, agents, credits, payments, email verification, and public URLs.
               </p>
             </div>
-            <Button onClick={loadStatus} disabled={loading} variant="outline">
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => loadStatus()} disabled={loading} variant="outline">
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button onClick={handleSignOut} variant="ghost">Lock</Button>
+            </div>
           </div>
 
           {error && (

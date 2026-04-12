@@ -47,7 +47,7 @@ function AppRoutes() {
       <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
       <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
       <Route path="/workspace" element={<ProtectedRoute><Workspace /></ProtectedRoute>} />
-      <Route path="/admin/deployment" element={<ProtectedRoute><AdminDeployment /></ProtectedRoute>} />
+      <Route path="/admin/deployment" element={<AdminDeployment />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
     </Routes>
   );

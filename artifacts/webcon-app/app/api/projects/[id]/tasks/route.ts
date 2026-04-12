@@ -42,7 +42,7 @@ export async function POST(
       .values({
         projectId,
         title,
-        dueDate: dueDate ? new Date(dueDate) : undefined,
+        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
       })
       .returning();
 

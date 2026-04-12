@@ -42,8 +42,8 @@ router.get("/analytics", requireAuth, async (req: AuthRequest, res) => {
         .where(
           and(
             eq(conversations.userId, userId),
-            gte(messages.createdAt, d),
-            lt(messages.createdAt, dEnd)
+            gte(messages.createdAt, d.toISOString()),
+            lt(messages.createdAt, dEnd.toISOString())
           )
         );
       days.push({ date: d.toISOString().split("T")[0], count: Number(row?.count ?? 0) });
