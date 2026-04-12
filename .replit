@@ -1,0 +1,51 @@
+modules = ["nodejs-24"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 8082
+externalPort = 3002
+
+[[ports]]
+localPort = 22817
+externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+NEXT_PUBLIC_SUPABASE_URL = "https://xsdyzhxxgsqeggkfgdni.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzZHl6aHh4Z3NxZWdna2ZnZG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NDQ1NjUsImV4cCI6MjA5MTQyMDU2NX0.OSO9WYg5mvKNnGdLvnBK5v-k3kLEypAW8Ei-PRg6LN4"
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_kDXpqgBbSj9kK_xu4PSDtQ_Xk3BSJV5"
+SUPABASE_URL = "https://xsdyzhxxgsqeggkfgdni.supabase.co"
+POSTGRES_HOST = "db.xsdyzhxxgsqeggkfgdni.supabase.co"
+POSTGRES_DATABASE = "postgres"
+POSTGRES_USER = "postgres"
+NEXT_PUBLIC_SITE_URL = "https://481ddaaa-e218-47df-94c3-4e76adb252a2-00-3e43at55yxel6.janeway.replit.dev"

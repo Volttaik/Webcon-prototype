@@ -1,0 +1,1450 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: WebCon API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication
+  - name: agents
+    description: AI agent management
+  - name: chat
+    description: Chat with AI agents
+  - name: credits
+    description: Credit system (Paystack)
+  - name: workspace
+    description: Workspace items (notes, presentations, speeches)
+  - name: schedule
+    description: Study schedule
+  - name: projects
+    description: Projects and tasks
+  - name: whatsapp
+    description: WhatsApp integration
+  - name: analytics
+    description: Usage analytics
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current user
+      responses:
+        "204":
+          description: Logged out
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateMe
+      tags: [auth]
+      summary: Update profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /agents:
+    get:
+      operationId: listAgents
+      tags: [agents]
+      summary: List user's AI agents
+      responses:
+        "200":
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Agent"
+    post:
+      operationId: createAgent
+      tags: [agents]
+      summary: Create a new AI agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAgentBody"
+      responses:
+        "201":
+          description: Created agent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agent"
+
+  /agents/{id}:
+    patch:
+      operationId: updateAgent
+      tags: [agents]
+      summary: Update an agent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAgentBody"
+      responses:
+        "200":
+          description: Updated agent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agent"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAgent
+      tags: [agents]
+      summary: Delete an agent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /chat/conversations:
+    get:
+      operationId: listConversations
+      tags: [chat]
+      summary: List conversations
+      parameters:
+        - name: agentId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Conversation"
+    post:
+      operationId: createConversation
+      tags: [chat]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConversationBody"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /chat/conversations/{id}:
+    get:
+      operationId: getConversation
+      tags: [chat]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteConversation
+      tags: [chat]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /chat/conversations/{id}/messages:
+    get:
+      operationId: listMessages
+      tags: [chat]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+    post:
+      operationId: sendMessage
+      tags: [chat]
+      summary: Send a message (SSE stream response)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageBody"
+      responses:
+        "200":
+          description: SSE stream
+          content:
+            text/event-stream: {}
+
+  /credits/balance:
+    get:
+      operationId: getCreditBalance
+      tags: [credits]
+      summary: Get current credit balance
+      responses:
+        "200":
+          description: Credit balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditBalance"
+
+  /credits/history:
+    get:
+      operationId: getCreditHistory
+      tags: [credits]
+      summary: Get credit transaction history
+      responses:
+        "200":
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreditTransaction"
+
+  /credits/buy:
+    post:
+      operationId: buyCreditPackage
+      tags: [credits]
+      summary: Initiate Paystack payment for credits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BuyCreditBody"
+      responses:
+        "200":
+          description: Payment initialization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaystackInit"
+
+  /credits/verify/{reference}:
+    get:
+      operationId: verifyCreditPayment
+      tags: [credits]
+      summary: Verify Paystack payment and credit account
+      parameters:
+        - name: reference
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditBalance"
+
+  /workspace:
+    get:
+      operationId: listWorkspaceItems
+      tags: [workspace]
+      summary: List workspace items
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: agentId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Workspace items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkspaceItem"
+    post:
+      operationId: createWorkspaceItem
+      tags: [workspace]
+      summary: Create a workspace item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkspaceItemBody"
+      responses:
+        "201":
+          description: Created item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceItem"
+
+  /workspace/{id}:
+    patch:
+      operationId: updateWorkspaceItem
+      tags: [workspace]
+      summary: Update a workspace item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWorkspaceItemBody"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceItem"
+    delete:
+      operationId: deleteWorkspaceItem
+      tags: [workspace]
+      summary: Delete a workspace item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /schedule:
+    get:
+      operationId: listScheduleSessions
+      tags: [schedule]
+      summary: List study schedule sessions
+      responses:
+        "200":
+          description: Schedule sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScheduleSession"
+    post:
+      operationId: createScheduleSession
+      tags: [schedule]
+      summary: Create a schedule session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateScheduleSessionBody"
+      responses:
+        "201":
+          description: Created session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleSession"
+
+  /schedule/{id}:
+    patch:
+      operationId: updateScheduleSession
+      tags: [schedule]
+      summary: Update a schedule session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateScheduleSessionBody"
+      responses:
+        "200":
+          description: Updated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleSession"
+    delete:
+      operationId: deleteScheduleSession
+      tags: [schedule]
+      summary: Delete a schedule session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List projects
+      responses:
+        "200":
+          description: Projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectBody"
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+
+  /projects/{id}:
+    patch:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectBody"
+      responses:
+        "200":
+          description: Updated project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /projects/{id}/tasks:
+    post:
+      operationId: createProjectTask
+      tags: [projects]
+      summary: Add a task to a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectTaskBody"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectTask"
+
+  /projects/{id}/tasks/{taskId}:
+    patch:
+      operationId: updateProjectTask
+      tags: [projects]
+      summary: Update a project task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectTaskBody"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectTask"
+    delete:
+      operationId: deleteProjectTask
+      tags: [projects]
+      summary: Delete a project task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /whatsapp:
+    get:
+      operationId: getWhatsappStatus
+      tags: [whatsapp]
+      summary: Get WhatsApp connection status and initialization code
+      responses:
+        "200":
+          description: WhatsApp status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppStatus"
+    delete:
+      operationId: disconnectWhatsapp
+      tags: [whatsapp]
+      summary: Disconnect WhatsApp
+      responses:
+        "204":
+          description: Disconnected
+
+  /analytics:
+    get:
+      operationId: getAnalytics
+      tags: [analytics]
+      summary: Get usage analytics
+      responses:
+        "200":
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analytics"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        institution:
+          type: ["string", "null"]
+        creditBalance:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - firstName
+        - lastName
+        - institution
+        - creditBalance
+        - createdAt
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    RegisterBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        institution:
+          type: string
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    UpdateProfileBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        institution:
+          type: string
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        subject:
+          type: string
+        level:
+          type: string
+        tone:
+          type: string
+        systemPrompt:
+          type: ["string", "null"]
+        conversationCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - name
+        - subject
+        - level
+        - tone
+        - systemPrompt
+        - conversationCount
+        - createdAt
+
+    CreateAgentBody:
+      type: object
+      properties:
+        name:
+          type: string
+        subject:
+          type: string
+        level:
+          type: string
+        tone:
+          type: string
+        systemPrompt:
+          type: string
+      required:
+        - name
+        - subject
+        - level
+
+    UpdateAgentBody:
+      type: object
+      properties:
+        name:
+          type: string
+        subject:
+          type: string
+        level:
+          type: string
+        tone:
+          type: string
+        systemPrompt:
+          type: string
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        agentId:
+          type: ["integer", "null"]
+        agentName:
+          type: ["string", "null"]
+        agentSubject:
+          type: ["string", "null"]
+        title:
+          type: string
+        messageCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - agentId
+        - agentName
+        - agentSubject
+        - title
+        - messageCount
+        - createdAt
+        - updatedAt
+
+    ConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        agentId:
+          type: ["integer", "null"]
+        agentName:
+          type: ["string", "null"]
+        agentSubject:
+          type: ["string", "null"]
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+      required:
+        - id
+        - userId
+        - agentId
+        - agentName
+        - agentSubject
+        - title
+        - createdAt
+        - updatedAt
+        - messages
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        verb:
+          type: ["string", "null"]
+        thinkMs:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - verb
+        - thinkMs
+        - createdAt
+
+    CreateConversationBody:
+      type: object
+      properties:
+        agentId:
+          type: integer
+        title:
+          type: string
+      required:
+        - agentId
+
+    SendMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+
+    CreditBalance:
+      type: object
+      properties:
+        balance:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - balance
+        - updatedAt
+
+    CreditTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        amount:
+          type: integer
+        type:
+          type: string
+        description:
+          type: string
+        reference:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - amount
+        - type
+        - description
+        - reference
+        - createdAt
+
+    BuyCreditBody:
+      type: object
+      properties:
+        packageId:
+          type: string
+        email:
+          type: string
+      required:
+        - packageId
+        - email
+
+    PaystackInit:
+      type: object
+      properties:
+        authorizationUrl:
+          type: string
+        reference:
+          type: string
+        amount:
+          type: integer
+        credits:
+          type: integer
+      required:
+        - authorizationUrl
+        - reference
+        - amount
+        - credits
+
+    WorkspaceItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        agentId:
+          type: ["integer", "null"]
+        conversationId:
+          type: ["integer", "null"]
+        type:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        pinned:
+          type: boolean
+        starred:
+          type: boolean
+        subject:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - agentId
+        - conversationId
+        - type
+        - title
+        - content
+        - pinned
+        - starred
+        - subject
+        - createdAt
+        - updatedAt
+
+    CreateWorkspaceItemBody:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        agentId:
+          type: integer
+        conversationId:
+          type: integer
+        subject:
+          type: string
+        pinned:
+          type: boolean
+        starred:
+          type: boolean
+      required:
+        - type
+        - title
+
+    UpdateWorkspaceItemBody:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        pinned:
+          type: boolean
+        starred:
+          type: boolean
+        subject:
+          type: string
+
+    ScheduleSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        agentId:
+          type: ["integer", "null"]
+        agentName:
+          type: ["string", "null"]
+        title:
+          type: string
+        subject:
+          type: ["string", "null"]
+        date:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        type:
+          type: string
+        completed:
+          type: boolean
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - agentId
+        - agentName
+        - title
+        - subject
+        - date
+        - duration
+        - type
+        - completed
+        - notes
+        - createdAt
+
+    CreateScheduleSessionBody:
+      type: object
+      properties:
+        title:
+          type: string
+        agentId:
+          type: integer
+        subject:
+          type: string
+        date:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        type:
+          type: string
+        notes:
+          type: string
+      required:
+        - title
+        - date
+
+    UpdateScheduleSessionBody:
+      type: object
+      properties:
+        title:
+          type: string
+        subject:
+          type: string
+        date:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        type:
+          type: string
+        completed:
+          type: boolean
+        notes:
+          type: string
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        agentId:
+          type: ["integer", "null"]
+        agentName:
+          type: ["string", "null"]
+        title:
+          type: string
+        subject:
+          type: ["string", "null"]
+        type:
+          type: string
+        status:
+          type: string
+        dueDate:
+          type: ["string", "null"]
+          format: date-time
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectTask"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - agentId
+        - agentName
+        - title
+        - subject
+        - type
+        - status
+        - dueDate
+        - tasks
+        - createdAt
+        - updatedAt
+
+    ProjectTask:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        title:
+          type: string
+        completed:
+          type: boolean
+        dueDate:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - title
+        - completed
+        - dueDate
+        - createdAt
+
+    CreateProjectBody:
+      type: object
+      properties:
+        title:
+          type: string
+        agentId:
+          type: integer
+        subject:
+          type: string
+        type:
+          type: string
+        dueDate:
+          type: string
+          format: date-time
+      required:
+        - title
+
+    UpdateProjectBody:
+      type: object
+      properties:
+        title:
+          type: string
+        subject:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        dueDate:
+          type: string
+          format: date-time
+
+    CreateProjectTaskBody:
+      type: object
+      properties:
+        title:
+          type: string
+        dueDate:
+          type: string
+          format: date-time
+      required:
+        - title
+
+    UpdateProjectTaskBody:
+      type: object
+      properties:
+        title:
+          type: string
+        completed:
+          type: boolean
+        dueDate:
+          type: string
+          format: date-time
+
+    WhatsAppStatus:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        initCode:
+          type: string
+        initMessage:
+          type: string
+        whatsappLink:
+          type: string
+        phoneNumber:
+          type: ["string", "null"]
+        connectedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - connected
+        - initCode
+        - initMessage
+        - whatsappLink
+        - phoneNumber
+        - connectedAt
+
+    Analytics:
+      type: object
+      properties:
+        totalMessages:
+          type: integer
+        totalConversations:
+          type: integer
+        totalAgents:
+          type: integer
+        totalWorkspaceItems:
+          type: integer
+        creditsUsed:
+          type: integer
+        creditsBalance:
+          type: integer
+        messagesByDay:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayStat"
+        topAgents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentStat"
+        streakDays:
+          type: integer
+      required:
+        - totalMessages
+        - totalConversations
+        - totalAgents
+        - totalWorkspaceItems
+        - creditsUsed
+        - creditsBalance
+        - messagesByDay
+        - topAgents
+        - streakDays
+
+    DayStat:
+      type: object
+      properties:
+        date:
+          type: string
+        count:
+          type: integer
+      required:
+        - date
+        - count
+
+    AgentStat:
+      type: object
+      properties:
+        agentId:
+          type: integer
+        agentName:
+          type: string
+        subject:
+          type: string
+        messageCount:
+          type: integer
+      required:
+        - agentId
+        - agentName
+        - subject
+        - messageCount
