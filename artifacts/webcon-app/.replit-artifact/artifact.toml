@@ -18,13 +18,22 @@ localPort = 22817
 run = "pnpm --filter @workspace/webcon-app run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/webcon-app", "run", "build" ]
-publicDir = "artifacts/webcon-app/dist/public"
-serve = "static"
 
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+[services.production.build]
+args = ["pnpm", "--filter", "@workspace/webcon-app", "run", "build"]
+
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = ["pnpm", "--filter", "@workspace/webcon-app", "run", "start"]
+
+[services.production.run.env]
+PORT = "22817"
+NODE_ENV = "production"
+
+[services.production.health.startup]
+path = "/api/healthz"
 
 [services.env]
 PORT = "22817"

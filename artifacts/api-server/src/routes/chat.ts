@@ -11,8 +11,6 @@ if (!process.env.GROQ_API_KEY) {
   console.warn("GROQ_API_KEY env var not set");
 }
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 const GROQ_MODEL = "llama-3.3-70b-versatile";
 const COST_PER_MESSAGE = 1;
 
@@ -235,6 +233,13 @@ router.post("/chat/conversations/:id/messages", requireAuth, async (req: AuthReq
   }
 
   try {
+    const groqApiKey = process.env.GROQ_API_KEY;
+    if (!groqApiKey) {
+      res.status(503).json({ error: "AI chat is not configured. Add GROQ_API_KEY to enable chat responses." });
+      return;
+    }
+    const groq = new Groq({ apiKey: groqApiKey });
+
     const [balance] = await db
       .select()
       .from(creditBalancesTable)

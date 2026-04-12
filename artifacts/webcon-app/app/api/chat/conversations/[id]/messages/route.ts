@@ -16,8 +16,6 @@ import {
 import { eq, and, desc } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth-server";
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 const COST_PER_MESSAGE = 1;
 
 function generateSoulMd(soulMd: string | null, personalityDescription: string | null): string {
@@ -260,6 +258,15 @@ export async function POST(
     if (!content?.trim()) {
       return NextResponse.json({ error: "Message content required" }, { status: 400 });
     }
+
+    const groqApiKey = process.env.GROQ_API_KEY;
+    if (!groqApiKey) {
+      return NextResponse.json(
+        { error: "AI chat is not configured. Add GROQ_API_KEY to enable chat responses." },
+        { status: 503 }
+      );
+    }
+    const groq = new Groq({ apiKey: groqApiKey });
 
     const [agent] = conv.agentId
       ? await db.select().from(agentsTable).where(eq(agentsTable.id, conv.agentId)).limit(1)
