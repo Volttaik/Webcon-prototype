@@ -175,8 +175,8 @@ export async function POST(request: NextRequest) {
       .where(eq(usersTable.id, session.userId))
       .limit(1);
 
-    // Send access email
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://webcon.app";
+    // Send access email — auto-detect origin from the incoming request
+    const siteUrl = new URL(request.url).origin;
     try {
       await sendHubAccessEmail(
         user.email,
