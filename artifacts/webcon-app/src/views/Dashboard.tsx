@@ -23,9 +23,12 @@ import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 
 /* ─── Stat card ─── */
-function StatCard({ icon: Icon, label, value, sub, loading }: { icon: React.ElementType; label: string; value: string; sub?: string; loading?: boolean }) {
+function StatCard({ icon: Icon, label, value, sub, loading, shimmerDelay = '0s' }: { icon: React.ElementType; label: string; value: string; sub?: string; loading?: boolean; shimmerDelay?: string }) {
   return (
-    <div className="border border-border rounded-2xl px-5 py-4 bg-card shadow-elevation-sm flex items-start gap-3.5">
+    <div
+      className="shimmer-edge border border-border rounded-2xl px-5 py-4 bg-card shadow-elevation-sm flex items-start gap-3.5"
+      style={{ '--shimmer-delay': shimmerDelay } as React.CSSProperties}
+    >
       <div className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0 mt-0.5">
         <Icon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
       </div>
@@ -52,7 +55,8 @@ function AgentCard({ agent, index, onDelete }: { agent: Agent; index: number; on
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ delay: index * 0.04, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className="border border-border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/20 transition-all cursor-pointer group relative"
+      className="shimmer-edge border border-border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/20 transition-all cursor-pointer group relative"
+      style={{ '--shimmer-delay': `${index * 0.8}s` } as React.CSSProperties}
       onClick={() => navigate(`/chat?agent=${agent.id}`)}
     >
       <div className="flex items-start justify-between mb-4">
@@ -228,6 +232,7 @@ export default function Dashboard() {
                 value={stats ? `${stats.activeAgents}` : '0'}
                 sub={stats ? `of ${stats.maxAgents} available` : undefined}
                 loading={isLoading}
+                shimmerDelay="0s"
               />
               <StatCard
                 icon={MessageSquare}
@@ -235,6 +240,7 @@ export default function Dashboard() {
                 value={stats ? `${stats.totalConversations}` : '0'}
                 sub="all time"
                 loading={isLoading}
+                shimmerDelay="1.2s"
               />
               <StatCard
                 icon={Flame}
@@ -242,6 +248,7 @@ export default function Dashboard() {
                 value={stats ? `${stats.studyStreak} days` : '0 days'}
                 sub={stats && stats.studyStreak > 0 ? 'keep it up!' : 'start today!'}
                 loading={isLoading}
+                shimmerDelay="2.4s"
               />
               <StatCard
                 icon={TrendingUp}
@@ -249,6 +256,7 @@ export default function Dashboard() {
                 value={stats ? `${stats.messagesThisMonth}` : '0'}
                 sub={stats ? `of ${stats.maxMessagesPerMonth} on free plan` : undefined}
                 loading={isLoading}
+                shimmerDelay="3.6s"
               />
             </motion.div>
           </div>
@@ -404,7 +412,8 @@ export default function Dashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                     onClick={() => navigate(`/chat?agent=${agent.id}`)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card hover:border-foreground/20 hover:bg-secondary/30 transition-all text-left shadow-elevation-sm"
+                    className="shimmer-edge flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card hover:border-foreground/20 hover:bg-secondary/30 transition-all text-left shadow-elevation-sm"
+                    style={{ '--shimmer-delay': `${i * 1.1}s` } as React.CSSProperties}
                   >
                     <div className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0">
                       <Brain className="h-3 w-3 text-muted-foreground" strokeWidth={1.5} />
