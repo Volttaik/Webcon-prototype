@@ -27,7 +27,9 @@ const pool =
   new pg.Pool({
     connectionString,
     max: 5,
-    ssl: isLocalDatabase ? undefined : { rejectUnauthorized: false },
+    ssl: isLocalDatabase
+      ? undefined
+      : { rejectUnauthorized: false, checkServerIdentity: () => undefined },
   });
 
 if (process.env.NODE_ENV !== "production") {
