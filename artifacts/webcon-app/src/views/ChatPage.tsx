@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppHeader from '@/components/layout/AppHeader';
 import ConversationSidebar from '@/components/chat/ConversationSidebar';
-import MessageList, { VerbType } from '@/components/chat/MessageList';
+import MessageList from '@/components/chat/MessageList';
 import MessageInput from '@/components/chat/MessageInput';
 import EmptyChat from '@/components/chat/EmptyChat';
 import { toast } from 'sonner';
@@ -18,9 +18,10 @@ interface ChatMessage {
   id: number | string;
   role: 'user' | 'assistant';
   content: string;
+  imageUrl?: string | null;
   timestamp: Date;
   thinkMs?: number;
-  verb?: VerbType;
+  verb?: string;
 }
 
 interface ApiConversation {
@@ -42,11 +43,9 @@ interface ApiMessage {
   createdAt: string;
 }
 
-function verbFromString(v: string | null | undefined): VerbType {
-  if (v === 'searching') return 'searching';
-  if (v === 'creating') return 'creating-file';
-  if (v === 'planning') return 'creating-project';
-  return 'thinking';
+function verbFromString(v: string | null | undefined): string {
+  if (!v) return 'thinking';
+  return v;
 }
 
 function SearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -105,7 +104,7 @@ export default function ChatPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
-  const [activeVerb, setActiveVerb] = useState<VerbType>('thinking');
+  const [activeVerb, setActiveVerb] = useState<string>('thinking');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentConv, setCurrentConv] = useState<ApiConversation | null>(null);
   const [streamingText, setStreamingText] = useState('');
@@ -168,13 +167,14 @@ export default function ChatPage() {
     }
   }, [agentIdFromQuery, agents]);
 
-  const handleSend = useCallback(async (content: string) => {
+  const handleSend = useCallback(async (content: string, imageUrl?: string) => {
     if (isStreaming) return;
 
     const tempUserMsg: ChatMessage = {
       id: `temp-${Date.now()}`,
       role: 'user',
-      content,
+      content: content || (imageUrl ? '[User sent an image]' : ''),
+      imageUrl: imageUrl || null,
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, tempUserMsg]);
@@ -216,7 +216,7 @@ export default function ChatPage() {
       const res = await fetch(`/api/chat/conversations/${convId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, imageUrl }),
         signal: abortRef.current.signal,
       });
 
@@ -234,7 +234,7 @@ export default function ChatPage() {
 
       const decoder = new TextDecoder();
       let accumulatedText = '';
-      let finalVerb: VerbType = 'thinking';
+      let finalVerb: string = 'thinking';
       let finalThinkMs = 0;
       let assistantMsgId: number | null = null;
       let userMsgId: number | null = null;
@@ -266,13 +266,8 @@ export default function ChatPage() {
 
           if (evt.type === 'verb') {
             const v = evt.verb as string;
-            const mapped: VerbType =
-              v === 'searching' ? 'searching' :
-              v === 'creating' ? 'creating-file' :
-              v === 'planning' ? 'creating-project' :
-              'thinking';
-            setActiveVerb(mapped);
-            finalVerb = mapped;
+            setActiveVerb(v || 'thinking');
+            finalVerb = v || 'thinking';
           } else if (evt.type === 'text') {
             accumulatedText += evt.text as string;
             setStreamingText(accumulatedText);

@@ -1,48 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Copy, Check, Globe, PenLine, FileText, BookOpen, FolderPlus } from 'lucide-react';
+import { Brain, Copy, Check, Globe, PenLine, FileText, BookOpen, FolderPlus, ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Message {
   id: number | string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  imageUrl?: string | null;
   timestamp: Date;
   thinkMs?: number;
   verb?: string;
 }
 
-export type VerbType = 'thinking' | 'searching' | 'creating-project' | 'creating-file' | 'reading';
+export type VerbType = 'thinking' | 'searching' | 'creating-project' | 'creating-file' | 'reading' | 'creating' | 'planning';
 
-const VERB_CONFIG: Record<VerbType, { Icon: React.ElementType; label: string; doneLabel: (ms: number) => string }> = {
-  thinking: {
-    Icon: Brain,
-    label: 'Thinking…',
-    doneLabel: (ms) => ms <= 0 ? 'Thought for a moment' : `Thought for ${Math.round(ms / 1000)}s`,
-  },
-  searching: {
-    Icon: Globe,
-    label: 'Searching the web…',
-    doneLabel: (ms) => ms <= 0 ? 'Searched' : `Searched in ${Math.round(ms / 1000)}s`,
-  },
-  'creating-project': {
-    Icon: FolderPlus,
-    label: 'Creating project…',
-    doneLabel: (ms) => ms <= 0 ? 'Created project' : `Created project in ${Math.round(ms / 1000)}s`,
-  },
-  'creating-file': {
-    Icon: PenLine,
-    label: 'Creating file…',
-    doneLabel: (ms) => ms <= 0 ? 'Created file' : `Created file in ${Math.round(ms / 1000)}s`,
-  },
-  reading: {
-    Icon: BookOpen,
-    label: 'Reading…',
-    doneLabel: (ms) => ms <= 0 ? 'Read through' : `Read in ${Math.round(ms / 1000)}s`,
-  },
+const VERB_CONFIG: Record<string, { Icon: React.ElementType; label: string; doneLabel: (ms: number) => string }> = {
+  thinking:          { Icon: Brain,      label: 'Thinking…',              doneLabel: ms => ms <= 0 ? 'Thought' : `Thought for ${Math.round(ms / 1000)}s` },
+  searching:         { Icon: Globe,      label: 'Searching the web…',     doneLabel: ms => ms <= 0 ? 'Searched' : `Searched in ${Math.round(ms / 1000)}s` },
+  reading:           { Icon: BookOpen,   label: 'Reading database…',      doneLabel: ms => ms <= 0 ? 'Read database' : `Read in ${Math.round(ms / 1000)}s` },
+  creating:          { Icon: PenLine,    label: 'Creating…',              doneLabel: ms => ms <= 0 ? 'Created' : `Created in ${Math.round(ms / 1000)}s` },
+  planning:          { Icon: FileText,   label: 'Planning…',              doneLabel: ms => ms <= 0 ? 'Planned' : `Planned in ${Math.round(ms / 1000)}s` },
+  'creating-project':{ Icon: FolderPlus, label: 'Creating project…',      doneLabel: ms => ms <= 0 ? 'Created project' : `Created project in ${Math.round(ms / 1000)}s` },
+  'creating-file':   { Icon: PenLine,    label: 'Creating file…',         doneLabel: ms => ms <= 0 ? 'Created file' : `Created file in ${Math.round(ms / 1000)}s` },
 };
 
-/* ─── Code block ─── */
 function CodeBlock({ code, lang }: { code: string; lang?: string }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
@@ -54,8 +36,7 @@ function CodeBlock({ code, lang }: { code: string; lang?: string }) {
     <div className="my-3 rounded-xl border border-border bg-secondary/30 overflow-hidden">
       <div className="flex items-center justify-between px-3.5 py-2 border-b border-border">
         <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider">{lang || 'code'}</span>
-        <motion.button onClick={copy} whileTap={{ scale: 0.92 }}
-          className="flex items-center gap-1.5 text-muted-foreground/60 hover:text-foreground transition-colors">
+        <motion.button onClick={copy} whileTap={{ scale: 0.92 }} className="flex items-center gap-1.5 text-muted-foreground/60 hover:text-foreground transition-colors">
           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
           <span className="text-[10px]">{copied ? 'Copied' : 'Copy'}</span>
         </motion.button>
@@ -65,7 +46,6 @@ function CodeBlock({ code, lang }: { code: string; lang?: string }) {
   );
 }
 
-/* ─── Plain text renderer for AI messages ─── */
 function AssistantContent({ content }: { content: string }) {
   const parts = content.split(/(```[\s\S]*?```)/g);
   return (
@@ -98,23 +78,17 @@ function AssistantContent({ content }: { content: string }) {
   );
 }
 
-/* ─── Typewriter assistant message with pen cursor ─── */
 function TypewriterAssistant({ content, active }: { content: string; active: boolean }) {
   const [shown, setShown] = useState(active ? '' : content);
   const targetRef = useRef(content);
   const shownLenRef = useRef(active ? 0 : content.length);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    targetRef.current = content;
-  }, [content]);
+  useEffect(() => { targetRef.current = content; }, [content]);
 
   useEffect(() => {
     if (!active) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
       setShown(content);
       shownLenRef.current = content.length;
       return;
@@ -129,34 +103,17 @@ function TypewriterAssistant({ content, active }: { content: string; active: boo
         setShown(target.slice(0, next));
       }
     }, 22);
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
+    return () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
   }, [active]);
 
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
+  useEffect(() => { return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; }, []);
 
   return (
     <div className="relative">
       <AssistantContent content={shown} />
       {active && (
-        <motion.span
-          className="inline-flex items-center gap-1 mt-1"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
-        >
-          <motion.span
-            animate={{ opacity: [1, 0.2, 1] }}
-            transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut' }}
-          >
+        <motion.span className="inline-flex items-center gap-1 mt-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+          <motion.span animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut' }}>
             <PenLine className="h-3 w-3 text-muted-foreground/50" strokeWidth={1.5} />
           </motion.span>
         </motion.span>
@@ -165,153 +122,60 @@ function TypewriterAssistant({ content, active }: { content: string; active: boo
   );
 }
 
-/* ─── Action badge shown after response (e.g. "Thought for 2s") ─── */
-function ActionBadge({ ms, verb = 'thinking' }: { ms: number; verb?: VerbType }) {
-  const { Icon, doneLabel } = VERB_CONFIG[verb] ?? VERB_CONFIG.thinking;
+function ActionBadge({ ms, verb = 'thinking' }: { ms: number; verb?: string }) {
+  const config = VERB_CONFIG[verb] ?? VERB_CONFIG.thinking;
+  const { Icon, doneLabel } = config;
   return (
     <div className="flex flex-col mb-3">
       <div className="flex items-center gap-1.5 pl-[3.5px] mb-1">
         <div className="flex flex-col items-center gap-[3px]">
-          <motion.span
-            className="block w-[5px] h-[5px] rounded-full border border-border/60 bg-background"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.25, delay: 0 }}
-          />
-          <motion.span
-            className="block w-px bg-border/40 origin-top"
-            initial={{ scaleY: 0, height: 12 }}
-            animate={{ scaleY: 1 }}
-            transition={{ duration: 0.35, delay: 0.15, ease: 'easeOut' }}
-            style={{ height: 12 }}
-          />
+          <motion.span className="block w-[5px] h-[5px] rounded-full border border-border/60 bg-background" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.25 }} />
+          <motion.span className="block w-px bg-border/40 origin-top" initial={{ scaleY: 0, height: 12 }} animate={{ scaleY: 1 }} transition={{ duration: 0.35, delay: 0.15, ease: 'easeOut' }} style={{ height: 12 }} />
         </div>
       </div>
-      <motion.div
-        className="flex items-center gap-1.5"
-        initial={{ opacity: 0, x: -6 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3, delay: 0.35 }}
-      >
+      <motion.div className="flex items-center gap-1.5" initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.35 }}>
         <Icon className="h-[11px] w-[11px] text-muted-foreground/40 shrink-0" strokeWidth={1.5} />
         <span className="text-[11px] text-muted-foreground/40 italic">{doneLabel(ms)}</span>
       </motion.div>
       <div className="flex items-center gap-1.5 pl-[3.5px] mt-1.5 mb-2">
-        <motion.span
-          className="block w-px bg-border/40 origin-top"
-          initial={{ scaleY: 0, height: 12 }}
-          animate={{ scaleY: 1 }}
-          transition={{ duration: 0.35, delay: 0.5, ease: 'easeOut' }}
-          style={{ height: 12 }}
-        />
+        <motion.span className="block w-px bg-border/40 origin-top" initial={{ scaleY: 0, height: 12 }} animate={{ scaleY: 1 }} transition={{ duration: 0.35, delay: 0.5, ease: 'easeOut' }} style={{ height: 12 }} />
       </div>
     </div>
   );
 }
 
-/* ─── Pulse dots ─── */
 function PulseDot({ delay }: { delay: number }) {
   return (
-    <motion.span
-      className="block w-[4px] h-[4px] rounded-full bg-muted-foreground/40"
-      animate={{ opacity: [0.15, 0.8, 0.15] }}
-      transition={{ duration: 1.3, repeat: Infinity, ease: 'easeInOut', delay }}
-    />
+    <motion.span className="block w-[4px] h-[4px] rounded-full bg-muted-foreground/40" animate={{ opacity: [0.15, 0.8, 0.15] }} transition={{ duration: 1.3, repeat: Infinity, ease: 'easeInOut', delay }} />
   );
 }
 
-const VERB_COLORS: Record<VerbType, string> = {
-  thinking:          'text-muted-foreground/70',
-  searching:         'text-muted-foreground/70',
-  'creating-project':'text-muted-foreground/70',
-  'creating-file':   'text-muted-foreground/70',
-  reading:           'text-muted-foreground/70',
-};
-
-const VERB_BG: Record<VerbType, string> = {
-  thinking:          'bg-secondary/60 border-border/60',
-  searching:         'bg-secondary/60 border-border/60',
-  'creating-project':'bg-secondary/60 border-border/60',
-  'creating-file':   'bg-secondary/60 border-border/60',
-  reading:           'bg-secondary/60 border-border/60',
-};
-
-/* ─── Active verb indicator ─── */
-function VerbIndicator({ verb = 'thinking' }: { verb?: VerbType }) {
-  const { Icon, label } = VERB_CONFIG[verb] ?? VERB_CONFIG.thinking;
-  const colorClass = VERB_COLORS[verb] ?? VERB_COLORS.thinking;
-  const bgClass = VERB_BG[verb] ?? VERB_BG.thinking;
-
-  const iconVariants: Record<VerbType, React.ReactNode> = {
-    thinking: (
-      <motion.div
-        animate={{ opacity: [0.6, 1, 0.6] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <Icon className={`h-3.5 w-3.5 shrink-0 ${colorClass}`} strokeWidth={1.5} />
-      </motion.div>
-    ),
-    searching: (
-      <motion.div
-        animate={{ opacity: [0.55, 1, 0.55], scale: [1, 1.1, 1] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <Icon className={`h-3.5 w-3.5 shrink-0 ${colorClass}`} strokeWidth={1.5} />
-      </motion.div>
-    ),
-    'creating-project': (
-      <motion.div
-        animate={{ y: [0, -3, 0], scale: [1, 1.1, 1] }}
-        transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <Icon className={`h-3.5 w-3.5 shrink-0 ${colorClass}`} strokeWidth={1.5} />
-      </motion.div>
-    ),
-    'creating-file': (
-      <motion.div
-        animate={{ y: [0, -3, 0], scale: [1, 1.1, 1] }}
-        transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <Icon className={`h-3.5 w-3.5 shrink-0 ${colorClass}`} strokeWidth={1.5} />
-      </motion.div>
-    ),
-    reading: (
-      <motion.div
-        animate={{ x: [0, 2.5, -2.5, 0] }}
-        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <Icon className={`h-3.5 w-3.5 shrink-0 ${colorClass}`} strokeWidth={1.5} />
-      </motion.div>
-    ),
-  };
+function VerbIndicator({ verb = 'thinking' }: { verb?: string }) {
+  const config = VERB_CONFIG[verb] ?? VERB_CONFIG.thinking;
+  const { Icon, label } = config;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border ${bgClass}`}
+      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border bg-secondary/60 border-border/60"
     >
-      {iconVariants[verb]}
+      <motion.div animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+        <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" strokeWidth={1.5} />
+      </motion.div>
       <div className="flex items-center gap-[3px]">
         <PulseDot delay={0} />
         <PulseDot delay={0.2} />
         <PulseDot delay={0.4} />
       </div>
-      <motion.span
-        key={verb}
-        initial={{ opacity: 0, x: -4 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.2 }}
-        className={`text-[12px] font-medium ${colorClass}`}
-      >
+      <motion.span key={verb} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }} className="text-[12px] font-medium text-muted-foreground/70">
         {label}
       </motion.span>
     </motion.div>
   );
 }
 
-/* ─── Divider between exchanges ─── */
 function DateDivider({ date }: { date: Date }) {
   return (
     <div className="flex items-center gap-3 py-1">
@@ -324,10 +188,31 @@ function DateDivider({ date }: { date: Date }) {
   );
 }
 
+function ChatImage({ url }: { url: string }) {
+  const [errored, setErrored] = useState(false);
+  if (errored) {
+    return (
+      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground/50 border border-border/40 rounded-xl px-3 py-2">
+        <ImageOff className="h-3.5 w-3.5" strokeWidth={1.5} />
+        <span>Image unavailable</span>
+      </div>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt="Attached"
+      onError={() => setErrored(true)}
+      className="mt-2 max-w-[260px] max-h-[240px] rounded-xl border border-border/40 object-cover cursor-pointer"
+      onClick={() => window.open(url, '_blank')}
+    />
+  );
+}
+
 interface Props {
   messages: Message[];
   isThinking?: boolean;
-  verb?: VerbType;
+  verb?: string;
 }
 
 export default function MessageList({ messages, isThinking, verb = 'thinking' }: Props) {
@@ -354,16 +239,11 @@ export default function MessageList({ messages, isThinking, verb = 'thinking' }:
 
             if (msg.role === 'assistant') {
               return (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                >
+                <motion.div key={msg.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
                   {showDivider && <DateDivider date={msg.timestamp} />}
                   <div className="py-3">
                     {msg.thinkMs !== undefined && (
-                      <ActionBadge ms={msg.thinkMs} verb={(msg as any).verb ?? 'thinking'} />
+                      <ActionBadge ms={msg.thinkMs} verb={msg.verb ?? 'thinking'} />
                     )}
                     <TypewriterAssistant content={msg.content} active={!!isStreamingMsg} />
                   </div>
@@ -377,28 +257,24 @@ export default function MessageList({ messages, isThinking, verb = 'thinking' }:
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="flex justify-end py-2"
+                className="flex flex-col items-end py-2 gap-1.5"
               >
-                <div className={cn(
-                  'inline-block px-4 py-2 rounded-full text-[13px] text-foreground/80 leading-relaxed',
-                  'border border-dashed border-border/70 bg-secondary/20',
-                  'max-w-[80%]'
-                )}>
-                  {msg.content}
-                </div>
+                {msg.imageUrl && <ChatImage url={msg.imageUrl} />}
+                {msg.content && msg.content !== '[User sent an image]' && (
+                  <div className={cn(
+                    'inline-block px-4 py-2 rounded-full text-[13px] text-foreground/80 leading-relaxed',
+                    'border border-dashed border-border/70 bg-secondary/20',
+                    'max-w-[80%]'
+                  )}>
+                    {msg.content}
+                  </div>
+                )}
               </motion.div>
             );
           })}
 
           {isThinking && (
-            <motion.div
-              key="thinking"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="py-2"
-            >
+            <motion.div key="thinking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3, ease: 'easeOut' }} className="py-2">
               <VerbIndicator verb={verb} />
             </motion.div>
           )}

@@ -11,6 +11,10 @@ export const usersTable = pgTable("users", {
   institution: text("institution"),
   emailVerified: boolean("email_verified").notNull().default(false),
   emailVerifyToken: text("email_verify_token"),
+  avatarUrl: text("avatar_url"),
+  isBanned: boolean("is_banned").notNull().default(false),
+  banReason: text("ban_reason"),
+  paystackRecipientCode: text("paystack_recipient_code"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 

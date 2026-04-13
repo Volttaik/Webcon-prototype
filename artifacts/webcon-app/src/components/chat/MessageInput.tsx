@@ -1,8 +1,9 @@
 import { useState, useRef, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUp, Square, Brain, ChevronDown, Globe, PenLine, FolderPlus, BookOpen } from 'lucide-react';
+import { ArrowUp, Square, Brain, ChevronDown, Globe, PenLine, FolderPlus, BookOpen, ImagePlus, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface Agent {
   id: number;
@@ -11,7 +12,7 @@ interface Agent {
 }
 
 interface Props {
-  onSend: (message: string) => void;
+  onSend: (message: string, imageUrl?: string) => void;
   isStreaming?: boolean;
   onStop?: () => void;
   disabled?: boolean;
@@ -23,10 +24,10 @@ interface Props {
 type VerbHint = 'searching' | 'creating-file' | 'creating-project' | 'reading' | null;
 
 const VERB_HINTS: { pattern: RegExp; verb: VerbHint; Icon: React.ElementType; label: string }[] = [
-  { pattern: /^(search|find|look up|lookup|google|search for)/i, verb: 'searching',        Icon: Globe,      label: 'Searching' },
-  { pattern: /create\s+(a\s+)?(file|note|document|doc)|new\s+(file|note|document)/i,        verb: 'creating-file',    Icon: PenLine,    label: 'Creating file' },
-  { pattern: /create\s+(a\s+)?project|new project/i,                                        verb: 'creating-project', Icon: FolderPlus, label: 'Creating project' },
-  { pattern: /^(read|read through|summarize|analyse|analyze|go through|review)/i,           verb: 'reading',          Icon: BookOpen,   label: 'Reading' },
+  { pattern: /^(search|find|look up|lookup|google|search for)/i, verb: 'searching', Icon: Globe, label: 'Searching' },
+  { pattern: /create\s+(a\s+)?(file|note|document|doc)|new\s+(file|note|document)/i, verb: 'creating-file', Icon: PenLine, label: 'Creating file' },
+  { pattern: /create\s+(a\s+)?project|new project/i, verb: 'creating-project', Icon: FolderPlus, label: 'Creating project' },
+  { pattern: /^(read|read through|summarize|analyse|analyze|go through|review)/i, verb: 'reading', Icon: BookOpen, label: 'Reading' },
 ];
 
 function detectHint(text: string): VerbHint {
@@ -53,14 +54,10 @@ function AgentSelector({ agents, selectedAgentId, onAgentChange, disabled }: {
       <button
         disabled={disabled}
         onClick={() => setOpen(o => !o)}
-        className={cn(
-          'flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors px-2 py-1.5 rounded-lg hover:bg-secondary/50 disabled:opacity-40 group',
-        )}
+        className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors px-2 py-1.5 rounded-lg hover:bg-secondary/50 disabled:opacity-40"
       >
         <Brain className="h-2.5 w-2.5 shrink-0" strokeWidth={1.5} />
-        <span className="max-w-[80px] truncate leading-none">
-          {selected ? selected.name : 'No agent'}
-        </span>
+        <span className="max-w-[80px] truncate leading-none">{selected ? selected.name : 'No agent'}</span>
         <ChevronDown className={cn('h-2.5 w-2.5 shrink-0 transition-transform duration-150', open && 'rotate-180')} />
       </button>
 
@@ -115,15 +112,19 @@ function AgentSelector({ agents, selectedAgentId, onAgentChange, disabled }: {
 
 export default function MessageInput({ onSend, isStreaming, onStop, disabled, agents = [], selectedAgentId, onAgentChange }: Props) {
   const [value, setValue] = useState('');
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hint = detectHint(value);
   const hintConfig = hint ? VERB_HINTS.find(h => h.verb === hint) : null;
 
   const handleSend = () => {
-    if (!value.trim() || isStreaming) return;
-    onSend(value.trim());
+    if ((!value.trim() && !pendingImageUrl) || isStreaming) return;
+    onSend(value.trim(), pendingImageUrl || undefined);
     setValue('');
+    setPendingImageUrl(null);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
@@ -138,7 +139,34 @@ export default function MessageInput({ onSend, isStreaming, onStop, disabled, ag
     el.style.height = Math.min(el.scrollHeight, 160) + 'px';
   };
 
-  const canSend = !!value.trim() && !isStreaming && !disabled;
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { toast.error('Image too large (max 10MB)'); return; }
+
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'chat-images');
+      formData.append('folder', 'messages');
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || 'Image upload failed');
+        return;
+      }
+      const data = await res.json();
+      setPendingImageUrl(data.url);
+    } catch {
+      toast.error('Image upload failed');
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const canSend = (!!value.trim() || !!pendingImageUrl) && !isStreaming && !disabled;
 
   return (
     <div className="px-4 md:px-8 py-4 max-w-2xl mx-auto w-full">
@@ -164,12 +192,26 @@ export default function MessageInput({ onSend, isStreaming, onStop, disabled, ag
           )}
         </AnimatePresence>
 
+        {pendingImageUrl && (
+          <div className="px-3.5 pt-3 pb-0">
+            <div className="relative inline-block">
+              <img src={pendingImageUrl} alt="Pending" className="h-20 w-20 rounded-xl object-cover border border-border" />
+              <button
+                onClick={() => setPendingImageUrl(null)}
+                className="absolute -top-1.5 -right-1.5 bg-background border border-border rounded-full p-0.5 hover:bg-secondary"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        )}
+
         <textarea
           ref={textareaRef}
           value={value}
           onChange={e => { setValue(e.target.value); handleInput(); }}
           onKeyDown={handleKeyDown}
-          placeholder="Ask a follow-up…"
+          placeholder={pendingImageUrl ? 'Ask about this image…' : 'Ask a follow-up…'}
           rows={1}
           disabled={disabled || isStreaming}
           className="w-full px-4 pt-3.5 pb-1.5 text-[13px] bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground/40 disabled:opacity-40 min-h-[44px] max-h-[160px] leading-relaxed"
@@ -185,40 +227,40 @@ export default function MessageInput({ onSend, isStreaming, onStop, disabled, ag
                 disabled={disabled || isStreaming}
               />
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={handleImageSelect}
+              disabled={disabled || isStreaming || uploadingImage}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled || isStreaming || uploadingImage}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors px-2 py-1.5 rounded-lg hover:bg-secondary/50 disabled:opacity-30"
+              title="Attach image"
+            >
+              {uploadingImage ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ImagePlus className="h-3.5 w-3.5" strokeWidth={1.5} />
+              )}
+            </button>
           </div>
 
           <AnimatePresence mode="wait">
             {isStreaming ? (
-              <motion.div
-                key="stop"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.15 }}
-              >
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-7 w-7 rounded-lg"
-                  onClick={onStop}
-                >
+              <motion.div key="stop" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.15 }}>
+                <Button size="icon" variant="outline" className="h-7 w-7 rounded-lg" onClick={onStop}>
                   <Square className="h-2.5 w-2.5 fill-current" />
                 </Button>
               </motion.div>
             ) : (
-              <motion.div
-                key="send"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.15 }}
-              >
+              <motion.div key="send" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.15 }}>
                 <Button
                   size="icon"
-                  className={cn(
-                    'h-7 w-7 rounded-lg transition-opacity duration-200',
-                    canSend ? 'opacity-100' : 'opacity-25'
-                  )}
+                  className={cn('h-7 w-7 rounded-lg transition-opacity duration-200', canSend ? 'opacity-100' : 'opacity-25')}
                   onClick={handleSend}
                   disabled={!canSend}
                 >

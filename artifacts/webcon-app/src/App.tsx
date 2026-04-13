@@ -9,6 +9,8 @@ import Dashboard from '@/views/Dashboard';
 import ChatPage from '@/views/ChatPage';
 import Settings from '@/views/Settings';
 import LearningHub from '@/views/LearningHub';
+import LearningHubApply from '@/views/LearningHubApply';
+import LearningHubDashboard from '@/views/LearningHubDashboard';
 import Schedule from '@/views/Schedule';
 import Analytics from '@/views/Analytics';
 import Billing from '@/views/Billing';
@@ -42,6 +44,8 @@ function AppRoutes() {
       <Route path="/chat/:id" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/learning-hub" element={<ProtectedRoute><LearningHub /></ProtectedRoute>} />
+      <Route path="/learning-hub/apply" element={<ProtectedRoute><LearningHubApply /></ProtectedRoute>} />
+      <Route path="/learning-hub/dashboard" element={<ProtectedRoute><LearningHubDashboard /></ProtectedRoute>} />
       <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
       <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />

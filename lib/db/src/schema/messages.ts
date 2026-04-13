@@ -10,6 +10,7 @@ export const messages = pgTable("messages", {
     .references(() => conversations.id, { onDelete: "cascade" }),
   role: text("role").notNull(),
   content: text("content").notNull(),
+  imageUrl: text("image_url"),
   verb: text("verb"),
   thinkMs: integer("think_ms"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),

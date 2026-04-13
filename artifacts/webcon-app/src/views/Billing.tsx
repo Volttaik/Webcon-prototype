@@ -12,28 +12,28 @@ import { Toaster } from '@/components/ui/sonner';
 const PLANS = [
   {
     name: 'Free',
-    price: '$0',
+    price: '₦0',
     period: '/month',
     badge: 'Current plan',
     current: true,
     features: [
       '5 AI agents',
       '100 messages/month',
-      'WhatsApp & Telegram',
+      'Learning Hub access',
       'Basic analytics',
       'Community support',
     ],
   },
   {
     name: 'Pro',
-    price: '$12',
+    price: '₦6,000',
     period: '/month',
     badge: 'Most popular',
     current: false,
     features: [
       'Unlimited agents',
       '1,000 messages/month',
-      'WhatsApp & Telegram',
+      'Learning Hub access',
       'Full analytics',
       'Priority support',
       'Study schedule planner',
@@ -42,7 +42,7 @@ const PLANS = [
   },
   {
     name: 'Team',
-    price: '$30',
+    price: '₦15,000',
     period: '/month',
     badge: 'Study groups',
     current: false,
