@@ -1,7 +1,9 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Component, type ReactNode } from "react";
-import App from "@/App";
+
+const App = dynamic(() => import("@/App"), { ssr: false });
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
