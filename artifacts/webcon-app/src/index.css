@@ -74,34 +74,34 @@
     --card-foreground: 0 0% 2%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 2%;
-    --primary: 240 5% 18%;
+    --primary: 240 5% 10%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 93%;
+    --secondary: 0 0% 91%;
     --secondary-foreground: 0 0% 2%;
-    --muted: 0 0% 93%;
-    --muted-foreground: 0 0% 36%;
-    --accent: 240 5% 18%;
+    --muted: 0 0% 91%;
+    --muted-foreground: 0 0% 24%;
+    --accent: 240 5% 10%;
     --accent-foreground: 0 0% 98%;
-    --destructive: 0 72% 48%;
+    --destructive: 0 72% 44%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 74%;
+    --border: 0 0% 62%;
     --input: 0 0% 96%;
-    --ring: 240 5% 18%;
+    --ring: 240 5% 10%;
     --radius: 0.5rem;
-    --chart-1: 240 5% 18%;
-    --chart-2: 0 0% 45%;
-    --chart-3: 0 0% 30%;
-    --chart-4: 0 0% 60%;
-    --chart-5: 0 0% 78%;
+    --chart-1: 240 5% 10%;
+    --chart-2: 0 0% 38%;
+    --chart-3: 0 0% 22%;
+    --chart-4: 0 0% 52%;
+    --chart-5: 0 0% 72%;
     --font-sans-var: 'Inter', system-ui, -apple-system, sans-serif;
     --sidebar-background: 0 0% 97%;
     --sidebar-foreground: 0 0% 2%;
     --sidebar-primary: 0 0% 2%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 0 0% 89%;
+    --sidebar-accent: 0 0% 86%;
     --sidebar-accent-foreground: 0 0% 2%;
-    --sidebar-border: 0 0% 74%;
-    --sidebar-ring: 240 5% 18%;
+    --sidebar-border: 0 0% 62%;
+    --sidebar-ring: 240 5% 10%;
     --shadow-sm: 0 1px 0 rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
     --shadow-md: 0 1px 0 rgba(0,0,0,0.06), 0 4px 14px rgba(0,0,0,0.09), 0 2px 4px rgba(0,0,0,0.05);
     --shadow-lg: 0 1px 0 rgba(0,0,0,0.05), 0 8px 28px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
@@ -195,29 +195,18 @@
     border-radius: 2px;
   }
 
-  .shimmer-edge {
+  .glow-border {
     position: relative;
   }
-  .shimmer-edge::before {
+  .glow-border::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      hsl(var(--foreground) / 0.0) 20%,
-      hsl(var(--foreground) / 0.45) 50%,
-      hsl(var(--foreground) / 0.0) 80%,
-      transparent 100%
-    );
-    background-size: 300% 100%;
-    background-position: 100% center;
-    animation: edgeShimmer 5s ease-in-out infinite;
-    animation-delay: var(--shimmer-delay, 0s);
+    inset: -1px;
     border-radius: inherit;
+    border: 1px solid hsl(var(--foreground) / 0);
+    box-shadow: 0 0 0px 0px hsl(var(--foreground) / 0);
+    animation: borderGlowPulse 4s ease-in-out infinite;
+    animation-delay: var(--shimmer-delay, 0s);
     pointer-events: none;
     z-index: 1;
   }
@@ -228,12 +217,15 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes edgeShimmer {
-  0%   { background-position: 140% center; opacity: 0; }
-  10%  { opacity: 1; }
-  50%  { background-position: -40% center; opacity: 1; }
-  90%  { opacity: 0; }
-  100% { background-position: -140% center; opacity: 0; }
+@keyframes borderGlowPulse {
+  0%, 100% {
+    border-color: hsl(var(--foreground) / 0);
+    box-shadow: 0 0 0px 0px hsl(var(--foreground) / 0);
+  }
+  50% {
+    border-color: hsl(var(--foreground) / 0.18);
+    box-shadow: 0 0 10px 2px hsl(var(--foreground) / 0.07), 0 0 4px 0px hsl(var(--foreground) / 0.12);
+  }
 }
 .animate-fade-slide-up {
   animation: fadeSlideUp 0.4s ease-out both;

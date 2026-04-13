@@ -26,7 +26,7 @@ import { Toaster } from '@/components/ui/sonner';
 function StatCard({ icon: Icon, label, value, sub, loading, shimmerDelay = '0s' }: { icon: React.ElementType; label: string; value: string; sub?: string; loading?: boolean; shimmerDelay?: string }) {
   return (
     <div
-      className="shimmer-edge border border-border rounded-2xl px-5 py-4 bg-card shadow-elevation-sm flex items-start gap-3.5"
+      className="glow-border border border-border rounded-2xl px-5 py-4 bg-card shadow-elevation-sm flex items-start gap-3.5"
       style={{ '--shimmer-delay': shimmerDelay } as React.CSSProperties}
     >
       <div className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0 mt-0.5">
@@ -55,7 +55,7 @@ function AgentCard({ agent, index, onDelete }: { agent: Agent; index: number; on
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ delay: index * 0.04, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className="shimmer-edge border border-border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/20 transition-all cursor-pointer group relative"
+      className="glow-border border border-border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/20 transition-all cursor-pointer group relative"
       style={{ '--shimmer-delay': `${index * 0.8}s` } as React.CSSProperties}
       onClick={() => navigate(`/chat?agent=${agent.id}`)}
     >
@@ -412,7 +412,7 @@ export default function Dashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                     onClick={() => navigate(`/chat?agent=${agent.id}`)}
-                    className="shimmer-edge flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card hover:border-foreground/20 hover:bg-secondary/30 transition-all text-left shadow-elevation-sm"
+                    className="glow-border flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card hover:border-foreground/20 hover:bg-secondary/30 transition-all text-left shadow-elevation-sm"
                     style={{ '--shimmer-delay': `${i * 1.1}s` } as React.CSSProperties}
                   >
                     <div className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0">
