@@ -58,7 +58,7 @@ export async function ensureCreditBalance(userId: number): Promise<void> {
     .where(eq(creditBalancesTable.userId, userId))
     .limit(1);
   if (!existing[0]) {
-    await db.insert(creditBalancesTable).values({ userId, balance: 50 });
+    await db.insert(creditBalancesTable).values({ userId, balance: 100 });
   }
 }
 
