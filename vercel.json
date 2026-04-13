@@ -1,12 +1,6 @@
 {
-  "installCommand": "corepack enable && corepack prepare pnpm@latest --activate && pnpm install",
-  "buildCommand": "pnpm build",
-  "outputDirectory": "artifacts/webcon-app/.next",
-  "framework": "nextjs",
-  "builds": [
-    {
-      "src": "artifacts/webcon-app/package.json",
-      "use": "@vercel/next"
-    }
-  ]
+  "installCommand": "npx pnpm@latest install",
+  "buildCommand": "npx pnpm@latest build",
+  "outputDirectory": ".next",
+  "framework": "nextjs"
 }
