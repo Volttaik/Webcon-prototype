@@ -6,6 +6,9 @@ const transporter = nodemailer.createTransport({
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
   },
+  connectionTimeout: 8000,
+  socketTimeout: 8000,
+  greetingTimeout: 8000,
 });
 
 export async function sendVerificationEmail(
