@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Clock, MessageSquare, Brain,
-  ArrowRight, TrendingUp, Flame, BookOpen, ChevronRight,
+  ArrowRight, TrendingUp, Flame, BookOpen, ChevronRight, Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AppHeader from '@/components/layout/AppHeader';
@@ -43,7 +43,7 @@ function StatCard({ icon: Icon, label, value, sub, loading }: { icon: React.Elem
 }
 
 /* ─── Agent card ─── */
-function AgentCard({ agent, index }: { agent: Agent; index: number }) {
+function AgentCard({ agent, index, onDelete }: { agent: Agent; index: number; onDelete: (id: number) => void }) {
   const navigate = useNavigate();
   return (
     <motion.div
@@ -52,13 +52,20 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ delay: index * 0.04, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      className="border border-border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/20 transition-all cursor-pointer group relative"
       onClick={() => navigate(`/chat?agent=${agent.id}`)}
-      className="border border-border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/20 transition-all cursor-pointer group"
     >
       <div className="flex items-start justify-between mb-4">
         <div className="w-9 h-9 rounded-xl bg-secondary border border-border flex items-center justify-center shadow-elevation-sm">
           <Brain className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
         </div>
+        <button
+          onClick={e => { e.stopPropagation(); onDelete(agent.id); }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 rounded-lg flex items-center justify-center hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
+          aria-label="Delete agent"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
       </div>
 
       <p className="text-[13px] font-medium mb-0.5">{agent.name}</p>
@@ -159,7 +166,7 @@ export default function Dashboard() {
     loadData();
   }, [user?.id]);
 
-  const handleCreate = async ({ name, subject, id: agentId }: { name: string; subject: string; id?: number }) => {
+  const handleCreate = async (_agent: { name: string; subject: string; id?: number }) => {
     if (!user?.id) return;
     // AgentCreatorDialog already created the agent; just refresh the list
     try {
@@ -290,7 +297,7 @@ export default function Dashboard() {
                 >
                   <AnimatePresence>
                     {agents.map((agent, i) => (
-                      <AgentCard key={agent.id} agent={agent} index={i} />
+                      <AgentCard key={agent.id} agent={agent} index={i} onDelete={handleDelete} />
                     ))}
                   </AnimatePresence>
                 </motion.div>

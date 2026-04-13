@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm --filter @workspace/webcon-app run build",
+  "outputDirectory": "artifacts/webcon-app/.next",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": "nextjs"
+}

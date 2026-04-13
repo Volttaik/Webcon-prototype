@@ -5,7 +5,7 @@ import {
   Box, Settings, User, HelpCircle, LogOut, X,
   Brain, BookOpen, CalendarDays, BarChart2, LayoutDashboard,
   Plus, ChevronDown, MessageSquare, Clock, Zap,
-  FolderKanban, Briefcase,
+  FolderKanban, Briefcase, CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,7 @@ const PROGRESS_ITEMS = [
 ];
 
 const ACCOUNT_ITEMS = [
+  { label: 'Billing',      href: '/billing',      icon: CreditCard },
   { label: 'Settings',     href: '/settings',     icon: Settings },
 ];
 
@@ -301,7 +302,7 @@ function SidebarUserFooter({ onNavigate }: { onNavigate: (href: string) => void 
           <Zap className="h-3 w-3 text-muted-foreground/60" />
           <span>{(user.creditBalance ?? 0).toLocaleString()} credits</span>
           <button
-            onClick={() => onNavigate('/settings')}
+            onClick={() => onNavigate('/billing')}
             className="ml-auto text-[10px] text-muted-foreground/50 hover:text-foreground transition-colors underline-offset-2 hover:underline"
           >
             Top up

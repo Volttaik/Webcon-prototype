@@ -50,3 +50,7 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Local SQLite database (development artifact)
+local.db
+*.db

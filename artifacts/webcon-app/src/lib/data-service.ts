@@ -189,7 +189,7 @@ export async function fetchConversations(_userId?: string | number, _limit = 10)
       message_count: c.messageCount,
       created_at: c.createdAt,
       updated_at: c.updatedAt,
-      preview: (c as any).preview ?? null,
+      preview: (c as Conversation & { preview?: string | null }).preview ?? null,
       agent: c.agentId ? { id: c.agentId, name: c.agentName ?? '', subject: c.agentSubject ?? '' } : null,
     }));
   } catch {
@@ -267,7 +267,27 @@ export async function addMessage(data: {
   content: string;
   think_ms?: number;
 }): Promise<Message | null> {
-  return null;
+  try {
+    const res = await fetch(`/api/chat/conversations/${data.conversation_id}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: data.content,
+        role: data.role,
+        thinkMs: data.think_ms,
+      }),
+    });
+    if (!res.ok) return null;
+    const msg = await res.json() as Message;
+    return {
+      ...msg,
+      conversation_id: msg.conversationId,
+      think_ms: msg.thinkMs,
+      created_at: msg.createdAt,
+    };
+  } catch {
+    return null;
+  }
 }
 
 // Dashboard Stats
