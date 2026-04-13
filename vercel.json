@@ -1,6 +1,12 @@
 {
-  "buildCommand": "pnpm --filter @workspace/webcon-app run build",
+  "installCommand": "corepack enable && corepack prepare pnpm@latest --activate && pnpm install",
+  "buildCommand": "pnpm build",
   "outputDirectory": "artifacts/webcon-app/.next",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "builds": [
+    {
+      "src": "artifacts/webcon-app/package.json",
+      "use": "@vercel/next"
+    }
+  ]
 }
