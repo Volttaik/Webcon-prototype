@@ -115,7 +115,7 @@ export default function ChatPage() {
 
   const { data: agents = [] } = useQuery({
     queryKey: ['agents'],
-    queryFn: fetchAgents,
+    queryFn: () => fetchAgents(),
   });
 
   const loadConversation = useCallback(async (convId: string) => {

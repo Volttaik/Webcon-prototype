@@ -50,6 +50,21 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+export async function apiFetch<T = unknown>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error || `Request failed: ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
 function userToProfile(user: CurrentUser): Profile {
   return {
     id: user.id,

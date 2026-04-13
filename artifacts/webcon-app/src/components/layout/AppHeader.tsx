@@ -170,7 +170,7 @@ function AgentsSubmenu({ onNavigate }: { onNavigate: (href: string) => void }) {
                         <p className="text-[12px] truncate leading-tight">{conv.title}</p>
                         <div className="flex items-center gap-1 mt-0.5">
                           <Clock className="h-2.5 w-2.5 shrink-0 opacity-40" />
-                          <p className="text-[10px] opacity-40 truncate">{formatDistanceToNow(new Date(conv.updated_at), { addSuffix: true })}</p>
+                          <p className="text-[10px] opacity-40 truncate">{formatDistanceToNow(new Date(conv.updated_at ?? conv.updatedAt), { addSuffix: true })}</p>
                         </div>
                       </div>
                     </motion.button>

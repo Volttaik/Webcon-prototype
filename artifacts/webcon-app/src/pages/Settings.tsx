@@ -162,7 +162,7 @@ function ProfileSettings() {
 
 function AgentsSettings() {
   const queryClient = useQueryClient();
-  const { data: agents = [], isLoading } = useQuery({ queryKey: ['agents'], queryFn: fetchAgents });
+  const { data: agents = [], isLoading } = useQuery({ queryKey: ['agents'], queryFn: () => fetchAgents() });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteAgent(id),

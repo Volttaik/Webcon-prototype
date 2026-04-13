@@ -374,7 +374,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-[11px] text-muted-foreground/60">
-                        {formatDistanceToNow(new Date(conv.updated_at), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(conv.updated_at ?? conv.updatedAt), { addSuffix: true })}
                       </span>
                       <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
                     </div>
