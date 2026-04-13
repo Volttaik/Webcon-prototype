@@ -15,10 +15,25 @@ import {
   learningHubsTable,
   hubFilesTable,
 } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth-server";
 
 const COST_PER_MESSAGE = 1;
+
+async function getUserPlan(userId: number): Promise<{ plan: string; active: boolean }> {
+  try {
+    const rows = await db.execute(
+      sql`SELECT subscription_plan, subscription_expires_at FROM users WHERE id = ${userId} LIMIT 1`
+    );
+    const row = (rows as { rows?: Record<string, string>[] }).rows?.[0];
+    const plan = row?.subscription_plan ?? "free";
+    const expiresAt = row?.subscription_expires_at;
+    const active = plan !== "free" && expiresAt ? new Date(expiresAt) > new Date() : false;
+    return { plan, active };
+  } catch {
+    return { plan: "free", active: false };
+  }
+}
 
 function buildGroqSystemPrompt(
   agent: {
@@ -210,13 +225,17 @@ export async function POST(
 
     if (!conv) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
 
+    // Check user plan — Creator plan has 0 credit fees
+    const { plan: userPlan, active: planActive } = await getUserPlan(session.userId);
+    const isCreatorPlan = userPlan === "creator" && planActive;
+
     const [balance] = await db
       .select()
       .from(creditBalancesTable)
       .where(eq(creditBalancesTable.userId, session.userId))
       .limit(1);
 
-    if (!balance || balance.balance < COST_PER_MESSAGE) {
+    if (!isCreatorPlan && (!balance || balance.balance < COST_PER_MESSAGE)) {
       return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
     }
 
@@ -452,16 +471,19 @@ export async function POST(
             })
             .returning();
 
-          await db.update(creditBalancesTable)
-            .set({ balance: balance.balance - COST_PER_MESSAGE, updatedAt: new Date().toISOString() })
-            .where(eq(creditBalancesTable.userId, session.userId));
+          // Skip credit deduction for Creator plan users
+          if (!isCreatorPlan && balance) {
+            await db.update(creditBalancesTable)
+              .set({ balance: balance.balance - COST_PER_MESSAGE, updatedAt: new Date().toISOString() })
+              .where(eq(creditBalancesTable.userId, session.userId));
 
-          await db.insert(creditTransactionsTable).values({
-            userId: session.userId,
-            amount: -COST_PER_MESSAGE,
-            type: "usage",
-            description: `AI message with agent: ${agent?.name || "General"}`,
-          });
+            await db.insert(creditTransactionsTable).values({
+              userId: session.userId,
+              amount: -COST_PER_MESSAGE,
+              type: "usage",
+              description: `AI message with agent: ${agent?.name || "General"}`,
+            });
+          }
 
           await db.update(conversations)
             .set({ updatedAt: new Date().toISOString() })

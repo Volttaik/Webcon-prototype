@@ -6,7 +6,10 @@ export interface CurrentUser {
   firstName: string;
   lastName: string;
   institution: string | null;
+  avatarUrl: string | null;
   creditBalance: number;
+  subscriptionPlan: string;
+  subscriptionExpiresAt: string | null;
   createdAt: string;
 }
 
@@ -71,7 +74,7 @@ function userToProfile(user: CurrentUser): Profile {
     email: user.email,
     first_name: user.firstName,
     last_name: user.lastName,
-    avatar_url: null,
+    avatar_url: user.avatarUrl ?? null,
     institution: user.institution,
     created_at: user.createdAt,
   };
@@ -180,8 +183,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const uploadAvatar = async (_file: File): Promise<{ url?: string; error?: string }> => {
-    return { error: 'Avatar upload is not available yet' };
+  const uploadAvatar = async (file: File): Promise<{ url?: string; error?: string }> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'chat-images');
+      formData.append('folder', 'avatars');
+
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const uploadData = await uploadRes.json() as { url?: string; error?: string };
+      if (!uploadRes.ok) {
+        return { error: uploadData.error || 'Upload failed' };
+      }
+
+      if (!uploadData.url) {
+        return { error: 'No URL returned from upload' };
+      }
+
+      // Save the URL to the profile
+      const profileRes = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarUrl: uploadData.url }),
+      });
+
+      if (!profileRes.ok) {
+        return { error: 'Upload succeeded but could not save profile photo' };
+      }
+
+      // Update local user state
+      setUser(prev => prev ? { ...prev, avatarUrl: uploadData.url! } : null);
+
+      return { url: uploadData.url };
+    } catch {
+      return { error: 'Upload failed. Please try again.' };
+    }
   };
 
   const profile = user ? userToProfile(user) : null;

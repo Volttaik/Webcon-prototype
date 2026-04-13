@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "postgresql-16"]
 
 [deployment]
 router = "application"
@@ -75,3 +75,6 @@ POSTGRES_HOST = "db.xsdyzhxxgsqeggkfgdni.supabase.co"
 POSTGRES_DATABASE = "postgres"
 POSTGRES_USER = "postgres"
 NEXT_PUBLIC_SITE_URL = "https://481ddaaa-e218-47df-94c3-4e76adb252a2-00-3e43at55yxel6.janeway.replit.dev"
+
+[nix]
+channel = "stable-25_05"

@@ -15,6 +15,9 @@ export const usersTable = pgTable("users", {
   isBanned: boolean("is_banned").notNull().default(false),
   banReason: text("ban_reason"),
   paystackRecipientCode: text("paystack_recipient_code"),
+  subscriptionPlan: text("subscription_plan").notNull().default("free"),
+  subscriptionExpiresAt: text("subscription_expires_at"),
+  subscriptionReference: text("subscription_reference"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 

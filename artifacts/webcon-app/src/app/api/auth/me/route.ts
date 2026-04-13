@@ -27,13 +27,21 @@ export async function GET() {
       .where(eq(creditBalancesTable.userId, user.id))
       .limit(1);
 
+    const plan = (user as { subscriptionPlan?: string }).subscriptionPlan ?? "free";
+    const expiresAt = (user as { subscriptionExpiresAt?: string }).subscriptionExpiresAt ?? null;
+    const planActive = plan !== "free" && expiresAt ? new Date(expiresAt) > new Date() : false;
+    const effectivePlan = planActive ? plan : "free";
+
     return NextResponse.json({
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       institution: user.institution,
+      avatarUrl: user.avatarUrl ?? null,
       creditBalance: balance[0]?.balance ?? 0,
+      subscriptionPlan: effectivePlan,
+      subscriptionExpiresAt: expiresAt,
       createdAt: user.createdAt,
     });
   } catch (err) {
@@ -73,6 +81,7 @@ export async function PATCH(request: NextRequest) {
       firstName: user.firstName,
       lastName: user.lastName,
       institution: user.institution,
+      avatarUrl: user.avatarUrl ?? null,
       creditBalance: balance[0]?.balance ?? 0,
       createdAt: user.createdAt,
     });

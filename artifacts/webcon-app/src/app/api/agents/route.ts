@@ -6,12 +6,30 @@ import {
   creditBalancesTable,
   creditTransactionsTable,
   agentSubscriptionsTable,
+  usersTable,
 } from "@workspace/db";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, sql } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth-server";
 
 const AGENT_CREATION_COST = 100;
+const HUB_AGENT_COST = 700;
 const SUBSCRIPTION_DAYS = 30;
+const FREE_PLAN_AGENT_LIMIT = 5;
+
+async function getUserPlan(userId: number): Promise<{ plan: string; active: boolean }> {
+  try {
+    const rows = await db.execute(
+      sql`SELECT subscription_plan, subscription_expires_at FROM users WHERE id = ${userId} LIMIT 1`
+    );
+    const row = rows.rows?.[0] as { subscription_plan?: string; subscription_expires_at?: string } | undefined;
+    const plan = row?.subscription_plan ?? "free";
+    const expiresAt = row?.subscription_expires_at;
+    const active = plan !== "free" && expiresAt ? new Date(expiresAt) > new Date() : false;
+    return { plan, active };
+  } catch {
+    return { plan: "free", active: false };
+  }
+}
 
 function generateSoulMd(personality: string, tone: string, domain: string): string {
   const toneMap: Record<string, string> = {
@@ -22,20 +40,11 @@ function generateSoulMd(personality: string, tone: string, domain: string): stri
     motivational: "Energetic, uplifting, and momentum-driven",
     concise: "Clear, efficient, and minimal — no fluff",
   };
-
   const toneDesc = toneMap[tone] || toneMap["patient"];
-
   const lines: string[] = [
-    `## Soul Profile`,
-    ``,
-    `**Tone:** ${toneDesc}`,
-    `**Domain:** ${domain}`,
-    `**Personality Input:** ${personality}`,
-    ``,
-    `## Behavioral Rules`,
-    ``,
+    `## Soul Profile`, ``, `**Tone:** ${toneDesc}`, `**Domain:** ${domain}`,
+    `**Personality Input:** ${personality}`, ``, `## Behavioral Rules`, ``,
   ];
-
   if (tone === "patient") {
     lines.push("- Break down complex topics into small digestible steps");
     lines.push("- Always acknowledge effort and provide encouragement");
@@ -64,13 +73,9 @@ function generateSoulMd(personality: string, tone: string, domain: string): stri
     lines.push("- Use bullet points and structured lists");
     lines.push("- Cut filler words and get to the point immediately");
   }
-
   if (personality) {
-    lines.push("");
-    lines.push("## Custom Personality Notes");
-    lines.push(`${personality}`);
+    lines.push(""); lines.push("## Custom Personality Notes"); lines.push(`${personality}`);
   }
-
   lines.push("");
   lines.push("## Verbosity");
   const verbosity =
@@ -78,21 +83,11 @@ function generateSoulMd(personality: string, tone: string, domain: string): stri
     tone === "patient" ? "High — thorough explanations with examples" :
     "Medium — balanced depth and clarity";
   lines.push(`${verbosity}`);
-
   return lines.join("\n");
 }
 
-function buildSystemPrompt(
-  name: string,
-  subject: string,
-  level: string,
-  tone: string,
-  domain: string,
-  soulMd: string,
-  custom?: string | null
-): string {
+function buildSystemPrompt(name: string, subject: string, level: string, tone: string, domain: string, soulMd: string, custom?: string | null): string {
   if (custom) return custom;
-
   const toneMap: Record<string, string> = {
     patient: "very patient, gentle, and deeply encouraging",
     strict: "direct, structured, and demands high standards",
@@ -102,34 +97,7 @@ function buildSystemPrompt(
     concise: "concise, efficient, and to-the-point",
   };
   const toneDesc = toneMap[tone] || "helpful and supportive";
-
-  return `You are ${name}, an expert AI agent specializing in ${subject} for users at the ${level} level.
-
-Your teaching style is ${toneDesc}.
-
-## Domain
-${domain}
-
-## Soul & Personality
-${soulMd}
-
-## Capabilities
-- Explain concepts clearly with relevant, relatable examples
-- Create structured notes, documents, and plans using tools
-- Organize workspace items and projects
-- Search for current information when needed
-- Generate structured outputs: plans, schedules, reports
-
-## Tools Available
-- web_search: Search the web for current information
-- create_document: Save notes, presentations, speeches, plans to the user's workspace
-- create_project: Create a project with tasks in the user's workspace
-- plan_schedule: Create and save a structured schedule or plan
-
-Always use the appropriate tool when the user asks to create, plan, or organize something.
-
-Subject: ${subject}
-Level: ${level}`;
+  return `You are ${name}, an expert AI agent specializing in ${subject} for users at the ${level} level.\n\nYour teaching style is ${toneDesc}.\n\n## Domain\n${domain}\n\n## Soul & Personality\n${soulMd}\n\n## Capabilities\n- Explain concepts clearly with relevant, relatable examples\n- Create structured notes, documents, and plans using tools\n- Organize workspace items and projects\n- Search for current information when needed\n- Generate structured outputs: plans, schedules, reports\n\n## Tools Available\n- web_search: Search the web for current information\n- create_document: Save notes, presentations, speeches, plans to the user's workspace\n- create_project: Create a project with tasks in the user's workspace\n- plan_schedule: Create and save a structured schedule or plan\n\nAlways use the appropriate tool when the user asks to create, plan, or organize something.\n\nSubject: ${subject}\nLevel: ${level}`;
 }
 
 export async function GET() {
@@ -183,11 +151,7 @@ export async function GET() {
           learningHubId: a.learningHubId,
           conversationCount: Number(countMap.get(a.id) ?? 0),
           subscription: sub
-            ? {
-                active: isSubscriptionActive,
-                expiresAt: sub.expiresAt,
-                creditsCost: sub.creditsCost,
-              }
+            ? { active: isSubscriptionActive, expiresAt: sub.expiresAt, creditsCost: sub.creditsCost }
             : null,
           createdAt: a.createdAt,
           updatedAt: a.updatedAt,
@@ -208,9 +172,7 @@ export async function POST(request: NextRequest) {
     }
 
     const {
-      name,
-      subject,
-      level,
+      name, subject, level,
       tone = "patient",
       domain = "general",
       personalityDescription = "",
@@ -223,9 +185,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "name, subject, level are required" }, { status: 400 });
     }
 
-    const creditCost = learningHubId ? 700 : AGENT_CREATION_COST;
+    // Check user plan
+    const { plan, active: planActive } = await getUserPlan(session.userId);
+    const isCreator = plan === "creator" && planActive;
+    const isPro = plan === "pro" && planActive;
 
-    if (!skipCredits) {
+    // Enforce Free plan agent limit
+    if (plan === "free" || !planActive) {
+      const [agentCount] = await db
+        .select({ count: count() })
+        .from(agentsTable)
+        .where(eq(agentsTable.userId, session.userId));
+
+      if (Number(agentCount?.count ?? 0) >= FREE_PLAN_AGENT_LIMIT) {
+        return NextResponse.json({
+          error: `Free plan is limited to ${FREE_PLAN_AGENT_LIMIT} agents. Upgrade to Pro or Creator for unlimited agents.`,
+          upgradeRequired: true,
+        }, { status: 402 });
+      }
+    }
+
+    // Calculate credit cost based on plan
+    let creditCost: number;
+    if (isCreator) {
+      creditCost = 0; // Creator plan: all agent creation is free
+    } else if (learningHubId) {
+      creditCost = HUB_AGENT_COST; // 700 for hub-powered agents (pro/free)
+    } else {
+      creditCost = AGENT_CREATION_COST; // 100 for regular agents
+    }
+
+    // Deduct credits (skip if creator plan or skipCredits flag)
+    if (!skipCredits && creditCost > 0) {
       const [balance] = await db
         .select()
         .from(creditBalancesTable)
@@ -234,7 +225,7 @@ export async function POST(request: NextRequest) {
 
       if (!balance || balance.balance < creditCost) {
         return NextResponse.json(
-          { error: `Insufficient credits. Creating an agent costs ${creditCost} credits.` },
+          { error: `Insufficient credits. Creating this agent costs ${creditCost} credits.` },
           { status: 402 }
         );
       }
@@ -259,13 +250,8 @@ export async function POST(request: NextRequest) {
       .insert(agentsTable)
       .values({
         userId: session.userId,
-        name,
-        subject,
-        level,
-        tone,
-        domain,
-        personalityDescription,
-        soulMd,
+        name, subject, level, tone, domain,
+        personalityDescription, soulMd,
         systemPrompt: generatedPrompt,
         learningHubId: learningHubId || null,
       })
