@@ -17,8 +17,12 @@ type HubFile = { id: number; title: string; content: string; wordCount: number; 
 type Earning = { id: number; type: string; amountNgn: number; description: string; transferStatus: string; createdAt: string; };
 type Hub = { id: number; title: string; description: string | null; domain: string; subscriberCount: number; status: string; };
 
-async function fetchDashboard() {
-  const res = await fetch('/api/learning-hubs/dashboard');
+async function fetchDashboard(token?: string, hubId?: string) {
+  const params = new URLSearchParams();
+  if (token) params.set('token', token);
+  if (hubId) params.set('hub', hubId);
+  const qs = params.toString();
+  const res = await fetch(`/api/learning-hubs/dashboard${qs ? `?${qs}` : ''}`);
   if (!res.ok) return null;
   return res.json() as Promise<{ hub: Hub; files: HubFile[]; earnings: Earning[]; totalEarningsNgn: number; subscriberCount: number; agentCount: number }>;
 }
@@ -34,9 +38,13 @@ export default function LearningHubDashboard() {
   const [saving, setSaving] = useState(false);
   const [lastResult, setLastResult] = useState<{ score: number; earnings: number; message: string } | null>(null);
 
+  const searchParams = new URLSearchParams(window.location.search);
+  const urlToken = searchParams.get('token') ?? undefined;
+  const urlHub = searchParams.get('hub') ?? undefined;
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ['hub-dashboard'],
-    queryFn: fetchDashboard,
+    queryKey: ['hub-dashboard', urlToken, urlHub],
+    queryFn: () => fetchDashboard(urlToken, urlHub),
     retry: false,
   });
 

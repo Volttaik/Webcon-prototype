@@ -17,11 +17,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const [hub] = await db
+    const { searchParams } = new URL(request.url);
+    const token = searchParams.get("token");
+    const hubId = searchParams.get("hub");
+
+    // Primary: look up by creator session
+    let [hub] = await db
       .select()
       .from(learningHubsTable)
       .where(eq(learningHubsTable.creatorId, session.userId))
       .limit(1);
+
+    // Fallback: look up by token + hub id from the email link
+    if (!hub && token && hubId) {
+      const [h] = await db
+        .select()
+        .from(learningHubsTable)
+        .where(and(eq(learningHubsTable.id, parseInt(hubId)), eq(learningHubsTable.accessToken, token)))
+        .limit(1);
+      hub = h;
+    }
 
     if (!hub) {
       return NextResponse.json({ error: "No hub found" }, { status: 404 });
