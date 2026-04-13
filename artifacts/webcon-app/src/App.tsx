@@ -4,18 +4,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/lib/theme';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import SplashScreen from '@/components/SplashScreen';
-import Landing from '@/pages/Landing';
-import Dashboard from '@/pages/Dashboard';
-import ChatPage from '@/pages/ChatPage';
-import Settings from '@/pages/Settings';
-import LearningHub from '@/pages/LearningHub';
-import Schedule from '@/pages/Schedule';
-import Analytics from '@/pages/Analytics';
-import Billing from '@/pages/Billing';
-import Projects from '@/pages/Projects';
-import Workspace from '@/pages/Workspace';
-import AuthCallback from '@/pages/AuthCallback';
-import AdminDeployment from '@/pages/AdminDeployment';
+import Landing from '@/views/Landing';
+import Dashboard from '@/views/Dashboard';
+import ChatPage from '@/views/ChatPage';
+import Settings from '@/views/Settings';
+import LearningHub from '@/views/LearningHub';
+import Schedule from '@/views/Schedule';
+import Analytics from '@/views/Analytics';
+import Billing from '@/views/Billing';
+import Projects from '@/views/Projects';
+import Workspace from '@/views/Workspace';
+import AuthCallback from '@/views/AuthCallback';
+import AdminDeployment from '@/views/AdminDeployment';
 
 const queryClient = new QueryClient({
   defaultOptions: {
