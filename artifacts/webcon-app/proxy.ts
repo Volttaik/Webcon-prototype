@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "liquid4*";
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 function unauthorized() {
   return new Response("Authentication required", {
@@ -14,6 +14,7 @@ function unauthorized() {
 }
 
 function isAuthorized(header: string | null) {
+  if (!ADMIN_USERNAME || !ADMIN_PASSWORD) return false;
   if (!header?.startsWith("Basic ")) return false;
 
   try {
