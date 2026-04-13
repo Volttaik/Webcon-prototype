@@ -36,7 +36,7 @@ router.post("/auth/register", async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         institution: user.institution,
-        creditBalance: 50,
+        creditBalance: 100,
         createdAt: user.createdAt,
       },
       token,

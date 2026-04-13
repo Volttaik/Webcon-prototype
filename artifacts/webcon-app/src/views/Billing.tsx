@@ -179,7 +179,7 @@ export default function Billing() {
     {
       label: 'Credit balance',
       used: creditBalance?.balance || 0,
-      total: Math.max(creditBalance?.lifetime_earned || 50, 50),
+      total: Math.max(creditBalance?.lifetime_earned || 100, 100),
       isCredits: true,
     },
   ];

@@ -1,6 +1,6 @@
 {
   "installCommand": "npx pnpm@latest install",
   "buildCommand": "npx pnpm@latest build",
-  "outputDirectory": ".next",
+  "outputDirectory": "artifacts/webcon-app/.next",
   "framework": "nextjs"
 }
