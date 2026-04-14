@@ -18,6 +18,7 @@ import Projects from '@/views/Projects';
 import Workspace from '@/views/Workspace';
 import AuthCallback from '@/views/AuthCallback';
 import AdminDeployment from '@/views/AdminDeployment';
+import WhatsApp from '@/views/WhatsApp';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,6 +52,7 @@ function AppRoutes() {
       <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
       <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
       <Route path="/workspace" element={<ProtectedRoute><Workspace /></ProtectedRoute>} />
+      <Route path="/whatsapp" element={<ProtectedRoute><WhatsApp /></ProtectedRoute>} />
       <Route path="/admin/deployment" element={<AdminDeployment />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
     </Routes>
