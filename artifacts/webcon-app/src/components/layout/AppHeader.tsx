@@ -5,7 +5,7 @@ import {
   Box, Settings, User, HelpCircle, LogOut, X,
   Brain, BookOpen, CalendarDays, BarChart2, LayoutDashboard,
   Plus, ChevronDown, MessageSquare, Clock, Zap,
-  FolderKanban, Briefcase, CreditCard,
+  FolderKanban, Briefcase, CreditCard, MessageCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -30,6 +30,7 @@ const PROGRESS_ITEMS = [
 
 const ACCOUNT_ITEMS = [
   { label: 'Billing',      href: '/billing',      icon: CreditCard },
+  { label: 'WhatsApp',     href: '/whatsapp',     icon: MessageCircle },
   { label: 'Settings',     href: '/settings',     icon: Settings },
 ];
 
