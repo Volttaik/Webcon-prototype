@@ -1,451 +1,344 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Check, Zap, CreditCard, ArrowRight, Coins, Loader2, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import AppHeader from '@/components/layout/AppHeader';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
-import { fetchDashboardStats, type DashboardStats } from '@/lib/data-service';
-import { toast } from 'sonner';
-import { Toaster } from '@/components/ui/sonner';
+import {
+  Crown, Zap, Star, Check, Loader2, CreditCard,
+  Gift, ArrowRight, BadgeCheck, AlertCircle
+} from 'lucide-react';
+
+interface CreditPackage {
+  id: string;
+  name: string;
+  credits: number;
+  priceNgn: number;
+  popular?: boolean;
+}
+
+const CREDIT_PACKAGES: CreditPackage[] = [
+  { id: 'starter', name: 'Starter', credits: 100, priceNgn: 1000 },
+  { id: 'standard', name: 'Standard', credits: 500, priceNgn: 4500, popular: true },
+  { id: 'pro_pack', name: 'Power', credits: 1200, priceNgn: 10000 },
+  { id: 'mega', name: 'Mega', credits: 3000, priceNgn: 22000 },
+];
 
 const PLANS = [
   {
+    id: 'free',
     name: 'Free',
-    price: '₦0',
-    period: '/month',
-    badge: 'Current plan',
-    current: true,
+    priceNgn: 0,
+    icon: <Star size={22} className="text-gray-400" />,
+    color: 'border-gray-200',
+    badge: null as string | null,
     features: [
-      '5 AI agents',
-      '100 messages/month',
-      'Learning Hub access',
-      'Basic analytics',
-      'Community support',
+      'Up to 5 AI agents',
+      '1 credit per AI message',
+      '100 credits per agent created',
+      'Hub subscriptions (50 credits each)',
+      'Workspace, notes & projects',
     ],
   },
   {
+    id: 'pro',
     name: 'Pro',
-    price: '₦6,000',
-    period: '/month',
-    badge: 'Most popular',
-    current: false,
+    priceNgn: 6000,
+    icon: <Zap size={22} className="text-blue-500" />,
+    color: 'border-blue-400',
+    badge: 'Most Popular' as string | null,
     features: [
-      'Unlimited agents',
-      '1,000 messages/month',
-      'Learning Hub access',
-      'Full analytics',
-      'Priority support',
-      'Study schedule planner',
-      'Exam prep mode',
+      'Unlimited AI agents',
+      '200 bonus credits on subscribe',
+      'Priority AI response speed',
+      'Access to all learning hubs',
+      'Everything in Free',
     ],
   },
   {
-    name: 'Team',
-    price: '₦15,000',
-    period: '/month',
-    badge: 'Study groups',
-    current: false,
+    id: 'creator',
+    name: 'Creator',
+    priceNgn: 15000,
+    icon: <Crown size={22} className="text-yellow-500" />,
+    color: 'border-yellow-400',
+    badge: 'Best Value' as string | null,
     features: [
+      'Unlimited AI agents — FREE to create',
+      'Zero credit cost for AI messages',
+      'Free learning hub subscriptions',
+      'Create & monetise your own hubs',
+      'Creator payouts via Paystack',
       'Everything in Pro',
-      'Up to 5 students',
-      '5,000 messages/month',
-      'Shared agents',
-      'Group analytics',
-      'Admin controls',
-      'Onboarding call',
     ],
   },
 ];
 
-const CREDIT_PACKAGES = [
-  {
-    id: 'starter',
-    name: 'Starter Pack',
-    credits: 100,
-    amountNgn: 500,
-    desc: 'Perfect for trying out agent creation',
-    popular: false,
-  },
-  {
-    id: 'student',
-    name: 'Student Pack',
-    credits: 300,
-    amountNgn: 1200,
-    desc: 'Great for regular students',
-    popular: true,
-  },
-  {
-    id: 'scholar',
-    name: 'Scholar Pack',
-    credits: 700,
-    amountNgn: 2500,
-    desc: 'For power users with multiple agents',
-    popular: false,
-  },
-  {
-    id: 'champion',
-    name: 'Champion Pack',
-    credits: 2000,
-    amountNgn: 6000,
-    desc: 'Best value — never run out',
-    popular: false,
-  },
-];
+export function Billing() {
+  const { user, refreshProfile } = useAuth();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [loadingPkg, setLoadingPkg] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
-export default function Billing() {
-  const { user, creditBalance, refreshProfile } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [buyingPackage, setBuyingPackage] = useState<string | null>(null);
+  const showToast = (type: 'success' | 'error', msg: string) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 5000);
+  };
 
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const loadStats = async () => {
-      setIsLoading(true);
-      try {
-        const data = await fetchDashboardStats(user.id);
-        setStats(data);
-      } catch (error) {
-        console.error('[billing] Error loading stats:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadStats();
-  }, [user?.id]);
-
-  // Handle Paystack callback on return
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const ref = params.get('reference') || params.get('trxref');
-    const status = params.get('payment');
+    const payment = params.get('payment');
+    const reference = params.get('reference');
 
-    if (ref && status === 'success') {
-      // Verify the payment
-      fetch(`/api/credits/verify?reference=${ref}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.credits) {
-            toast.success(`Payment verified! ${data.credits} credits added to your account.`);
-            refreshProfile();
-          }
-        })
-        .catch(() => toast.error('Could not verify payment. Contact support if credits were not added.'));
-
-      // Clean the URL
+    if (payment === 'success' && reference) {
       window.history.replaceState({}, '', '/billing');
+
+      if (reference.startsWith('PLAN-')) {
+        fetch(`/api/plans/verify?reference=${reference}`)
+          .then(r => r.json())
+          .then(async (data: { success?: boolean; alreadyProcessed?: boolean; planId?: string; bonusCredits?: number; error?: string }) => {
+            if (data.success || data.alreadyProcessed) {
+              const planName = data.planId
+                ? data.planId.charAt(0).toUpperCase() + data.planId.slice(1)
+                : 'Plan';
+              const bonus = data.bonusCredits ? ` +${data.bonusCredits} bonus credits added!` : '';
+              showToast('success', `${planName} plan activated!${bonus}`);
+              await refreshProfile();
+            } else {
+              showToast('error', data.error || 'Could not verify plan payment.');
+            }
+          })
+          .catch(() => showToast('error', 'Error verifying plan payment.'));
+      } else {
+        fetch(`/api/credits/verify?reference=${reference}`)
+          .then(r => r.json())
+          .then(async (data: { success?: boolean; credits?: number; error?: string }) => {
+            if (data.success) {
+              showToast('success', `${data.credits} credits added to your account!`);
+              await refreshProfile();
+            } else {
+              showToast('error', data.error || 'Could not verify credit purchase.');
+            }
+          })
+          .catch(() => showToast('error', 'Error verifying payment.'));
+      }
     }
   }, [refreshProfile]);
 
-  const handleBuyCredits = async (packageId: string) => {
-    setBuyingPackage(packageId);
+  const handleBuyPlan = async (planId: string) => {
+    setLoadingPlan(planId);
+    try {
+      const res = await fetch('/api/plans/buy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId }),
+      });
+      const data = await res.json() as { authorizationUrl?: string; error?: string };
+      if (!res.ok || !data.authorizationUrl) {
+        showToast('error', data.error || 'Could not start payment.');
+        return;
+      }
+      window.location.href = data.authorizationUrl;
+    } catch {
+      showToast('error', 'Network error. Please try again.');
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  const handleBuyCredits = async (pkg: CreditPackage) => {
+    setLoadingPkg(pkg.id);
     try {
       const res = await fetch('/api/credits/buy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packageId }),
+        body: JSON.stringify({ packageId: pkg.id }),
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error(data.error || 'Failed to initiate payment');
+      const data = await res.json() as { authorizationUrl?: string; error?: string };
+      if (!res.ok || !data.authorizationUrl) {
+        showToast('error', data.error || 'Could not start payment.');
         return;
       }
-
-      // Redirect to Paystack checkout
       window.location.href = data.authorizationUrl;
     } catch {
-      toast.error('Network error. Please try again.');
+      showToast('error', 'Network error. Please try again.');
     } finally {
-      setBuyingPackage(null);
+      setLoadingPkg(null);
     }
   };
 
-  const USAGE = [
-    {
-      label: 'AI messages this month',
-      used: stats?.messagesThisMonth || 0,
-      total: stats?.maxMessagesPerMonth || 100,
-    },
-    {
-      label: 'Active agents',
-      used: stats?.activeAgents || 0,
-      total: stats?.maxAgents || 5,
-    },
-    {
-      label: 'Credit balance',
-      used: creditBalance?.balance || 0,
-      total: Math.max(creditBalance?.lifetime_earned || 100, 100),
-      isCredits: true,
-    },
-  ];
-
-  // Calculate next reset date (first of next month)
-  const nextResetDate = new Date();
-  nextResetDate.setMonth(nextResetDate.getMonth() + 1);
-  nextResetDate.setDate(1);
-  const resetDateStr = nextResetDate.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const currentPlan = user?.subscriptionPlan ?? 'free';
+  const planExpiry = user?.subscriptionExpiresAt
+    ? new Date(user.subscriptionExpiresAt).toLocaleDateString('en-NG', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-      <Toaster />
-      <main className="pt-12">
-        {/* Header */}
-        <div className="border-b border-border px-6 py-10">
-          <div className="max-w-5xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <p className="text-[11px] text-muted-foreground/50 uppercase tracking-widest font-medium mb-1">
-                Billing
-              </p>
-              <h1 className="text-2xl font-semibold tracking-tight mb-1">Plans & credits</h1>
-              <p className="text-[13px] text-muted-foreground">
-                Manage your subscription and top up credits to create agents.
-              </p>
-            </motion.div>
+    <div className="max-w-4xl mx-auto py-8 px-4 space-y-10">
+
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
+            toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+          }`}
+        >
+          {toast.type === 'success' ? <BadgeCheck size={16} /> : <AlertCircle size={16} />}
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Status bar */}
+      <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
+        <div>
+          <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Current Plan</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-base font-semibold capitalize text-gray-800">{currentPlan}</span>
+            {currentPlan !== 'free' && planExpiry && (
+              <span className="text-xs text-gray-500">· renews {planExpiry}</span>
+            )}
           </div>
         </div>
+        <div className="text-right">
+          <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Credits</p>
+          <p className="text-base font-semibold text-gray-800 mt-1">{user?.creditBalance ?? 0}</p>
+        </div>
+      </div>
 
-        <div className="max-w-5xl mx-auto px-6 py-10 space-y-12">
+      {/* Plans */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+          Subscription Plans
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {PLANS.map((plan) => {
+            const isActive = currentPlan === plan.id;
+            const isLoading = loadingPlan === plan.id;
 
-          {/* Credit balance highlight */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.04, duration: 0.4 }}
-            className="border border-border rounded-2xl p-5 bg-card shadow-elevation-sm flex items-center gap-5"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-secondary border border-border flex items-center justify-center shrink-0">
-              <Coins className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
-            </div>
-            <div className="flex-1">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Your credit balance</p>
-              <p className="text-3xl font-semibold tracking-tight leading-none">
-                {creditBalance?.balance ?? user?.creditBalance ?? 0}
-                <span className="text-base font-normal text-muted-foreground ml-1.5">credits</span>
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Each agent creation costs 100 credits · Learning Hub agents cost 700
-              </p>
-            </div>
-            <div className="shrink-0 hidden sm:block">
-              <p className="text-xs text-muted-foreground text-right mb-1">Lifetime earned</p>
-              <p className="text-sm font-medium text-right">{creditBalance?.lifetime_earned ?? 0}</p>
-            </div>
-          </motion.div>
-
-          {/* Current usage */}
-          <motion.section
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.06, duration: 0.4 }}
-          >
-            <h2 className="text-[13px] font-medium mb-4">Current usage — Free plan</h2>
-            <div className="border border-border rounded-2xl p-5 bg-card shadow-elevation-sm space-y-4">
-              {USAGE.map((item, i) => (
-                <div key={item.label}>
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-muted-foreground">{item.label}</span>
-                    <span
-                      className={cn(
-                        item.used / item.total > 0.8 && !item.isCredits
-                          ? 'text-foreground font-medium'
-                          : 'text-muted-foreground'
-                      )}
-                    >
-                      {item.isCredits ? `${item.used} credits` : `${item.used} / ${item.total}`}
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-secondary border border-border overflow-hidden">
-                    <motion.div
-                      className={cn(
-                        'h-full rounded-full',
-                        item.used / item.total > 0.8 ? 'bg-foreground' : 'bg-foreground/50'
-                      )}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min((item.used / item.total) * 100, 100)}%` }}
-                      transition={{ duration: 0.7, delay: 0.15 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                    />
-                  </div>
+            return (
+              <div
+                key={plan.id}
+                className={`relative rounded-xl border-2 p-5 flex flex-col gap-4 bg-white ${plan.color} ${
+                  isActive ? 'ring-2 ring-offset-1 ring-blue-400' : ''
+                }`}
+              >
+                {plan.badge && (
+                  <span className="absolute -top-2.5 left-4 text-[10px] font-bold uppercase tracking-widest bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                    {plan.badge}
+                  </span>
+                )}
+                <div className="flex items-center gap-2">
+                  {plan.icon}
+                  <span className="font-semibold text-gray-800">{plan.name}</span>
+                  {isActive && <BadgeCheck size={14} className="text-blue-500 ml-auto" />}
                 </div>
-              ))}
-              <div className="pt-2 border-t border-border">
-                <p className="text-[11px] text-muted-foreground">
-                  Resets on{' '}
-                  <span className="text-foreground font-medium">{resetDateStr}</span> ·{' '}
-                  {(stats?.maxMessagesPerMonth || 100) - (stats?.messagesThisMonth || 0)} messages
-                  remaining this month
-                </p>
-              </div>
-            </div>
-          </motion.section>
 
-          {/* Plans */}
-          <section>
-            <h2 className="text-[13px] font-medium mb-4">Choose your plan</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {PLANS.map((plan, i) => (
-                <motion.div
-                  key={plan.name}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.08, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                  whileHover={{ y: -3, transition: { duration: 0.18 } }}
-                  className={cn(
-                    'border rounded-2xl p-6 bg-card shadow-elevation-sm hover:shadow-elevation-md transition-shadow flex flex-col',
-                    plan.current ? 'border-foreground/30' : 'border-border'
-                  )}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <p className="text-sm font-semibold">{plan.name}</p>
-                    <span
-                      className={cn(
-                        'text-[10px] px-2 py-0.5 rounded-full border font-medium',
-                        plan.current
-                          ? 'border-foreground/20 bg-secondary text-muted-foreground'
-                          : 'border-border bg-secondary text-muted-foreground'
-                      )}
-                    >
-                      {plan.badge}
-                    </span>
-                  </div>
-
-                  <div className="flex items-baseline gap-1 mt-1 mb-5">
-                    <span className="text-3xl font-semibold tracking-tight">{plan.price}</span>
-                    <span className="text-sm text-muted-foreground">{plan.period}</span>
-                  </div>
-
-                  <ul className="space-y-2 mb-6 flex-1">
-                    {plan.features.map(f => (
-                      <li key={f} className="flex items-start gap-2 text-xs text-muted-foreground">
-                        <Check
-                          className="h-3.5 w-3.5 text-foreground/60 shrink-0 mt-0.5"
-                          strokeWidth={2}
-                        />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {plan.current ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full h-9 text-xs shadow-elevation-sm"
-                      disabled
-                    >
-                      Current plan
-                    </Button>
+                <div>
+                  {plan.priceNgn === 0 ? (
+                    <span className="text-2xl font-bold text-gray-800">Free</span>
                   ) : (
-                    <Button
-                      size="sm"
-                      className="w-full h-9 text-xs shadow-elevation-sm gap-1.5"
-                      onClick={() => toast.info('Plan upgrades coming soon! Top up credits below.')}
-                    >
-                      <Zap className="h-3.5 w-3.5" />
-                      Upgrade to {plan.name}{' '}
-                      <ArrowRight className="h-3 w-3 ml-auto" />
-                    </Button>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </section>
-
-          {/* Buy Credits */}
-          <section>
-            <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-[13px] font-medium">Top up credits</h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full border border-border bg-secondary text-muted-foreground flex items-center gap-1">
-                <Sparkles className="h-3 w-3" /> Powered by Paystack
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mb-5">
-              Credits are used to create agents (100 cr) and subscribe to Learning Hub agents (700 cr).
-              Pay securely in Nigerian Naira via card, bank transfer, or USSD.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {CREDIT_PACKAGES.map((pkg, i) => (
-                <motion.div
-                  key={pkg.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.12 + i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  whileHover={{ y: -3, transition: { duration: 0.18 } }}
-                  className={cn(
-                    'border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md transition-shadow flex flex-col relative',
-                    pkg.popular ? 'border-foreground/30' : 'border-border'
-                  )}
-                >
-                  {pkg.popular && (
-                    <span className="absolute -top-2.5 left-4 text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium">
-                      Popular
+                    <span className="text-2xl font-bold text-gray-800">
+                      ₦{plan.priceNgn.toLocaleString()}
+                      <span className="text-sm font-normal text-gray-500">/mo</span>
                     </span>
                   )}
-                  <div className="mb-3">
-                    <p className="text-sm font-semibold">{pkg.name}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{pkg.desc}</p>
-                  </div>
+                </div>
 
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-2xl font-semibold tracking-tight">{pkg.credits}</span>
-                    <span className="text-sm text-muted-foreground">credits</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-5">
-                    ₦{pkg.amountNgn.toLocaleString()}
-                  </p>
+                <ul className="space-y-1.5 flex-1">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-xs text-gray-600">
+                      <Check size={13} className="text-green-500 mt-0.5 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
 
-                  <Button
-                    size="sm"
-                    variant={pkg.popular ? 'default' : 'outline'}
-                    className="w-full h-8 text-xs mt-auto gap-1.5 shadow-elevation-sm"
-                    onClick={() => handleBuyCredits(pkg.id)}
-                    disabled={buyingPackage !== null}
+                {plan.id === 'free' ? (
+                  <div
+                    className={`text-center text-xs py-2 rounded-lg font-medium ${
+                      isActive ? 'bg-gray-100 text-gray-500' : 'bg-gray-50 text-gray-400'
+                    }`}
                   >
-                    {buyingPackage === pkg.id ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Redirecting…
-                      </>
+                    {isActive ? 'Current Plan' : 'Default'}
+                  </div>
+                ) : isActive ? (
+                  <div className="text-center text-xs py-2 rounded-lg font-medium bg-blue-50 text-blue-600">
+                    Active · expires {planExpiry}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleBuyPlan(plan.id)}
+                    disabled={!!isLoading}
+                    className="flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-700 transition disabled:opacity-60"
+                  >
+                    {isLoading ? (
+                      <Loader2 size={14} className="animate-spin" />
                     ) : (
                       <>
-                        <CreditCard className="h-3.5 w-3.5" /> Buy now
+                        Upgrade <ArrowRight size={14} />
                       </>
                     )}
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
-          </section>
-
-          {/* Payment info */}
-          <section>
-            <div className="border border-border rounded-2xl p-5 bg-card shadow-elevation-sm flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center shrink-0 mt-0.5">
-                <CreditCard className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                  </button>
+                )}
               </div>
-              <div>
-                <p className="text-sm font-medium mb-0.5">Secure payments via Paystack</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  All transactions are processed securely by Paystack. We accept Visa, Mastercard,
-                  bank transfers, and USSD. Credits are added instantly after payment verification.
-                </p>
-              </div>
-            </div>
-          </section>
+            );
+          })}
         </div>
-      </main>
+      </section>
+
+      {/* Credits */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Buy Credits</h2>
+          {currentPlan === 'creator' && (
+            <span className="text-[10px] font-bold uppercase tracking-widest bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
+              Not needed on Creator plan
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {CREDIT_PACKAGES.map((pkg) => {
+            const isLoading = loadingPkg === pkg.id;
+            return (
+              <div
+                key={pkg.id}
+                className={`relative rounded-xl border p-4 flex flex-col gap-3 bg-white hover:border-gray-400 transition ${
+                  pkg.popular ? 'border-blue-300 ring-1 ring-blue-200' : 'border-gray-200'
+                }`}
+              >
+                {pkg.popular && (
+                  <span className="absolute -top-2.5 left-3 text-[10px] font-bold uppercase tracking-widest bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                    Popular
+                  </span>
+                )}
+                <div>
+                  <p className="font-semibold text-gray-800 text-sm">{pkg.name}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Gift size={12} className="text-blue-500" />
+                    <span className="text-xs text-blue-600 font-medium">{pkg.credits} credits</span>
+                  </div>
+                </div>
+                <p className="text-lg font-bold text-gray-800">₦{pkg.priceNgn.toLocaleString()}</p>
+                <button
+                  onClick={() => handleBuyCredits(pkg)}
+                  disabled={!!isLoading}
+                  className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium bg-gray-900 text-white hover:bg-gray-700 transition disabled:opacity-60"
+                >
+                  {isLoading ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <>
+                      <CreditCard size={12} /> Buy
+                    </>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-xs text-gray-400 mt-3">
+          1 credit per AI message · 100 credits per agent · 50 credits per hub subscription. Payments secured by Paystack.
+        </p>
+      </section>
     </div>
   );
 }
+
+export default Billing;
