@@ -55,7 +55,7 @@ export default function AuthModal({ initialTab = 'login', onClose }: AuthModalPr
           return;
         }
         onClose();
-        navigate('/dashboard');
+        navigate('/chat');
       } else {
         if (!form.firstName || !form.lastName) {
           setError('First and last name are required');
@@ -78,7 +78,7 @@ export default function AuthModal({ initialTab = 'login', onClose }: AuthModalPr
           return;
         }
         onClose();
-        navigate('/dashboard');
+        navigate('/chat');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');

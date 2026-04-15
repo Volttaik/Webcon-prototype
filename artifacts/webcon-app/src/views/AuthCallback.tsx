@@ -32,7 +32,7 @@ export default function AuthCallback() {
     // No error means the server already verified and set the cookie.
     // Refresh profile to pick up the new session.
     refreshProfile().then(() => {
-      navigate('/dashboard', { replace: true });
+      navigate('/chat', { replace: true });
     });
   }, [navigate, searchParams, refreshProfile]);
 

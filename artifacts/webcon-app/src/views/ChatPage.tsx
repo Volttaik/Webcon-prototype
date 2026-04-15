@@ -9,6 +9,7 @@ import ConversationSidebar from '@/components/chat/ConversationSidebar';
 import MessageList from '@/components/chat/MessageList';
 import MessageInput from '@/components/chat/MessageInput';
 import EmptyChat from '@/components/chat/EmptyChat';
+import AgentCreatorDialog from '@/components/AgentCreatorDialog';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -109,13 +110,21 @@ export default function ChatPage() {
   const [currentConv, setCurrentConv] = useState<ApiConversation | null>(null);
   const [streamingText, setStreamingText] = useState('');
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
+  const [showFirstAgentCreator, setShowFirstAgentCreator] = useState(false);
+  const [dismissedFirstAgentCreator, setDismissedFirstAgentCreator] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const agentIdFromQuery = searchParams.get('agent');
 
-  const { data: agents = [] } = useQuery({
+  const { data: agents = [], isPending: agentsLoading } = useQuery({
     queryKey: ['agents'],
     queryFn: () => fetchAgents(),
   });
+
+  useEffect(() => {
+    if (!agentsLoading && agents.length === 0 && !dismissedFirstAgentCreator) {
+      setShowFirstAgentCreator(true);
+    }
+  }, [agentsLoading, agents.length, dismissedFirstAgentCreator]);
 
   const loadConversation = useCallback(async (convId: string) => {
     setIsLoadingConversation(true);
@@ -372,6 +381,24 @@ export default function ChatPage() {
       <AppHeader />
       <Toaster />
       <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <AnimatePresence>
+        {showFirstAgentCreator && (
+          <AgentCreatorDialog
+            firstAgentFree
+            onClose={() => {
+              setDismissedFirstAgentCreator(true);
+              setShowFirstAgentCreator(false);
+            }}
+            onCreate={(agent) => {
+              queryClient.invalidateQueries({ queryKey: ['agents'] });
+              if (agent.id) {
+                setSelectedAgentId(agent.id);
+                navigate(`/chat?agent=${agent.id}`, { replace: true });
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <div className="flex flex-1 pt-12 overflow-hidden" style={{ height: 'calc(100vh - 48px)' }}>
         <AnimatePresence>

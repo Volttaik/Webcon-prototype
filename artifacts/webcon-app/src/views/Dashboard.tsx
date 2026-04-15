@@ -26,20 +26,20 @@ import { Toaster } from '@/components/ui/sonner';
 function StatCard({ icon: Icon, label, value, sub, loading, shimmerDelay = '0s' }: { icon: React.ElementType; label: string; value: string; sub?: string; loading?: boolean; shimmerDelay?: string }) {
   return (
     <div
-      className="glow-border elevated-surface rounded-2xl px-5 py-4 flex items-start gap-3.5 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-elevation-lg"
+      className="glow-border elevated-surface rounded-2xl px-4 py-3.5 flex items-start gap-3 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-elevation-lg"
       style={{ '--shimmer-delay': shimmerDelay } as React.CSSProperties}
     >
-      <div className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0 mt-0.5 shadow-elevation-sm">
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
+      <div className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0 mt-0.5 shadow-elevation-sm">
+        <Icon className="h-3 w-3 text-muted-foreground" strokeWidth={1.5} />
       </div>
       <div>
-        <p className="text-[11px] text-muted-foreground mb-0.5">{label}</p>
+        <p className="text-[9.5px] text-muted-foreground/75 mb-0.5 leading-none">{label}</p>
         {loading ? (
-          <div className="h-6 w-12 bg-muted animate-pulse rounded" />
+          <div className="h-4 w-10 bg-muted animate-pulse rounded" />
         ) : (
-          <p className="text-xl font-semibold tracking-tight leading-none">{value}</p>
+          <p className="text-base font-semibold tracking-tight leading-none">{value}</p>
         )}
-        {sub && <p className="text-[11px] text-muted-foreground mt-1">{sub}</p>}
+        {sub && <p className="text-[9.5px] text-muted-foreground/65 mt-1 leading-none">{sub}</p>}
       </div>
     </div>
   );
@@ -197,8 +197,8 @@ export default function Dashboard() {
     <div className="min-h-screen app-ambient-bg">
       <AppHeader />
       <Toaster />
-      <div className="ambient-orb ambient-orb-light w-72 h-72 top-20 -left-24 opacity-80" />
-      <div className="ambient-orb ambient-orb-dark w-48 h-48 top-36 right-10 opacity-45" />
+      <div className="ambient-orb ambient-orb-light w-80 h-80 top-24 left-1/2 -translate-x-1/2 opacity-70" />
+      <div className="ambient-orb ambient-orb-dark w-44 h-44 top-44 left-1/2 translate-x-24 opacity-45" />
 
       <AnimatePresence>
         {showCreator && (

@@ -226,7 +226,7 @@ export default function Landing() {
   const [authModal, setAuthModal] = useState<{ open: boolean; tab: 'login' | 'register' }>({ open: false, tab: 'login' });
 
   useEffect(() => {
-    if (!isLoading && user) navigate('/dashboard', { replace: true });
+    if (!isLoading && user) navigate('/chat', { replace: true });
   }, [user, isLoading, navigate]);
 
   const openLogin = () => setAuthModal({ open: true, tab: 'login' });

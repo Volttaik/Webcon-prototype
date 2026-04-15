@@ -45,9 +45,10 @@ const AGENT_COST = 100;
 interface Props {
   onClose: () => void;
   onCreate: (agent: { name: string; subject: string; id?: number }) => void;
+  firstAgentFree?: boolean;
 }
 
-export default function AgentCreatorDialog({ onClose, onCreate }: Props) {
+export default function AgentCreatorDialog({ onClose, onCreate, firstAgentFree = false }: Props) {
   const { user, refreshProfile } = useAuth();
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
@@ -65,11 +66,12 @@ export default function AgentCreatorDialog({ onClose, onCreate }: Props) {
   const canProceed3 = domain.length > 0;
 
   const creditBalance = user?.creditBalance ?? 0;
-  const canAfford = creditBalance >= AGENT_COST;
+  const creationCost = firstAgentFree ? 0 : AGENT_COST;
+  const canAfford = creationCost === 0 || creditBalance >= creationCost;
 
   const handleCreate = async () => {
     if (!canAfford) {
-      toast.error(`You need ${AGENT_COST} credits to create an agent. You have ${creditBalance}.`);
+      toast.error(`You need ${creationCost} credits to create an agent. You have ${creditBalance}.`);
       return;
     }
 
@@ -82,6 +84,7 @@ export default function AgentCreatorDialog({ onClose, onCreate }: Props) {
         tone,
         domain,
         personalityDescription,
+        skipCredits: firstAgentFree,
       });
 
       if (!agent) {
@@ -90,7 +93,7 @@ export default function AgentCreatorDialog({ onClose, onCreate }: Props) {
       }
 
       await refreshProfile();
-      toast.success(`Agent "${name}" created! ${AGENT_COST} credits deducted.`);
+      toast.success(firstAgentFree ? `Your first free agent "${name}" is ready!` : `Agent "${name}" created! ${creationCost} credits deducted.`);
       onCreate({ name: name.trim(), subject: resolvedSubject, id: agent.id });
       onClose();
     } catch {
@@ -124,7 +127,7 @@ export default function AgentCreatorDialog({ onClose, onCreate }: Props) {
               <Brain className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
             </div>
             <div>
-              <p className="text-sm font-semibold">Create new agent</p>
+              <p className="text-sm font-semibold">{firstAgentFree ? 'Create your first free agent' : 'Create new agent'}</p>
               <p className="text-xs text-muted-foreground">Step {step} of 4</p>
             </div>
           </div>
@@ -272,7 +275,7 @@ export default function AgentCreatorDialog({ onClose, onCreate }: Props) {
                   <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border">
                     <Coins className="h-3 w-3 text-muted-foreground" />
                     <p className="text-xs text-muted-foreground">
-                      Cost: <span className={canAfford ? 'text-foreground font-medium' : 'text-destructive font-medium'}>{AGENT_COST} credits</span>
+                      Cost: <span className={canAfford ? 'text-foreground font-medium' : 'text-destructive font-medium'}>{firstAgentFree ? 'Free' : `${creationCost} credits`}</span>
                       {!canAfford && <span className="ml-1">(insufficient — you have {creditBalance})</span>}
                     </p>
                   </div>
@@ -297,7 +300,7 @@ export default function AgentCreatorDialog({ onClose, onCreate }: Props) {
               {creating ? (
                 <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Creating…</>
               ) : (
-                <>Create agent · {AGENT_COST} credits</>
+                <>{firstAgentFree ? 'Create free agent' : `Create agent · ${creationCost} credits`}</>
               )}
             </Button>
           )}

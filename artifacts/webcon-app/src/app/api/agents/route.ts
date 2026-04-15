@@ -190,14 +190,16 @@ export async function POST(request: NextRequest) {
     const isCreator = plan === "creator" && planActive;
     const isPro = plan === "pro" && planActive;
 
+    const [agentCount] = await db
+      .select({ count: count() })
+      .from(agentsTable)
+      .where(eq(agentsTable.userId, session.userId));
+
+    const existingAgentCount = Number(agentCount?.count ?? 0);
+
     // Enforce Free plan agent limit
     if (plan === "free" || !planActive) {
-      const [agentCount] = await db
-        .select({ count: count() })
-        .from(agentsTable)
-        .where(eq(agentsTable.userId, session.userId));
-
-      if (Number(agentCount?.count ?? 0) >= FREE_PLAN_AGENT_LIMIT) {
+      if (existingAgentCount >= FREE_PLAN_AGENT_LIMIT) {
         return NextResponse.json({
           error: `Free plan is limited to ${FREE_PLAN_AGENT_LIMIT} agents. Upgrade to Pro or Creator for unlimited agents.`,
           upgradeRequired: true,
@@ -207,7 +209,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate credit cost based on plan
     let creditCost: number;
-    if (isCreator) {
+    if (isCreator || (!learningHubId && existingAgentCount === 0)) {
       creditCost = 0; // Creator plan: all agent creation is free
     } else if (learningHubId) {
       creditCost = HUB_AGENT_COST; // 700 for hub-powered agents (pro/free)
@@ -216,7 +218,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Deduct credits (skip if creator plan or skipCredits flag)
-    if (!skipCredits && creditCost > 0) {
+    const allowSkipCredits = skipCredits && !learningHubId && existingAgentCount === 0;
+    if (!allowSkipCredits && creditCost > 0) {
       const [balance] = await db
         .select()
         .from(creditBalancesTable)
