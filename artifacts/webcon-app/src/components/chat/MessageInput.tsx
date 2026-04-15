@@ -171,8 +171,8 @@ export default function MessageInput({ onSend, isStreaming, onStop, disabled, ag
   return (
     <div className="px-4 md:px-8 py-4 max-w-2xl mx-auto w-full">
       <div className={cn(
-        'border border-border rounded-2xl bg-card/60 backdrop-blur-sm transition-all duration-200 edge-glow',
-        !isStreaming && !disabled && 'focus-within:border-foreground/20 focus-within:bg-card focus-within:glow-active'
+        'rounded-2xl elevated-surface-strong backdrop-blur-xl transition-all duration-200 edge-glow',
+        !isStreaming && !disabled && 'focus-within:border-foreground/25 focus-within:bg-card focus-within:glow-active focus-within:shadow-elevation-xl'
       )}>
         <AnimatePresence>
           {hintConfig && !isStreaming && (

@@ -211,7 +211,7 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
             animate={{ x: 0 }}
             exit={{ x: -272 }}
             transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className="fixed left-0 top-0 bottom-0 z-50 w-64 bg-background border-r border-border flex flex-col"
+            className="fixed left-0 top-0 bottom-0 z-50 w-64 bg-background/90 backdrop-blur-xl border-r border-border flex flex-col shadow-elevation-xl"
             style={{ boxShadow: '4px 0 32px rgba(0,0,0,0.12)' }}
           >
             <div className="h-12 flex items-center justify-between px-4 border-b border-border shrink-0">
@@ -419,7 +419,7 @@ export default function AppHeader() {
   return (
     <>
       <SidePanel open={panelOpen} onClose={() => setPanelOpen(false)} />
-      <header className="fixed top-0 left-0 right-0 z-30 h-12 border-b border-border bg-background/95 backdrop-blur-md flex items-center px-3 shadow-elevation-sm">
+      <header className="fixed top-0 left-0 right-0 z-30 h-12 border-b border-border/70 bg-background/86 backdrop-blur-xl flex items-center px-3 shadow-elevation-md">
         <div className="flex items-center gap-1 flex-1">
           <Button
             variant="ghost" size="icon"

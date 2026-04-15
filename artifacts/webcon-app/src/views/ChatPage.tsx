@@ -368,7 +368,7 @@ export default function ChatPage() {
     : agents[0] ?? null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen app-ambient-bg flex flex-col">
       <AppHeader />
       <Toaster />
       <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
@@ -399,8 +399,8 @@ export default function ChatPage() {
           )}
         </AnimatePresence>
 
-        <div className="flex flex-col flex-1 overflow-hidden w-full">
-          <div className="h-11 border-b border-border flex items-center justify-between px-3 shrink-0 bg-background">
+        <div className="flex flex-col flex-1 overflow-hidden w-full relative z-10">
+          <div className="h-11 border-b border-border/70 flex items-center justify-between px-3 shrink-0 bg-background/78 backdrop-blur-xl shadow-elevation-sm">
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost" size="icon"
@@ -456,7 +456,7 @@ export default function ChatPage() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.18 }}
-                className="flex-1 overflow-y-auto px-4 py-6 space-y-6"
+                className="flex-1 overflow-y-auto px-4 py-6 space-y-6 chat-ambient-bg"
               >
                 {[
                   { align: 'left',  lines: ['w-64', 'w-44'] },
@@ -483,7 +483,7 @@ export default function ChatPage() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="flex-1 flex flex-col min-h-0"
+                className="flex-1 flex flex-col min-h-0 chat-ambient-bg"
               >
                 <EmptyChat onSend={handleSend} />
               </motion.div>
@@ -497,7 +497,7 @@ export default function ChatPage() {
                 className="flex flex-col flex-1 min-h-0"
               >
                 <MessageList messages={messages} isThinking={isStreaming} verb={activeVerb} />
-                <div className="shrink-0 border-t border-border bg-background">
+                <div className="shrink-0 border-t border-border/70 bg-background/78 backdrop-blur-xl shadow-elevation-lg">
                   <MessageInput
                     onSend={handleSend}
                     isStreaming={isStreaming}

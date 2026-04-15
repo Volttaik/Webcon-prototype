@@ -229,8 +229,8 @@ export default function MessageList({ messages, isThinking, verb = 'thinking' }:
   const lastAssistantIdx = messages.reduce((last, m, i) => m.role === 'assistant' ? i : last, -1);
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className="max-w-2xl mx-auto w-full px-5 md:px-8 py-8 space-y-1">
+    <div className="flex-1 min-h-0 overflow-y-auto chat-ambient-bg">
+      <div className="relative z-10 max-w-2xl mx-auto w-full px-5 md:px-8 py-8 space-y-1">
         <AnimatePresence initial={false}>
           {messages.map((msg, idx) => {
             const prevMsg = messages[idx - 1];
@@ -241,7 +241,7 @@ export default function MessageList({ messages, isThinking, verb = 'thinking' }:
               return (
                 <motion.div key={msg.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
                   {showDivider && <DateDivider date={msg.timestamp} />}
-                  <div className="py-3">
+                  <div className="py-3 rounded-2xl px-1">
                     {msg.thinkMs !== undefined && (
                       <ActionBadge ms={msg.thinkMs} verb={msg.verb ?? 'thinking'} />
                     )}
@@ -262,9 +262,9 @@ export default function MessageList({ messages, isThinking, verb = 'thinking' }:
                 {msg.imageUrl && <ChatImage url={msg.imageUrl} />}
                 {msg.content && msg.content !== '[User sent an image]' && (
                   <div className={cn(
-                    'inline-block px-4 py-2 rounded-full text-[13px] text-foreground/80 leading-relaxed',
-                    'border border-dashed border-border/70 bg-secondary/20',
-                    'max-w-[80%]'
+                    'inline-block px-4 py-2.5 rounded-2xl text-[13px] text-foreground/85 leading-relaxed',
+                    'elevated-surface border-border/70',
+                    'max-w-[80%] shadow-elevation-md'
                   )}>
                     {msg.content}
                   </div>

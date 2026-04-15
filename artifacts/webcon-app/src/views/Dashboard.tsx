@@ -26,10 +26,10 @@ import { Toaster } from '@/components/ui/sonner';
 function StatCard({ icon: Icon, label, value, sub, loading, shimmerDelay = '0s' }: { icon: React.ElementType; label: string; value: string; sub?: string; loading?: boolean; shimmerDelay?: string }) {
   return (
     <div
-      className="glow-border border border-border rounded-2xl px-5 py-4 bg-card shadow-elevation-sm flex items-start gap-3.5"
+      className="glow-border elevated-surface rounded-2xl px-5 py-4 flex items-start gap-3.5 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-elevation-lg"
       style={{ '--shimmer-delay': shimmerDelay } as React.CSSProperties}
     >
-      <div className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0 mt-0.5">
+      <div className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0 mt-0.5 shadow-elevation-sm">
         <Icon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
       </div>
       <div>
@@ -55,7 +55,7 @@ function AgentCard({ agent, index, onDelete }: { agent: Agent; index: number; on
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ delay: index * 0.04, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className="glow-border border border-border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/20 transition-all cursor-pointer group relative"
+      className="glow-border elevated-surface rounded-2xl p-5 hover:shadow-elevation-lg hover:border-foreground/20 transition-all cursor-pointer group relative hover:-translate-y-1"
       style={{ '--shimmer-delay': `${index * 0.8}s` } as React.CSSProperties}
       onClick={() => navigate(`/chat?agent=${agent.id}`)}
     >
@@ -103,7 +103,7 @@ function EmptyAgents({ onNew }: { onNew: () => void }) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="border border-dashed border-border/70 rounded-2xl p-10 text-center"
+      className="elevated-surface border-dashed rounded-2xl p-10 text-center shadow-elevation-md"
     >
       <div className="w-10 h-10 rounded-2xl bg-secondary border border-border flex items-center justify-center mx-auto mb-3">
         <Brain className="h-4.5 w-4.5 text-muted-foreground/50" strokeWidth={1.5} />
@@ -122,7 +122,7 @@ function EmptyAgents({ onNew }: { onNew: () => void }) {
 /* ─── Loading skeleton ─── */
 function AgentSkeleton() {
   return (
-    <div className="border border-border rounded-2xl p-5 bg-card animate-pulse">
+    <div className="elevated-surface rounded-2xl p-5 animate-pulse">
       <div className="flex items-start justify-between mb-4">
         <div className="w-9 h-9 rounded-xl bg-muted" />
       </div>
@@ -194,9 +194,11 @@ export default function Dashboard() {
   const firstName = profile?.first_name || user?.email?.split('@')[0] || 'there';
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen app-ambient-bg">
       <AppHeader />
       <Toaster />
+      <div className="ambient-orb ambient-orb-light w-72 h-72 top-20 -left-24 opacity-80" />
+      <div className="ambient-orb ambient-orb-dark w-48 h-48 top-36 right-10 opacity-45" />
 
       <AnimatePresence>
         {showCreator && (
@@ -204,60 +206,60 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      <main className="pt-12">
+      <main className="pt-12 relative z-10">
         {/* Hero */}
-        <div className="border-b border-border px-6 py-12">
+        <div className="px-6 py-12">
           <div className="max-w-5xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="elevated-surface-strong rounded-[2rem] px-6 py-7 md:px-8 md:py-8 mb-4"
             >
               <p className="text-[11px] text-muted-foreground/50 uppercase tracking-widest font-medium mb-2">Dashboard</p>
               <h1 className="text-2xl font-semibold tracking-tight mb-8">
                 Good to see you back{firstName !== 'there' ? `, ${firstName}` : ''}.
               </h1>
-            </motion.div>
 
-            {/* Stats row */}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-3"
-            >
-              <StatCard
-                icon={Brain}
-                label="Active agents"
-                value={stats ? `${stats.activeAgents}` : '0'}
-                sub={stats ? `of ${stats.maxAgents} available` : undefined}
-                loading={isLoading}
-                shimmerDelay="0s"
-              />
-              <StatCard
-                icon={MessageSquare}
-                label="Conversations"
-                value={stats ? `${stats.totalConversations}` : '0'}
-                sub="all time"
-                loading={isLoading}
-                shimmerDelay="1.2s"
-              />
-              <StatCard
-                icon={Flame}
-                label="Study streak"
-                value={stats ? `${stats.studyStreak} days` : '0 days'}
-                sub={stats && stats.studyStreak > 0 ? 'keep it up!' : 'start today!'}
-                loading={isLoading}
-                shimmerDelay="2.4s"
-              />
-              <StatCard
-                icon={TrendingUp}
-                label="Messages this month"
-                value={stats ? `${stats.messagesThisMonth}` : '0'}
-                sub={stats ? `of ${stats.maxMessagesPerMonth} on free plan` : undefined}
-                loading={isLoading}
-                shimmerDelay="3.6s"
-              />
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+                className="grid grid-cols-2 md:grid-cols-4 gap-3"
+              >
+                <StatCard
+                  icon={Brain}
+                  label="Active agents"
+                  value={stats ? `${stats.activeAgents}` : '0'}
+                  sub={stats ? `of ${stats.maxAgents} available` : undefined}
+                  loading={isLoading}
+                  shimmerDelay="0s"
+                />
+                <StatCard
+                  icon={MessageSquare}
+                  label="Conversations"
+                  value={stats ? `${stats.totalConversations}` : '0'}
+                  sub="all time"
+                  loading={isLoading}
+                  shimmerDelay="1.2s"
+                />
+                <StatCard
+                  icon={Flame}
+                  label="Study streak"
+                  value={stats ? `${stats.studyStreak} days` : '0 days'}
+                  sub={stats && stats.studyStreak > 0 ? 'keep it up!' : 'start today!'}
+                  loading={isLoading}
+                  shimmerDelay="2.4s"
+                />
+                <StatCard
+                  icon={TrendingUp}
+                  label="Messages this month"
+                  value={stats ? `${stats.messagesThisMonth}` : '0'}
+                  sub={stats ? `of ${stats.maxMessagesPerMonth} on free plan` : undefined}
+                  loading={isLoading}
+                  shimmerDelay="3.6s"
+                />
+              </motion.div>
             </motion.div>
           </div>
         </div>
@@ -337,7 +339,7 @@ export default function Dashboard() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="border border-border rounded-2xl bg-card shadow-elevation-sm overflow-hidden"
+                  className="elevated-surface rounded-2xl overflow-hidden"
               >
                 {[1, 2, 3].map(i => (
                   <div key={i} className="flex items-center gap-4 px-5 py-3.5 border-b border-border/50 last:border-0 animate-pulse">
@@ -356,7 +358,7 @@ export default function Dashboard() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="border border-dashed border-border/70 rounded-2xl p-8 text-center"
+                className="elevated-surface border-dashed rounded-2xl p-8 text-center"
               >
                 <p className="text-[12px] text-muted-foreground">No conversations yet. Start chatting with an agent!</p>
               </motion.div>
@@ -367,7 +369,7 @@ export default function Dashboard() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="divide-y divide-border/50 border border-border rounded-2xl bg-card shadow-elevation-sm overflow-hidden"
+                className="divide-y divide-border/50 elevated-surface rounded-2xl overflow-hidden"
               >
               {conversations.map((conv, i) => (
                   <motion.button
@@ -376,7 +378,7 @@ export default function Dashboard() {
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.04, duration: 0.25 }}
                     onClick={() => navigate(`/chat/${conv.id}`)}
-                    className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-secondary/30 transition-colors text-left group"
+                    className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-secondary/45 transition-colors text-left group"
                   >
                     <div className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0">
                       <BookOpen className="h-3 w-3 text-muted-foreground" strokeWidth={1.5} />
@@ -412,7 +414,7 @@ export default function Dashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                     onClick={() => navigate(`/chat?agent=${agent.id}`)}
-                    className="glow-border flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card hover:border-foreground/20 hover:bg-secondary/30 transition-all text-left shadow-elevation-sm"
+                    className="glow-border elevated-surface flex items-center gap-3 px-4 py-3 rounded-xl hover:border-foreground/20 hover:bg-secondary/30 transition-all text-left hover:-translate-y-0.5"
                     style={{ '--shimmer-delay': `${i * 1.1}s` } as React.CSSProperties}
                   >
                     <div className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0">

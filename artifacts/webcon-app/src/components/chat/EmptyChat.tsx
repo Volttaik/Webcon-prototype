@@ -14,14 +14,14 @@ const suggestions = [
 export default function EmptyChat({ onSend }: { onSend: (msg: string) => void }) {
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-6 py-12">
+      <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-6 py-12 relative z-10">
 
         {/* Logo mark */}
         <motion.div
           initial={{ opacity: 0, scale: 0.75 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="w-11 h-11 rounded-2xl bg-foreground flex items-center justify-center mb-5 shadow-elevation-md"
+          className="w-11 h-11 rounded-2xl bg-foreground flex items-center justify-center mb-5 shadow-elevation-xl"
         >
           <span className="text-background text-sm font-semibold">W</span>
         </motion.div>
@@ -55,7 +55,7 @@ export default function EmptyChat({ onSend }: { onSend: (msg: string) => void })
               whileHover={{ y: -2, transition: { duration: 0.15 } }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onSend(prompt)}
-              className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl border border-border hover:border-foreground/20 hover:bg-secondary/40 transition-all duration-150 text-left bg-card shadow-elevation-sm hover:shadow-elevation-md"
+              className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl hover:border-foreground/20 hover:bg-secondary/40 transition-all duration-150 text-left elevated-surface hover:shadow-elevation-lg"
             >
               <Icon className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" strokeWidth={1.5} />
               <span className="text-[12.5px] text-muted-foreground leading-tight">{label}</span>
@@ -64,7 +64,7 @@ export default function EmptyChat({ onSend }: { onSend: (msg: string) => void })
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-border bg-background">
+      <div className="shrink-0 border-t border-border/70 bg-background/78 backdrop-blur-xl shadow-elevation-lg">
         <MessageInput onSend={onSend} />
       </div>
     </div>

@@ -87,6 +87,11 @@ If these secrets are missing, the app still launches; the related feature return
 - API server workflow starts successfully and listens on port 8080.
 - Browser preview renders the WebCon landing page without runtime errors.
 
+## Visual Design Direction
+
+- The app uses a warm monochrome style inspired by polished AI workspaces: soft off-white backgrounds, black/white contrast, greyscale surfaces, and layered elevation.
+- Dashboard and chat screens use stronger card shadows, glassy elevated panels, ambient background gradients, and black/white orb accents to avoid flat planes.
+
 ## GitHub Export Notes
 
 - GitHub remote `origin` points to `https://github.com/Volttaik/Webcon-prototype`.
