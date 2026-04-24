@@ -1,7 +1,7 @@
 {
-  "name": "WebCon",
-  "short_name": "WebCon",
-  "description": "AI-powered learning platform",
+  "name": "EduBridge",
+  "short_name": "EduBridge",
+  "description": "AI-powered learning platform that bridges students and personalized AI study agents.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

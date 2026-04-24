@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Check, Brain, Menu, ChevronRight, Sun, Moon, Monitor, Coins, Loader2, Zap, Camera } from 'lucide-react';
+import { Trash2, Check, Brain, Menu, ChevronRight, Sun, Moon, Monitor, Loader2, Zap, Camera, ArrowUpRight, ArrowDownRight, Receipt, CreditCard, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -138,7 +139,7 @@ function ProfileSettings() {
         </div>
       </Section>
       <Separator />
-      <Section title="Notifications" desc="Control when and how WebCon contacts you.">
+      <Section title="Notifications" desc="Control when and how EduBridge contacts you.">
         <div className="space-y-4">
           {[
             { label: 'Study reminders', desc: 'Get reminders to check in with your agents' },
@@ -244,7 +245,7 @@ function AppearanceSettings() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="max-w-lg space-y-6">
-      <Section title="Theme" desc="Choose how WebCon looks for you.">
+      <Section title="Theme" desc="Choose how EduBridge looks for you.">
         <div className="grid grid-cols-3 gap-3">
           {options.map(({ value, label, Icon }) => (
             <button
@@ -280,17 +281,57 @@ function AppearanceSettings() {
   );
 }
 
+interface CreditTxn {
+  id: number;
+  amount: number;
+  type: string;
+  description: string | null;
+  reference: string | null;
+  createdAt: string;
+}
+
+const CREDIT_PACKAGES = [
+  { id: 'starter',  credits: 100,  price: 1000,  desc: '~100 messages or 1 agent' },
+  { id: 'standard', credits: 500,  price: 4500,  desc: '5 agents · most popular', highlight: true },
+  { id: 'pro_pack', credits: 1200, price: 10000, desc: '12 agents · save 17%' },
+  { id: 'mega',     credits: 3000, price: 22000, desc: 'Best value · save 27%' },
+];
+
 function CreditsSettings() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const creditBalance = user?.creditBalance ?? 0;
+  const [loadingPkg, setLoadingPkg] = useState<string | null>(null);
 
-  const packages = [
-    { credits: 100,  price: 'Free', desc: 'First agent · 30 days', highlight: true },
-    { credits: 500,  price: '₦2,500', desc: '5 agents · 30 days each' },
-    { credits: 1200, price: '₦5,000', desc: '12 agents · 30 days each' },
-    { credits: 3000, price: '₦10,000', desc: '30 agents · 30 days each' },
-    { credits: 7000, price: '₦20,000', desc: 'Best value · 70 agents' },
-  ];
+  const { data: transactions = [], isLoading: txnsLoading } = useQuery<CreditTxn[]>({
+    queryKey: ['credit-transactions'],
+    queryFn: async () => {
+      const res = await fetch('/api/credits/history');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const handleBuyCredits = async (pkgId: string) => {
+    setLoadingPkg(pkgId);
+    try {
+      const res = await fetch('/api/credits/buy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageId: pkgId }),
+      });
+      const data = await res.json() as { authorizationUrl?: string; error?: string };
+      if (!res.ok || !data.authorizationUrl) {
+        toast.error(data.error || 'Could not start payment.');
+        return;
+      }
+      window.location.href = data.authorizationUrl;
+    } catch {
+      toast.error('Network error. Please try again.');
+    } finally {
+      setLoadingPkg(null);
+    }
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="max-w-lg space-y-6">
@@ -304,6 +345,13 @@ function CreditsSettings() {
               <p className="text-2xl font-semibold tracking-tight">{creditBalance.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">credits available</p>
             </div>
+            <Button
+              variant="outline" size="sm"
+              className="ml-auto h-8 text-xs gap-1.5 shadow-elevation-sm"
+              onClick={() => navigate('/billing')}
+            >
+              <Sparkles className="h-3 w-3" /> Plans
+            </Button>
           </div>
           <div className="space-y-2.5 text-xs text-muted-foreground border-t border-border pt-4">
             <div className="flex justify-between items-center">
@@ -318,45 +366,112 @@ function CreditsSettings() {
               <span>AI message (per message)</span>
               <span className="font-medium text-foreground">1 credit</span>
             </div>
-            <div className="flex justify-between items-center pt-2 border-t border-border">
-              <span className="text-foreground font-medium">Your first agent</span>
-              <span className="text-[10px] bg-secondary border border-border px-2 py-0.5 rounded-full font-medium text-foreground">Free · 30 days</span>
-            </div>
           </div>
         </div>
       </Section>
 
-      <Section title="Buy credits" desc="Priced in Naira (₦). Credits never expire.">
+      <Section title="Buy credits" desc="Priced in Naira (₦). Credits never expire. Payments secured by Paystack.">
         <div className="space-y-2.5">
-          {packages.map((pkg) => (
-            <motion.button
-              key={pkg.credits}
-              whileHover={{ x: 2 }}
-              transition={{ duration: 0.12 }}
-              onClick={() => toast.info('Payment coming soon! We\'ll notify you when it\'s ready.')}
-              className={cn(
-                'w-full flex items-center gap-4 p-4 rounded-2xl border bg-card shadow-elevation-sm hover:shadow-elevation-md transition-all text-left group',
-                pkg.highlight
-                  ? 'border-foreground/20 bg-secondary/40'
-                  : 'border-border hover:border-foreground/15'
-              )}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold">{pkg.credits.toLocaleString()} credits</p>
-                  {pkg.highlight && (
-                    <span className="text-[10px] bg-foreground text-background px-1.5 py-0.5 rounded-full font-medium">Free</span>
+          {CREDIT_PACKAGES.map((pkg) => {
+            const isLoading = loadingPkg === pkg.id;
+            return (
+              <motion.button
+                key={pkg.id}
+                whileHover={{ x: 2 }}
+                transition={{ duration: 0.12 }}
+                onClick={() => handleBuyCredits(pkg.id)}
+                disabled={isLoading}
+                className={cn(
+                  'w-full flex items-center gap-4 p-4 rounded-2xl border bg-card shadow-elevation-sm hover:shadow-elevation-md transition-all text-left group disabled:opacity-60',
+                  pkg.highlight
+                    ? 'border-foreground/20 bg-secondary/40'
+                    : 'border-border hover:border-foreground/15'
+                )}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold">{pkg.credits.toLocaleString()} credits</p>
+                    {pkg.highlight && (
+                      <span className="text-[10px] bg-foreground text-background px-1.5 py-0.5 rounded-full font-medium">Popular</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{pkg.desc}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <p className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                    ₦{pkg.price.toLocaleString()}
+                  </p>
+                  {isLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
                   )}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{pkg.desc}</p>
-              </div>
-              <p className="text-sm font-semibold shrink-0 text-muted-foreground group-hover:text-foreground transition-colors">{pkg.price}</p>
-            </motion.button>
-          ))}
+              </motion.button>
+            );
+          })}
         </div>
-        <p className="text-[11px] text-muted-foreground/60 mt-1">
-          Every new account gets 100 credits free — enough to create your first agent for 30 days.
-        </p>
+      </Section>
+
+      <Section title="Transaction history" desc="Your most recent credit activity.">
+        <div className="border border-border rounded-2xl bg-card shadow-elevation-sm overflow-hidden">
+          {txnsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="px-5 py-8 text-center">
+              <Receipt className="h-7 w-7 text-muted-foreground/30 mx-auto mb-2.5" strokeWidth={1.2} />
+              <p className="text-sm text-muted-foreground">No transactions yet</p>
+              <p className="text-[11px] text-muted-foreground/60 mt-1">
+                Your purchases and AI message charges will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border/60">
+              {transactions.slice(0, 10).map((txn) => {
+                const isCredit = txn.amount > 0;
+                return (
+                  <div key={txn.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className={cn(
+                      'w-8 h-8 rounded-lg border flex items-center justify-center shrink-0',
+                      isCredit
+                        ? 'bg-foreground/5 border-foreground/15'
+                        : 'bg-secondary border-border'
+                    )}>
+                      {isCredit
+                        ? <ArrowDownRight className="h-3.5 w-3.5 text-foreground" strokeWidth={1.6} />
+                        : <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.6} />
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12.5px] truncate">
+                        {txn.description || (isCredit ? 'Credits added' : 'Credits used')}
+                      </p>
+                      <p className="text-[10.5px] text-muted-foreground/70 mt-0.5 capitalize">
+                        {txn.type} · {formatDistanceToNow(new Date(txn.createdAt), { addSuffix: true })}
+                      </p>
+                    </div>
+                    <p className={cn(
+                      'text-[12.5px] font-medium tabular-nums shrink-0',
+                      isCredit ? 'text-foreground' : 'text-muted-foreground'
+                    )}>
+                      {isCredit ? '+' : ''}{txn.amount.toLocaleString()}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {transactions.length > 10 && (
+            <button
+              onClick={() => navigate('/billing')}
+              className="w-full text-[11px] text-muted-foreground hover:text-foreground transition-colors py-2 border-t border-border bg-secondary/30"
+            >
+              View all on Billing
+            </button>
+          )}
+        </div>
       </Section>
     </motion.div>
   );

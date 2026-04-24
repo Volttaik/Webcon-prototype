@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Box, Settings, User, HelpCircle, LogOut, X,
+  Settings, User, HelpCircle, LogOut, X,
   Brain, BookOpen, CalendarDays, BarChart2, LayoutDashboard,
   Plus, ChevronDown, MessageSquare, Clock, Zap,
   FolderKanban, Briefcase, CreditCard, MessageCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/Logo';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 import { fetchConversations, type Conversation } from '@/lib/data-service';
@@ -216,8 +217,8 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
           >
             <div className="h-12 flex items-center justify-between px-4 border-b border-border shrink-0">
               <button onClick={() => go('/')} className="flex items-center gap-2 hover:opacity-60 transition-opacity">
-                <Box className="h-4 w-4" strokeWidth={1.5} />
-                <span className="text-sm font-semibold tracking-tight">WebCon</span>
+                <Logo className="h-4 w-4" />
+                <span className="text-sm font-semibold tracking-tight">EduBridge</span>
               </button>
               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={onClose}>
                 <X className="h-3.5 w-3.5" />
@@ -432,8 +433,8 @@ export default function AppHeader() {
           </Button>
           <span className="text-border text-lg font-light select-none mx-0.5">/</span>
           <button onClick={() => navigate('/')} className="flex items-center gap-1.5 hover:opacity-60 transition-opacity">
-            <Box className="h-4 w-4" strokeWidth={1.5} />
-            <span className="text-sm font-semibold tracking-tight">WebCon</span>
+            <Logo className="h-4 w-4" />
+            <span className="text-sm font-semibold tracking-tight">EduBridge</span>
           </button>
         </div>
         <div className="flex items-center gap-3">

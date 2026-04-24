@@ -16,10 +16,14 @@ const ThemeContext = createContext<ThemeContextType>({
   toggleTheme: () => {},
 });
 
+const THEME_STORAGE_KEY = 'edubridge-theme';
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === 'undefined') return 'dark';
-    const stored = localStorage.getItem('webcon-theme') as Theme | null;
+    const stored =
+      (localStorage.getItem(THEME_STORAGE_KEY) as Theme | null) ??
+      (localStorage.getItem('webcon-theme') as Theme | null);
     if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
     return 'dark';
   });
@@ -39,7 +43,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const resolved = getResolved(theme);
     setResolvedTheme(resolved);
     document.documentElement.classList.toggle('dark', resolved === 'dark');
-    localStorage.setItem('webcon-theme', theme);
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
 
     if (theme === 'system') {
       const mq = window.matchMedia('(prefers-color-scheme: dark)');

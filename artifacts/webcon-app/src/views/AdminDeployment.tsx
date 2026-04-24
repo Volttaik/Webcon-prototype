@@ -179,7 +179,7 @@ export default function AdminDeployment() {
               </div>
               <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Production readiness</h1>
               <p className="text-muted-foreground mt-2 max-w-2xl">
-                Check the services Vercel needs for WebCon: Supabase Postgres, agents, credits, payments, email verification, and public URLs.
+                Check the services EduBridge needs: Postgres, agents, credits, payments, email verification, and public URLs.
               </p>
             </div>
             <div className="flex gap-2">

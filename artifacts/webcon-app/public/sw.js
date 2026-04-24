@@ -1,4 +1,4 @@
-const CACHE_NAME = "webcon-v1";
+const CACHE_NAME = "edubridge-v1";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

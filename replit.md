@@ -1,99 +1,114 @@
-# WebCon App - Replit Workspace
+# EduBridge App - Replit Workspace
 
 ## Overview
 
-AI-powered learning platform (WebCon) migrated from Vercel/Turso to run in Replit development while targeting Vercel production deployment with Supabase Postgres.
+EduBridge (formerly WebCon) — an AI-powered learning platform that pairs students with course-specific AI study agents. Migrated from Vercel/Turso to run in Replit development. Targets Vercel/Replit production deployment with Postgres.
+
+## Brand
+
+- **Name**: EduBridge — bridging students with personalized AI agents
+- **Logo**: Custom bridge mark (`src/components/Logo.tsx`) — minimal stroke arch + deck + pillars, uses `currentColor`
+- **Theme**: Dark by default, warm monochrome palette
+- **Note**: The pnpm workspace package name is still `@workspace/webcon-app` for backwards compatibility with the workflow filter — the brand was rebranded at the UI/copy level.
 
 ## Architecture
 
 - **Frontend/Main App**: Next.js 15 (`artifacts/webcon-app`) — serves React SPA + API routes
-- **Express API**: Express 5 (`artifacts/api-server`) — standalone API server (mirrors/supports API routes)
+- **Express API**: Express 5 (`artifacts/api-server`) — standalone API server
 - **Database lib**: `lib/db` — Drizzle ORM with PostgreSQL via `pg` Pool
 
 ## Stack
 
-- **Monorepo tool**: pnpm workspaces
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **Frontend**: Next.js 15 + React 19 + Tailwind CSS v4
-- **API framework**: Express 5 (api-server) + Next.js API routes (webcon-app)
-- **Database**: Supabase Postgres / PostgreSQL + Drizzle ORM
-- **Auth**: Custom session-based auth (email + password) with email verification via nodemailer
-- **AI**: Groq chat integration via `GROQ_API_KEY`
-- **Payments**: Paystack (requires `PAYSTACK_SECRET_KEY` secret)
+- **Monorepo**: pnpm workspaces · TypeScript 5.9
+- **Frontend**: Next.js 15 + React 19 + Tailwind CSS v4 + Framer Motion
+- **API**: Express 5 + Next.js API routes
+- **Database**: PostgreSQL + Drizzle ORM
+- **Auth**: Custom session-based (email + password), email verification via nodemailer
+- **AI**: Groq — `llama-3.3-70b-versatile` (text + tools), `meta-llama/llama-4-scout-17b-16e-instruct` (vision)
+- **Payments**: Paystack
 - **Validation**: Zod, drizzle-zod
 
 ## Key Commands
 
-- `pnpm install` — install workspace dependencies from the lockfile
-- `pnpm --filter @workspace/webcon-app run dev` — run the main Next.js app locally
-- `pnpm --filter @workspace/webcon-app run build` — build the Next.js app
-- `pnpm --filter @workspace/webcon-app run start` — start the built Next.js app
-- `pnpm --filter @workspace/api-server run dev` — build and run the Express API server
-- `pnpm --filter @workspace/db run push` — push DB schema changes to PostgreSQL
+- `pnpm install`
+- `pnpm --filter @workspace/webcon-app run dev` — main app on `$PORT` (5000 fallback)
+- `pnpm --filter @workspace/webcon-app run build`
+- `pnpm --filter @workspace/db run push` — push DB schema
 
-## Replit Compatibility Fixes Applied
+## Workflows
 
-1. **Dependencies installed**: ran `pnpm install` after migration.
-2. **Replit run scripts**: Next.js dev/start scripts bind to `0.0.0.0` and use `$PORT` with a 5000 fallback for preview compatibility.
-3. **Artifact services configured**: web service runs Next.js on its assigned Replit port; API service runs Express on port 8080 with `PORT` provided in service env.
-4. **Production Next.js config**: web artifact production config builds with `next build` and runs with `next start`.
-5. **Postgres DB runtime**: `lib/db` uses `pg.Pool` and Drizzle's node-postgres adapter.
-6. **Vercel deployment config**: root `vercel.json` builds `@workspace/webcon-app` and outputs `artifacts/webcon-app/.next`.
-7. **Missing AI key resilience**: Groq clients are initialized inside request handlers only after `GROQ_API_KEY` is present, preventing missing secrets from crashing app startup.
-8. **Next.js SPA wrapper**: React Router app is mounted through the catch-all Next.js page.
-9. **Theme provider SSR safety**: browser-only theme access is guarded to avoid server rendering crashes.
-10. **Hidden admin deployment page**: `/admin/deployment` is not linked in normal navigation and is protected by HTTP Basic auth. Defaults are `admin` / `liquid4*`, override with `ADMIN_USERNAME` and `ADMIN_PASSWORD` in production.
+- `Start application` — runs the main app (`pnpm --filter @workspace/webcon-app run dev`) on port 5000
+
+## AI Capabilities (`/api/chat/conversations/[id]/messages`)
+
+- **Vision**: when an `imageUrl` is attached, the route switches to the vision model and passes a multimodal content array (text + image_url). Vision calls skip tools.
+- **Tools** (text path):
+  - `web_search` — DuckDuckGo Instant Answer + Related Topics, returns up to ~5 results with sources
+  - `schedule_session` — inserts a row into `scheduleSessionsTable` (the same table the Schedule UI reads from)
+  - `create_document` — saves a workspace item (note/study guide/etc)
+  - `create_project` — multi-task project + tasks
+  - `plan_schedule` — saves a written study plan as a workspace doc
+- **Memory**: long-term snippets per (agent, user), capped at 15 entries, deduped by snippet
+- **System prompt**: injects today's date, agent personality/soul/system prompt, hub knowledge base, vision guidance, and tool guidelines
+
+## Theme & Hydration
+
+- `src/app/layout.tsx` includes a pre-hydration inline script that reads `localStorage['edubridge-theme']` (with `webcon-theme` legacy fallback) and applies the `dark` class to `<html>` before paint — eliminates white flash on load.
+- `ThemeProvider` (`src/lib/theme.tsx`) writes to `edubridge-theme`; default theme is `dark`.
+
+## Real Data Surfaces (no dummy/coming-soon)
+
+- **Schedule** (`/schedule`) — TanStack Query against `/api/schedule` (GET/POST/PATCH/DELETE). Manual creation via dialog; agent-suggested sessions show in sidebar with attribution.
+- **Settings → Credits** — Real Paystack flow (`/api/credits/buy`) for the `starter`, `standard`, `pro_pack`, and `mega` packages, plus a live transaction history list (`/api/credits/history`).
+- **Billing** (`/billing`) — Already real-data, unchanged.
+
+## Replit Compatibility Fixes
+
+1. Workflow `Start application` runs the Next.js app on port 5000 bound to `0.0.0.0`.
+2. `viewport.themeColor` moved from `metadata` to `viewport` export (Next 15 conformance).
+3. Service worker cache renamed to `edubridge-v1` so the rebrand invalidates old caches.
+4. Manifest rebranded to EduBridge.
+5. Groq clients are constructed inside request handlers, only after `GROQ_API_KEY` is read — missing secrets do not crash startup.
+6. Theme provider is browser-guarded for SSR safety.
 
 ## Environment Variables
 
 ### Currently configured
 
-- `NEXT_PUBLIC_SITE_URL` — current Replit development URL
-- `DATABASE_URL` — runtime-managed by Replit or provided Postgres URL
+- `NEXT_PUBLIC_SITE_URL`, `DATABASE_URL`
 
 ### Database connection priority
 
-- `SUPABASE_DATABASE_URL` — preferred Vercel production Supabase Postgres connection string
-- `DATABASE_URL` — fallback Postgres connection string
-- `POSTGRES_URL` — fallback Postgres connection string
-- `POSTGRES_PRISMA_URL` — fallback Postgres connection string
+`SUPABASE_DATABASE_URL` → `DATABASE_URL` → `POSTGRES_URL` → `POSTGRES_PRISMA_URL`
 
 ### Needed for full feature support
 
-- `GROQ_API_KEY` — enables AI chat responses
-- `PAYSTACK_SECRET_KEY` — enables credit purchase/payment features
-- `GMAIL_USER` — Gmail address for sending verification emails
-- `GMAIL_APP_PASSWORD` — Gmail app password for nodemailer
-- `NEXT_PUBLIC_SITE_URL` — production app URL for callbacks and links
-- `ADMIN_USERNAME` — optional admin page username override
-- `ADMIN_PASSWORD` — optional admin page password override
+- `GROQ_API_KEY` — AI chat (text + vision)
+- `PAYSTACK_SECRET_KEY` — credit purchases
+- `GMAIL_USER` + `GMAIL_APP_PASSWORD` — verification + hub emails
+- `NEXT_PUBLIC_SITE_URL` — production callback URL
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — admin page basic auth (defaults `admin` / `liquid4*`)
 
-If these secrets are missing, the app still launches; the related feature returns a clear configuration error when used.
+If a secret is missing the app launches and the affected feature returns a clear configuration error when used.
 
-## Supabase Setup
+## Visual Design
 
-- Run `lib/db/supabase-schema.sql` in the Supabase SQL editor before first production use, or run `pnpm --filter @workspace/db run push` with a Postgres connection string configured.
-- Vercel should use `SUPABASE_DATABASE_URL` for the production database connection.
+- Warm monochrome inspired by polished AI workspaces: soft contrast, layered elevation, subtle shadows.
+- Dashboard and chat surfaces use elevated card shadows, glassy panels, and ambient gradients.
+- New EduBridge brand mark — a stylized bridge — appears in the header, sidebar, landing page, footer, and chat empty state.
 
-## Workflows
+## Recent Changes (April 2026)
 
-- `artifacts/webcon-app: web` — Main Next.js app, currently runs on assigned Replit preview port
-- `artifacts/api-server: API Server` — Express API server, runs on port 8080
-
-## Current Runtime Status
-
-- Main web workflow starts successfully and serves `/` with HTTP 200.
-- API server workflow starts successfully and listens on port 8080.
-- Browser preview renders the WebCon landing page without runtime errors.
-
-## Visual Design Direction
-
-- The app uses a warm monochrome style inspired by polished AI workspaces: soft off-white backgrounds, black/white contrast, greyscale surfaces, and layered elevation.
-- Dashboard and chat screens use stronger card shadows, glassy elevated panels, ambient background gradients, and black/white orb accents to avoid flat planes.
+- Migrated Vercel/Turso → Replit (port 5000 workflow).
+- Rebranded WebCon → EduBridge across UI, manifest, service worker, emails, WhatsApp copy, and admin auth realm.
+- New `Logo` component (bridge arch + deck + pillars).
+- Eliminated white flash via pre-hydration theme script.
+- Replaced dummy Schedule data with real `/api/schedule`-backed CRUD; added "Add session" dialog and agent-suggestions sidebar.
+- Replaced "Payment coming soon" toast in Settings with the real Paystack purchase flow plus a transaction history list.
+- Improved AI agent: vision support (image attachments), `schedule_session` tool, expanded web search results, memory cap 5 → 15, stronger system prompt with date awareness and tool discipline.
 
 ## GitHub Export Notes
 
 - GitHub remote `origin` points to `https://github.com/Volttaik/Webcon-prototype`.
-- GitHub pushes should use the connected GitHub authorization flow or a secure token supplied as an environment secret, not a token committed into files.
-- The `webcon-prototype` repository should receive clean source snapshots that exclude generated/cache directories such as `.next`, `node_modules`, `.cache`, and `.local`.
+- Use the connected GitHub authorization flow or a secret token (never commit tokens).
+- Exclude `.next`, `node_modules`, `.cache`, `.local` from clean snapshots.

@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { useRef, useMemo, useState, useEffect } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { ArrowRight, BookOpen, Brain, MessageCircle, Zap, Users, Star, Send, Box, PenLine, CalendarCheck, Telescope, Repeat2, Target } from 'lucide-react';
+import { ArrowRight, BookOpen, Brain, MessageCircle, Zap, Users, Star, Send, PenLine, CalendarCheck, Telescope, Repeat2, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ThemeToggle from '@/components/ThemeToggle';
 import AuthModal from '@/components/AuthModal';
+import { Logo } from '@/components/Logo';
 import { useAuth } from '@/lib/auth-context';
 
 const features = [
@@ -182,8 +183,8 @@ function LiveDemoChat() {
   return (
     <div ref={ref} className="border border-border rounded-2xl overflow-hidden bg-card shadow-elevation-md">
       <div className="border-b border-border px-4 py-3 flex items-center gap-3">
-        <div className="w-7 h-7 rounded-full bg-foreground flex items-center justify-center shrink-0">
-          <span className="text-background text-[10px] font-semibold">W</span>
+        <div className="w-7 h-7 rounded-full bg-foreground flex items-center justify-center shrink-0 text-background">
+          <Logo className="h-3.5 w-3.5" strokeWidth={1.6} />
         </div>
         <div>
           <p className="text-xs font-medium">Calc II Agent</p>
@@ -240,8 +241,8 @@ export default function Landing() {
         <div className="container mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
-              <Box className="h-4 w-4" strokeWidth={1.5} />
-              <span className="text-sm font-semibold tracking-tight">WebCon</span>
+              <Logo className="h-4 w-4" />
+              <span className="text-sm font-semibold tracking-tight">EduBridge</span>
             </div>
             <nav className="hidden md:flex items-center gap-6">
               {['How it works', 'Subjects', 'Pricing'].map(item => (
@@ -313,7 +314,7 @@ export default function Landing() {
       <section className="px-6 pb-8">
         <div className="max-w-5xl mx-auto">
           <AnimatedSection className="mb-6 text-center">
-            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest">What students do with WebCon</p>
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest">What students do with EduBridge</p>
           </AnimatedSection>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
@@ -377,7 +378,7 @@ export default function Landing() {
                     <span className="text-foreground/50">taught by teachers.</span>
                   </h2>
                   <p className="text-sm text-muted-foreground leading-relaxed mb-7 max-w-sm">
-                    WebCon blends the patience of AI with the wisdom of your teachers — giving you a study companion that knows your curriculum and explains it your way.
+                    EduBridge blends the patience of AI with the wisdom of your teachers — giving you a study companion that bridges your curriculum and explains it your way.
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {['Syllabus-aware', 'Always available', 'Remembers everything'].map(tag => (
@@ -465,15 +466,15 @@ export default function Landing() {
       <footer className="border-t border-border py-8 px-6">
         <div className="container mx-auto max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Box className="h-3.5 w-3.5" strokeWidth={1.5} />
-            <span className="text-sm font-semibold">WebCon</span>
+            <Logo className="h-3.5 w-3.5" />
+            <span className="text-sm font-semibold">EduBridge</span>
           </div>
           <div className="flex items-center gap-6">
             {['Privacy', 'Terms', 'Docs', 'Contact'].map(item => (
               <button key={item} className="text-xs text-muted-foreground hover:text-foreground transition-colors">{item}</button>
             ))}
           </div>
-          <span className="text-xs text-muted-foreground">© 2025 WebCon</span>
+          <span className="text-xs text-muted-foreground">© 2026 EduBridge</span>
         </div>
       </footer>
     </div>

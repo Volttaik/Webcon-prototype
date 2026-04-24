@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { BookOpen, Brain, FlaskConical, Code2, Landmark, Calculator } from 'lucide-react';
 import MessageInput from './MessageInput';
+import { Logo } from '@/components/Logo';
 
 const suggestions = [
   { icon: FlaskConical, label: 'Explain a concept',  prompt: 'Explain the Krebs cycle and how it connects to ATP production' },
@@ -21,9 +22,9 @@ export default function EmptyChat({ onSend }: { onSend: (msg: string) => void })
           initial={{ opacity: 0, scale: 0.75 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="w-11 h-11 rounded-2xl bg-foreground flex items-center justify-center mb-5 shadow-elevation-xl"
+          className="w-11 h-11 rounded-2xl bg-foreground flex items-center justify-center mb-5 shadow-elevation-xl text-background"
         >
-          <span className="text-background text-sm font-semibold">W</span>
+          <Logo className="h-5 w-5" strokeWidth={1.7} />
         </motion.div>
 
         <motion.h2

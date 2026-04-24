@@ -138,7 +138,7 @@ export default function AuthModal({ initialTab = 'login', onClose }: AuthModalPr
             {tab === 'login' ? 'Welcome back' : 'Create your account'}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {tab === 'login' ? "Sign in to your WebCon account" : "Start learning with AI agents today"}
+            {tab === 'login' ? "Sign in to your EduBridge account" : "Start learning with AI agents today"}
           </p>
         </div>
 

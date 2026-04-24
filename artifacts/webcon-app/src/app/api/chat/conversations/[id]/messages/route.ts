@@ -11,14 +11,15 @@ import {
   projectsTable,
   projectTasksTable,
   agentMemoryTable,
-  agentSubscriptionsTable,
-  learningHubsTable,
   hubFilesTable,
+  scheduleSessionsTable,
 } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth-server";
 
 const COST_PER_MESSAGE = 1;
+const TEXT_MODEL = "llama-3.3-70b-versatile";
+const VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 async function getUserPlan(userId: number): Promise<{ plan: string; active: boolean }> {
   try {
@@ -35,7 +36,7 @@ async function getUserPlan(userId: number): Promise<{ plan: string; active: bool
   }
 }
 
-function buildGroqSystemPrompt(
+function buildSystemPrompt(
   agent: {
     name: string;
     subject: string;
@@ -45,27 +46,59 @@ function buildGroqSystemPrompt(
     soulMd: string | null;
     personalityDescription: string | null;
     systemPrompt: string | null;
-  },
+  } | null,
   memory: string,
-  hubContext: string
+  hubContext: string,
+  todayIso: string,
+  hasImage: boolean
 ): string {
-  const soulSection = agent.soulMd || (agent.personalityDescription ? `Personality: ${agent.personalityDescription}` : "");
-  const base = agent.systemPrompt || `You are ${agent.name}, an expert AI agent specializing in ${agent.subject} for users at the ${agent.level} level.`;
-  const soulBlock = soulSection ? `\n\n## Personality & Soul\n${soulSection}` : "";
-  const memoryBlock = memory ? `\n\n## Long-term Memory\nYou remember these things about this user:\n${memory}` : "";
+  if (!agent) {
+    return `You are EduBridge, a sharp, friendly study companion. Today is ${todayIso}. Be concise, structured, and explain reasoning step-by-step. Use markdown for clarity. ${hasImage ? "The user has attached an image — analyze it carefully and refer to specific details you observe." : ""}`;
+  }
+
+  const soulSection =
+    agent.soulMd ||
+    (agent.personalityDescription ? `Personality: ${agent.personalityDescription}` : "");
+  const base =
+    agent.systemPrompt ||
+    `You are ${agent.name}, an expert AI study agent specializing in ${agent.subject} for a ${agent.level}-level student. Your tone: ${agent.tone}.`;
+
+  const soulBlock = soulSection ? `\n\n## Personality\n${soulSection}` : "";
+  const memoryBlock = memory
+    ? `\n\n## What you remember about this student\n${memory}`
+    : "";
   const hubBlock = hubContext
-    ? `\n\n## Learning Hub Knowledge Base\nYou have access to the following knowledge documents. Use this knowledge to provide accurate, detailed answers:\n\n${hubContext}`
+    ? `\n\n## Knowledge base (cite when relevant)\nYou have access to the following course materials. Quote and reference them when answering:\n\n${hubContext}`
     : "";
 
-  const toolGuidance = `\n\n## Tool Use Guidelines
-IMPORTANT: Only use tools when the user EXPLICITLY asks for them.
-- Use \`web_search\` ONLY when asked to search the web or find current information.
-- Use \`create_document\` ONLY when asked to create, write, save a document, note, or file.
-- Use \`create_project\` ONLY when asked to create a project or organize tasks.
-- Use \`plan_schedule\` ONLY when asked to plan or create a schedule.
-- For all other messages, respond with text only.`;
+  const principles = `\n\n## How you respond
+- Today's date is ${todayIso}.
+- Be precise and pedagogical — explain *why*, not just *what*.
+- Use markdown: short paragraphs, bullets, **bold** key terms, and fenced code blocks for code or math.
+- For math, use LaTeX inside $$ ... $$ for displayed equations and $ ... $ inline.
+- When the student is stuck, scaffold: ask one clarifying question, then teach.
+- If you don't know something current or factual, say so AND use the web_search tool to find out.
+- Stay grounded in ${agent.subject}. If asked off-topic, briefly help, then bring focus back.`;
 
-  return `${base}${soulBlock}${memoryBlock}${hubBlock}${toolGuidance}`;
+  const visionBlock = hasImage
+    ? `\n\n## Image attached
+The student has attached an image. Analyze it carefully:
+- Describe what you see relevant to the question
+- If it's homework, a diagram, handwritten notes, a screenshot, or a textbook page — read and reason about its contents
+- Quote any text you can read in the image
+- Solve or explain step-by-step`
+    : "";
+
+  const toolGuidance = `\n\n## Tools you can use (use them when actually helpful, not just because the user mentions them)
+- **web_search** — for current events, recent papers, things you may not know, fact-checking.
+- **schedule_session** — when the student wants to plan, book, or schedule a study session, exam prep, etc. Use the date/time the student gives you (relative to today: ${todayIso}).
+- **create_document** — when the student asks you to write, save, or create a note, summary, study guide, essay, plan, or report.
+- **create_project** — when the student asks for a multi-step project, research plan, or assignment breakdown.
+- **plan_schedule** — for a written study plan document (NOT a single calendar session — use schedule_session for that).
+
+Never use a tool unless it directly serves the student's request.`;
+
+  return `${base}${soulBlock}${memoryBlock}${hubBlock}${principles}${visionBlock}${toolGuidance}`;
 }
 
 const TOOLS: Groq.Chat.ChatCompletionTool[] = [
@@ -73,10 +106,11 @@ const TOOLS: Groq.Chat.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "web_search",
-      description: "Search the web for current information, recent events, or facts.",
+      description:
+        "Search the web for current information, recent events, fact-check, or things you don't know. Returns a synthesized summary of top results.",
       parameters: {
         type: "object",
-        properties: { query: { type: "string" } },
+        properties: { query: { type: "string", description: "Concise search query" } },
         required: ["query"],
       },
     },
@@ -84,14 +118,45 @@ const TOOLS: Groq.Chat.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
-      name: "create_document",
-      description: "Create and save a document to the user's workspace.",
+      name: "schedule_session",
+      description:
+        "Add a study session to the student's calendar/schedule. Use when they want to plan or book a study time.",
       parameters: {
         type: "object",
         properties: {
-          type: { type: "string", enum: ["note", "presentation", "speech", "plan", "report"] },
+          title: { type: "string", description: "Short session title" },
+          date: {
+            type: "string",
+            description:
+              "Full ISO 8601 datetime (e.g. 2026-04-25T16:00:00). Resolve relative dates like 'tomorrow at 4pm' against today's date.",
+          },
+          duration: { type: "number", description: "Duration in minutes (default 60)" },
+          subject: { type: "string", description: "Subject the session covers" },
+          type: {
+            type: "string",
+            enum: ["study", "practice", "review", "exam_prep", "project", "reading"],
+          },
+          notes: { type: "string", description: "Brief description of what to focus on" },
+        },
+        required: ["title", "date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_document",
+      description:
+        "Create and save a document (note, study guide, summary, essay, etc.) to the student's workspace.",
+      parameters: {
+        type: "object",
+        properties: {
+          type: {
+            type: "string",
+            enum: ["note", "presentation", "speech", "plan", "report"],
+          },
           title: { type: "string" },
-          content: { type: "string" },
+          content: { type: "string", description: "Full markdown content" },
           subject: { type: "string" },
         },
         required: ["type", "title", "content"],
@@ -102,13 +167,16 @@ const TOOLS: Groq.Chat.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "create_project",
-      description: "Create a new project with tasks.",
+      description: "Create a multi-task project to break down a larger goal.",
       parameters: {
         type: "object",
         properties: {
           title: { type: "string" },
           subject: { type: "string" },
-          type: { type: "string", enum: ["study", "research", "assignment", "general"] },
+          type: {
+            type: "string",
+            enum: ["study", "research", "assignment", "general"],
+          },
           tasks: { type: "array", items: { type: "string" } },
         },
         required: ["title", "tasks"],
@@ -119,7 +187,7 @@ const TOOLS: Groq.Chat.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "plan_schedule",
-      description: "Create a structured schedule or plan.",
+      description: "Save a written study plan as a document (not a calendar session).",
       parameters: {
         type: "object",
         properties: {
@@ -136,30 +204,71 @@ const TOOLS: Groq.Chat.ChatCompletionTool[] = [
 async function doWebSearch(query: string): Promise<string> {
   try {
     const response = await fetch(
-      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(
+        query
+      )}&format=json&no_html=1&skip_disambig=1`,
+      { signal: AbortSignal.timeout(8000) }
     );
     const data = (await response.json()) as {
       AbstractText?: string;
-      RelatedTopics?: { Text?: string }[];
+      AbstractURL?: string;
+      AbstractSource?: string;
+      Heading?: string;
+      RelatedTopics?: Array<{ Text?: string; FirstURL?: string; Topics?: Array<{ Text?: string; FirstURL?: string }> }>;
+      Results?: Array<{ Text?: string; FirstURL?: string }>;
     };
-    const abstract = data.AbstractText || "";
-    const related = (data.RelatedTopics || [])
-      .slice(0, 3)
-      .map((t) => t.Text || "")
-      .filter(Boolean)
-      .join("\n");
-    return abstract || related || `Search results for: ${query} (no summary available)`;
+
+    const lines: string[] = [];
+    if (data.Heading) lines.push(`# ${data.Heading}`);
+    if (data.AbstractText) {
+      lines.push(data.AbstractText);
+      if (data.AbstractURL && data.AbstractSource) {
+        lines.push(`Source: ${data.AbstractSource} — ${data.AbstractURL}`);
+      }
+    }
+
+    const flatTopics: Array<{ Text?: string; FirstURL?: string }> = [];
+    for (const item of data.RelatedTopics || []) {
+      if (item.Topics) flatTopics.push(...item.Topics);
+      else flatTopics.push(item);
+    }
+
+    if (data.Results && data.Results.length > 0) {
+      lines.push("\n## Top results");
+      data.Results.slice(0, 5).forEach((r, i) => {
+        if (r.Text) lines.push(`${i + 1}. ${r.Text}${r.FirstURL ? ` (${r.FirstURL})` : ""}`);
+      });
+    }
+
+    if (flatTopics.length > 0) {
+      lines.push("\n## Related");
+      flatTopics
+        .filter((t) => t.Text)
+        .slice(0, 5)
+        .forEach((t, i) => {
+          lines.push(`${i + 1}. ${t.Text}${t.FirstURL ? ` (${t.FirstURL})` : ""}`);
+        });
+    }
+
+    if (lines.length === 0) {
+      return `No structured results for "${query}". Use general knowledge and clearly mark uncertainty.`;
+    }
+    return lines.join("\n");
   } catch {
-    return `Could not fetch results for: ${query}`;
+    return `Web search failed for "${query}". Answer from general knowledge and tell the user the search couldn't be completed.`;
   }
 }
 
-function detectVerbFromMessage(content: string): string {
+function detectVerbFromMessage(content: string, hasImage: boolean): string {
+  if (hasImage) return "looking";
   const t = content.trim().toLowerCase();
+  if (/schedul|plan.*(session|study|tomorrow|today|next week)|book.*time/i.test(t))
+    return "planning";
   if (/create\s+(a\s+)?project|new project|organize/i.test(t)) return "creating";
-  if (/create\s+(a\s+)?(file|note|document|doc|plan|schedule)|plan\s+my|schedule/i.test(t)) return "creating";
-  if (/search|find|look up|what is|who is|when did|where is/i.test(t)) return "searching";
-  if (/plan|outline|structure|break down|schedule/i.test(t)) return "planning";
+  if (/create\s+(a\s+)?(file|note|document|doc|plan|study guide|summary)/i.test(t))
+    return "creating";
+  if (/search|find|look up|latest|news|current/i.test(t)) return "searching";
+  if (/explain|what is|who is|when did|where is|why/i.test(t)) return "thinking";
   return "thinking";
 }
 
@@ -225,7 +334,6 @@ export async function POST(
 
     if (!conv) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
 
-    // Check user plan — Creator plan has 0 credit fees
     const { plan: userPlan, active: planActive } = await getUserPlan(session.userId);
     const isCreatorPlan = userPlan === "creator" && planActive;
 
@@ -242,9 +350,13 @@ export async function POST(
     const body = await request.json();
     const content: string = body.content || "";
     const imageUrl: string | undefined = body.imageUrl || undefined;
+    const hasImage = !!imageUrl;
 
     if (!content?.trim() && !imageUrl) {
-      return NextResponse.json({ error: "Message content or image required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Message content or image required" },
+        { status: 400 }
+      );
     }
 
     const groqApiKey = process.env.GROQ_API_KEY;
@@ -254,10 +366,13 @@ export async function POST(
     const groq = new Groq({ apiKey: groqApiKey });
 
     const [agent] = conv.agentId
-      ? await db.select().from(agentsTable).where(eq(agentsTable.id, conv.agentId)).limit(1)
+      ? await db
+          .select()
+          .from(agentsTable)
+          .where(eq(agentsTable.id, conv.agentId))
+          .limit(1)
       : [null];
 
-    // Load hub knowledge if agent has a learningHubId
     let hubContext = "";
     if (agent?.learningHubId) {
       const hubFiles = await db
@@ -265,7 +380,6 @@ export async function POST(
         .from(hubFilesTable)
         .where(eq(hubFilesTable.hubId, agent.learningHubId))
         .limit(10);
-
       if (hubFiles.length > 0) {
         hubContext = hubFiles
           .map((f) => `### ${f.title}\n${f.content}`)
@@ -277,14 +391,20 @@ export async function POST(
       ? await db
           .select()
           .from(agentMemoryTable)
-          .where(and(eq(agentMemoryTable.agentId, agent.id), eq(agentMemoryTable.userId, session.userId)))
+          .where(
+            and(
+              eq(agentMemoryTable.agentId, agent.id),
+              eq(agentMemoryTable.userId, session.userId)
+            )
+          )
           .orderBy(desc(agentMemoryTable.updatedAt))
-          .limit(5)
+          .limit(15)
       : [];
 
     const memoryContext = memoryRows.map((m) => m.content).join("\n");
 
-    const userMessageContent = content.trim() || (imageUrl ? "[User sent an image]" : "");
+    const userMessageContent =
+      content.trim() || (imageUrl ? "[Image attached — please analyze]" : "");
 
     const [userMsg] = await db
       .insert(messages)
@@ -302,18 +422,36 @@ export async function POST(
       .where(eq(messages.conversationId, convId))
       .orderBy(messages.createdAt);
 
-    const chatMessages: Groq.Chat.ChatCompletionMessageParam[] = history
+    // Build chat history. The most-recent user message gets vision content
+    // when imageUrl exists; older history is text-only.
+    const trimmed = history
       .filter((m) => m.role === "user" || m.role === "assistant")
-      .slice(-20)
-      .map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      }));
+      .slice(-20);
 
-    const detectedVerb = agent?.learningHubId && hubContext ? "reading" : detectVerbFromMessage(content);
-    const systemPrompt = agent
-      ? buildGroqSystemPrompt(
-          {
+    const chatMessages: Groq.Chat.ChatCompletionMessageParam[] = trimmed.map((m, idx) => {
+      const isLast = idx === trimmed.length - 1;
+      if (isLast && m.role === "user" && hasImage && imageUrl) {
+        return {
+          role: "user",
+          content: [
+            { type: "text", text: m.content || "Please analyze this image." },
+            { type: "image_url", image_url: { url: imageUrl } },
+          ],
+        } as Groq.Chat.ChatCompletionMessageParam;
+      }
+      return { role: m.role as "user" | "assistant", content: m.content };
+    });
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const detectedVerb = hasImage
+      ? "looking"
+      : agent?.learningHubId && hubContext
+        ? "reading"
+        : detectVerbFromMessage(content, hasImage);
+
+    const systemPrompt = buildSystemPrompt(
+      agent
+        ? {
             name: agent.name,
             subject: agent.subject,
             level: agent.level,
@@ -322,11 +460,13 @@ export async function POST(
             soulMd: agent.soulMd,
             personalityDescription: agent.personalityDescription,
             systemPrompt: agent.systemPrompt,
-          },
-          memoryContext,
-          hubContext
-        )
-      : "You are a helpful, intelligent AI assistant.";
+          }
+        : null,
+      memoryContext,
+      hubContext,
+      todayIso,
+      hasImage
+    );
 
     const encoder = new TextEncoder();
 
@@ -341,120 +481,231 @@ export async function POST(
         };
 
         try {
-          // Send initial verb — "reading" if hub-powered
-          if (agent?.learningHubId && hubContext) {
-            activeVerb = "reading";
-            send({ type: "verb", verb: "reading" });
-          } else {
-            send({ type: "verb", verb: activeVerb });
-          }
+          send({ type: "verb", verb: activeVerb });
 
           const groqMessages: Groq.Chat.ChatCompletionMessageParam[] = [
             { role: "system", content: systemPrompt },
             ...chatMessages,
           ];
 
-          const response = await groq.chat.completions.create({
-            model: "llama-3.3-70b-versatile",
-            max_tokens: 4096,
-            messages: groqMessages,
-            tools: TOOLS,
-            tool_choice: "auto",
-            stream: false,
-          });
-
-          const choice = response.choices[0];
-          const toolCalls = choice.message.tool_calls || [];
-
-          for (const toolCall of toolCalls) {
-            const toolName = toolCall.function.name;
-            let toolArgs: Record<string, unknown> = {};
-            try {
-              toolArgs = JSON.parse(toolCall.function.arguments || "{}");
-            } catch {
-              toolArgs = {};
-            }
-
-            if (toolName === "web_search") {
-              activeVerb = "searching";
-              send({ type: "verb", verb: "searching" });
-              const searchResult = await doWebSearch(toolArgs.query as string);
-              groqMessages.push({ role: "assistant", content: null, tool_calls: [toolCall] });
-              groqMessages.push({ role: "tool", content: searchResult, tool_call_id: toolCall.id });
-              send({ type: "tool_use", tool: "web_search", query: toolArgs.query });
-            } else if (toolName === "create_document") {
-              activeVerb = "creating";
-              send({ type: "verb", verb: "creating" });
-              await db.insert(workspaceItemsTable).values({
-                userId: session.userId,
-                type: (toolArgs.type as string) || "note",
-                title: toolArgs.title as string,
-                content: toolArgs.content as string,
-                agentId: conv.agentId ?? undefined,
-                conversationId: convId,
-                subject: (toolArgs.subject as string) || agent?.subject,
-              });
-              groqMessages.push({ role: "assistant", content: null, tool_calls: [toolCall] });
-              groqMessages.push({ role: "tool", content: `Document "${toolArgs.title}" created successfully.`, tool_call_id: toolCall.id });
-              send({ type: "tool_use", tool: "create_document", title: toolArgs.title, path: "/workspace" });
-            } else if (toolName === "create_project") {
-              activeVerb = "creating";
-              send({ type: "verb", verb: "creating" });
-              const [project] = await db.insert(projectsTable).values({
-                userId: session.userId,
-                agentId: conv.agentId ?? undefined,
-                title: toolArgs.title as string,
-                subject: (toolArgs.subject as string) || agent?.subject,
-                type: (toolArgs.type as string) || "general",
-                status: "active",
-              }).returning();
-              const taskList = (toolArgs.tasks as string[]) || [];
-              for (const taskTitle of taskList) {
-                await db.insert(projectTasksTable).values({ projectId: project.id, title: taskTitle });
-              }
-              groqMessages.push({ role: "assistant", content: null, tool_calls: [toolCall] });
-              groqMessages.push({ role: "tool", content: `Project "${toolArgs.title}" created with ${taskList.length} tasks.`, tool_call_id: toolCall.id });
-              send({ type: "tool_use", tool: "create_project", title: toolArgs.title, path: "/projects" });
-            } else if (toolName === "plan_schedule") {
-              activeVerb = "planning";
-              send({ type: "verb", verb: "planning" });
-              await db.insert(workspaceItemsTable).values({
-                userId: session.userId,
-                type: "plan",
-                title: toolArgs.title as string,
-                content: toolArgs.content as string,
-                agentId: conv.agentId ?? undefined,
-                conversationId: convId,
-                subject: (toolArgs.subject as string) || agent?.subject,
-              });
-              groqMessages.push({ role: "assistant", content: null, tool_calls: [toolCall] });
-              groqMessages.push({ role: "tool", content: `Schedule "${toolArgs.title}" saved.`, tool_call_id: toolCall.id });
-              send({ type: "tool_use", tool: "plan_schedule", title: toolArgs.title, path: "/workspace" });
-            }
-          }
-
-          if (toolCalls.length > 0) {
-            const finalResponse = await groq.chat.completions.create({
-              model: "llama-3.3-70b-versatile",
+          // Vision model path — no tools support; stream directly.
+          if (hasImage) {
+            const visionStream = await groq.chat.completions.create({
+              model: VISION_MODEL,
               max_tokens: 4096,
               messages: groqMessages,
               stream: true,
             });
-            for await (const chunk of finalResponse) {
+            for await (const chunk of visionStream) {
               const delta = chunk.choices[0]?.delta?.content;
-              if (delta) { fullText += delta; send({ type: "text", text: delta }); }
+              if (delta) {
+                fullText += delta;
+                send({ type: "text", text: delta });
+              }
             }
           } else {
-            const streamResponse = await groq.chat.completions.create({
-              model: "llama-3.3-70b-versatile",
+            // Text path — full tool support
+            const response = await groq.chat.completions.create({
+              model: TEXT_MODEL,
               max_tokens: 4096,
-              messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
-              stream: true,
+              messages: groqMessages,
+              tools: TOOLS,
+              tool_choice: "auto",
+              stream: false,
             });
-            fullText = "";
-            for await (const chunk of streamResponse) {
-              const delta = chunk.choices[0]?.delta?.content;
-              if (delta) { fullText += delta; send({ type: "text", text: delta }); }
+
+            const choice = response.choices[0];
+            const toolCalls = choice.message.tool_calls || [];
+
+            for (const toolCall of toolCalls) {
+              const toolName = toolCall.function.name;
+              let toolArgs: Record<string, unknown> = {};
+              try {
+                toolArgs = JSON.parse(toolCall.function.arguments || "{}");
+              } catch {
+                toolArgs = {};
+              }
+
+              if (toolName === "web_search") {
+                activeVerb = "searching";
+                send({ type: "verb", verb: "searching" });
+                const searchResult = await doWebSearch(toolArgs.query as string);
+                groqMessages.push({
+                  role: "assistant",
+                  content: null,
+                  tool_calls: [toolCall],
+                });
+                groqMessages.push({
+                  role: "tool",
+                  content: searchResult,
+                  tool_call_id: toolCall.id,
+                });
+                send({ type: "tool_use", tool: "web_search", query: toolArgs.query });
+              } else if (toolName === "schedule_session") {
+                activeVerb = "planning";
+                send({ type: "verb", verb: "planning" });
+                try {
+                  const dateStr = toolArgs.date as string;
+                  const parsedDate = new Date(dateStr);
+                  if (isNaN(parsedDate.getTime())) throw new Error("Invalid date");
+                  const [scheduleSession] = await db
+                    .insert(scheduleSessionsTable)
+                    .values({
+                      userId: session.userId,
+                      agentId: conv.agentId ?? undefined,
+                      title: (toolArgs.title as string) || "Study session",
+                      subject: (toolArgs.subject as string) || agent?.subject,
+                      date: parsedDate.toISOString(),
+                      duration: (toolArgs.duration as number) || 60,
+                      type: (toolArgs.type as string) || "study",
+                      notes: toolArgs.notes as string | undefined,
+                    })
+                    .returning();
+                  groqMessages.push({
+                    role: "assistant",
+                    content: null,
+                    tool_calls: [toolCall],
+                  });
+                  groqMessages.push({
+                    role: "tool",
+                    content: `Session scheduled for ${parsedDate.toLocaleString()}: "${scheduleSession.title}". The student can view it on the Schedule page.`,
+                    tool_call_id: toolCall.id,
+                  });
+                  send({
+                    type: "tool_use",
+                    tool: "schedule_session",
+                    title: scheduleSession.title,
+                    path: "/schedule",
+                  });
+                } catch (e) {
+                  groqMessages.push({
+                    role: "assistant",
+                    content: null,
+                    tool_calls: [toolCall],
+                  });
+                  groqMessages.push({
+                    role: "tool",
+                    content: `Failed to schedule session — invalid date format. Please retry with a valid ISO datetime.`,
+                    tool_call_id: toolCall.id,
+                  });
+                }
+              } else if (toolName === "create_document") {
+                activeVerb = "creating";
+                send({ type: "verb", verb: "creating" });
+                await db.insert(workspaceItemsTable).values({
+                  userId: session.userId,
+                  type: (toolArgs.type as string) || "note",
+                  title: toolArgs.title as string,
+                  content: toolArgs.content as string,
+                  agentId: conv.agentId ?? undefined,
+                  conversationId: convId,
+                  subject: (toolArgs.subject as string) || agent?.subject,
+                });
+                groqMessages.push({
+                  role: "assistant",
+                  content: null,
+                  tool_calls: [toolCall],
+                });
+                groqMessages.push({
+                  role: "tool",
+                  content: `Document "${toolArgs.title}" saved to the student's workspace.`,
+                  tool_call_id: toolCall.id,
+                });
+                send({
+                  type: "tool_use",
+                  tool: "create_document",
+                  title: toolArgs.title,
+                  path: "/workspace",
+                });
+              } else if (toolName === "create_project") {
+                activeVerb = "creating";
+                send({ type: "verb", verb: "creating" });
+                const [project] = await db
+                  .insert(projectsTable)
+                  .values({
+                    userId: session.userId,
+                    agentId: conv.agentId ?? undefined,
+                    title: toolArgs.title as string,
+                    subject: (toolArgs.subject as string) || agent?.subject,
+                    type: (toolArgs.type as string) || "general",
+                    status: "active",
+                  })
+                  .returning();
+                const taskList = (toolArgs.tasks as string[]) || [];
+                for (const taskTitle of taskList) {
+                  await db
+                    .insert(projectTasksTable)
+                    .values({ projectId: project.id, title: taskTitle });
+                }
+                groqMessages.push({
+                  role: "assistant",
+                  content: null,
+                  tool_calls: [toolCall],
+                });
+                groqMessages.push({
+                  role: "tool",
+                  content: `Project "${toolArgs.title}" created with ${taskList.length} tasks.`,
+                  tool_call_id: toolCall.id,
+                });
+                send({
+                  type: "tool_use",
+                  tool: "create_project",
+                  title: toolArgs.title,
+                  path: "/projects",
+                });
+              } else if (toolName === "plan_schedule") {
+                activeVerb = "planning";
+                send({ type: "verb", verb: "planning" });
+                await db.insert(workspaceItemsTable).values({
+                  userId: session.userId,
+                  type: "plan",
+                  title: toolArgs.title as string,
+                  content: toolArgs.content as string,
+                  agentId: conv.agentId ?? undefined,
+                  conversationId: convId,
+                  subject: (toolArgs.subject as string) || agent?.subject,
+                });
+                groqMessages.push({
+                  role: "assistant",
+                  content: null,
+                  tool_calls: [toolCall],
+                });
+                groqMessages.push({
+                  role: "tool",
+                  content: `Plan "${toolArgs.title}" saved.`,
+                  tool_call_id: toolCall.id,
+                });
+                send({
+                  type: "tool_use",
+                  tool: "plan_schedule",
+                  title: toolArgs.title,
+                  path: "/workspace",
+                });
+              }
+            }
+
+            if (toolCalls.length > 0) {
+              const finalResponse = await groq.chat.completions.create({
+                model: TEXT_MODEL,
+                max_tokens: 4096,
+                messages: groqMessages,
+                stream: true,
+              });
+              for await (const chunk of finalResponse) {
+                const delta = chunk.choices[0]?.delta?.content;
+                if (delta) {
+                  fullText += delta;
+                  send({ type: "text", text: delta });
+                }
+              }
+            } else if (choice.message.content) {
+              // No tool calls — model already returned content
+              fullText = choice.message.content;
+              // Stream it out in chunks for nicer UX
+              const chunks = fullText.match(/[\s\S]{1,30}/g) || [fullText];
+              for (const c of chunks) {
+                send({ type: "text", text: c });
+              }
             }
           }
 
@@ -471,21 +722,27 @@ export async function POST(
             })
             .returning();
 
-          // Skip credit deduction for Creator plan users
           if (!isCreatorPlan && balance) {
-            await db.update(creditBalancesTable)
-              .set({ balance: balance.balance - COST_PER_MESSAGE, updatedAt: new Date().toISOString() })
+            await db
+              .update(creditBalancesTable)
+              .set({
+                balance: balance.balance - COST_PER_MESSAGE,
+                updatedAt: new Date().toISOString(),
+              })
               .where(eq(creditBalancesTable.userId, session.userId));
 
             await db.insert(creditTransactionsTable).values({
               userId: session.userId,
               amount: -COST_PER_MESSAGE,
               type: "usage",
-              description: `AI message with agent: ${agent?.name || "General"}`,
+              description: `${hasImage ? "Image" : "AI"} message · ${
+                agent?.name || "EduBridge"
+              }`,
             });
           }
 
-          await db.update(conversations)
+          await db
+            .update(conversations)
             .set({ updatedAt: new Date().toISOString() })
             .where(eq(conversations.id, convId));
 
@@ -493,15 +750,23 @@ export async function POST(
             const existingMemory = await db
               .select()
               .from(agentMemoryTable)
-              .where(and(eq(agentMemoryTable.agentId, agent.id), eq(agentMemoryTable.userId, session.userId), eq(agentMemoryTable.memoryType, "long_term")))
-              .limit(1);
+              .where(
+                and(
+                  eq(agentMemoryTable.agentId, agent.id),
+                  eq(agentMemoryTable.userId, session.userId),
+                  eq(agentMemoryTable.memoryType, "long_term")
+                )
+              )
+              .limit(15);
 
-            if (existingMemory.length === 0) {
+            const snippet = `Discussed: ${content.trim().slice(0, 200)}`;
+            const isDuplicate = existingMemory.some((m) => m.content === snippet);
+            if (!isDuplicate && existingMemory.length < 15) {
               await db.insert(agentMemoryTable).values({
                 agentId: agent.id,
                 userId: session.userId,
                 memoryType: "long_term",
-                content: `User asked about: ${content.trim().slice(0, 200)}`,
+                content: snippet,
               });
             }
           }
@@ -510,14 +775,20 @@ export async function POST(
             type: "done",
             userMessageId: userMsg.id,
             assistantMessageId: assistantMsg.id,
-            creditsRemaining: balance.balance - COST_PER_MESSAGE,
+            creditsRemaining: isCreatorPlan
+              ? balance?.balance ?? 0
+              : (balance?.balance ?? 0) - COST_PER_MESSAGE,
             verb: activeVerb,
             thinkMs,
             isHubPowered: !!(agent?.learningHubId && hubContext),
+            hadImage: hasImage,
           });
         } catch (err) {
           console.error("Streaming error:", err);
-          send({ type: "error", error: "AI error occurred. Please try again." });
+          send({
+            type: "error",
+            error: "AI error occurred. Please try again.",
+          });
         } finally {
           controller.close();
         }
