@@ -54,11 +54,12 @@ export async function GET(request: NextRequest) {
     }
 
     const meta = verifyData.data?.metadata;
-    if (!meta?.userId || !meta.planId || meta.type !== "plan_subscription") {
+    const metaUserId = Number(meta?.userId);
+    if (!Number.isFinite(metaUserId) || !meta?.planId || meta.type !== "plan_subscription") {
       return NextResponse.json({ error: "Invalid payment metadata" }, { status: 400 });
     }
 
-    if (Number(meta.userId) !== Number(session.userId)) {
+    if (metaUserId !== Number(session.userId)) {
       return NextResponse.json({ error: "User mismatch" }, { status: 403 });
     }
 
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const durationDays = meta.durationDays ?? 30;
+    const durationDays = Number(meta.durationDays) || 30;
     const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString();
 
     // Upgrade via raw SQL (columns may not be in drizzle schema cache yet)
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
       if (balance) {
         await db
           .update(creditBalancesTable)
-          .set({ balance: balance.balance + PRO_BONUS_CREDITS, updatedAt: new Date().toISOString() })
+          .set({ balance: Number(balance.balance) + PRO_BONUS_CREDITS, updatedAt: new Date().toISOString() })
           .where(eq(creditBalancesTable.userId, session.userId));
       } else {
         await db.insert(creditBalancesTable).values({

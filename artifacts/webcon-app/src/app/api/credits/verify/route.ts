@@ -54,13 +54,15 @@ export async function GET(request: NextRequest) {
     }
 
     const meta = verifyData.data?.metadata;
-    const credits = meta?.credits;
+    // Paystack stringifies metadata values in some responses, so coerce to numbers.
+    const credits = Number(meta?.credits);
+    const metaUserId = Number(meta?.userId);
 
-    if (!credits || !meta?.userId) {
+    if (!Number.isFinite(credits) || credits <= 0 || !Number.isFinite(metaUserId)) {
       return NextResponse.json({ error: "Invalid payment metadata" }, { status: 400 });
     }
 
-    if (Number(meta.userId) !== Number(session.userId)) {
+    if (metaUserId !== Number(session.userId)) {
       return NextResponse.json({ error: "User mismatch" }, { status: 403 });
     }
 
@@ -77,7 +79,12 @@ export async function GET(request: NextRequest) {
         .from(creditBalancesTable)
         .where(eq(creditBalancesTable.userId, session.userId))
         .limit(1);
-      return NextResponse.json({ success: true, credits, balance: balance?.balance ?? 0, alreadyProcessed: true });
+      return NextResponse.json({
+        success: true,
+        credits,
+        balance: Number(balance?.balance ?? 0),
+        alreadyProcessed: true,
+      });
     }
 
     // Credit the user
@@ -87,7 +94,7 @@ export async function GET(request: NextRequest) {
       .where(eq(creditBalancesTable.userId, session.userId))
       .limit(1);
 
-    const newBalance = (current?.balance ?? 0) + credits;
+    const newBalance = Number(current?.balance ?? 0) + credits;
 
     if (current) {
       await db
@@ -100,7 +107,7 @@ export async function GET(request: NextRequest) {
         .values({ userId: session.userId, balance: credits });
     }
 
-    const packageId = meta.packageId ?? "unknown";
+    const packageId = meta?.packageId ?? "unknown";
     await db.insert(creditTransactionsTable).values({
       userId: session.userId,
       amount: credits,
@@ -160,7 +167,7 @@ export async function GET(request: NextRequest) {
       console.error("[credits/verify] Email send failed:", emailErr);
     }
 
-    return NextResponse.json({ success: true, credits, balance: newBalance });
+    return NextResponse.json({ success: true, credits, balance: Number(newBalance) });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

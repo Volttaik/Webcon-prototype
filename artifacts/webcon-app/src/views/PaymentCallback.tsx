@@ -122,20 +122,24 @@ export default function PaymentCallback() {
             planId: data.planId,
             planName: PLAN_NAMES[data.planId] ?? data.planId,
             expiresAt: data.expiresAt,
-            bonusCredits: data.bonusCredits ?? 0,
+            bonusCredits: Number(data.bonusCredits) || 0,
           });
         } else {
-          if (typeof data.credits !== 'number') {
+          // Defensive: server may serialize numeric values as strings if
+          // upstream metadata was stringified by Paystack.
+          const creditsNum = Number(data.credits);
+          const balanceNum = Number(data.balance);
+          if (!Number.isFinite(creditsNum) || creditsNum <= 0) {
             setStatus('error');
             setErrorMsg(data.error || 'Credit purchase could not be confirmed.');
             return;
           }
-          const guess = inferPackageFromCredits(data.credits);
+          const guess = inferPackageFromCredits(creditsNum);
           setResult({
             kind: 'credits',
-            credits: data.credits,
-            newBalance: data.balance ?? 0,
-            packageName: guess?.name ?? `${data.credits} Credits`,
+            credits: creditsNum,
+            newBalance: Number.isFinite(balanceNum) ? balanceNum : 0,
+            packageName: guess?.name ?? `${creditsNum} Credits`,
             amountNgn: guess?.amountNgn,
           });
         }

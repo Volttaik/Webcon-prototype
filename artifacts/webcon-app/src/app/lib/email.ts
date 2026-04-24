@@ -124,6 +124,11 @@ export async function sendCreditsPurchaseEmail(
     minute: "2-digit",
     timeZoneName: "short",
   });
+  // Defensive coercion: callers may pass numeric strings (e.g. when values
+  // come from Paystack metadata or PG numeric columns).
+  credits = Number(credits) || 0;
+  newBalance = Number(newBalance) || 0;
+  amountNgn = Number(amountNgn) || 0;
   const previousBalance = Math.max(0, newBalance - credits);
   const refDisplay = reference || `WC-${Date.now()}`;
   const dashboardUrl = `${siteUrl()}/chat`;

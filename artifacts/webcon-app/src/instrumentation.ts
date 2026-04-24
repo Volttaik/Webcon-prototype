@@ -4,21 +4,34 @@ export async function register() {
       const pgModule = await import("pg");
       const pg = pgModule.default;
 
-      const connectionString =
+      const rawConnectionString =
         process.env.SUPABASE_DATABASE_URL ||
         process.env.DATABASE_URL ||
-        process.env.POSTGRES_URL;
+        process.env.POSTGRES_URL ||
+        process.env.POSTGRES_PRISMA_URL;
 
-      if (!connectionString) return;
+      if (!rawConnectionString) return;
 
       const isLocal =
-        connectionString.includes("localhost") ||
-        connectionString.includes("127.0.0.1") ||
-        connectionString.includes("helium");
+        rawConnectionString.includes("localhost") ||
+        rawConnectionString.includes("127.0.0.1") ||
+        rawConnectionString.includes("helium");
+
+      // Mirror lib/db: strip sslmode/pgbouncer/supa params so our manual ssl
+      // config takes effect. Newer pg treats sslmode=require as verify-full,
+      // which rejects Supabase's self-signed cert chain.
+      const connectionString = rawConnectionString
+        .replace(/[?&]sslmode=[^&]*/g, "")
+        .replace(/[?&]pgbouncer=[^&]*/g, "")
+        .replace(/[?&]supa=[^&]*/g, "")
+        .replace(/\?&/, "?")
+        .replace(/[?&]$/, "");
 
       const client = new pg.Client({
         connectionString,
-        ssl: isLocal ? false : { rejectUnauthorized: false },
+        ssl: isLocal
+          ? false
+          : { rejectUnauthorized: false, checkServerIdentity: () => undefined },
       });
 
       await client.connect();
