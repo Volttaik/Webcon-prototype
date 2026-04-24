@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth-context';
 import AppHeader from '@/components/layout/AppHeader';
 import { Toaster } from '@/components/ui/sonner';
 import {
   Crown, Zap, Star, Check, Loader2, CreditCard,
-  Gift, ArrowRight, BadgeCheck, AlertCircle,
+  Gift, ArrowRight, BadgeCheck, AlertCircle, X, Sparkles,
 } from 'lucide-react';
 
 interface CreditPackage {
@@ -13,11 +14,13 @@ interface CreditPackage {
   credits: number;
   priceNgn: number;
   popular?: boolean;
+  badge?: string;
 }
 
 const CREDIT_PACKAGES: CreditPackage[] = [
+  { id: 'trial',    name: 'Trial',    credits: 10,   priceNgn: 100,   badge: 'Try it' },
   { id: 'starter',  name: 'Starter',  credits: 100,  priceNgn: 1000 },
-  { id: 'standard', name: 'Standard', credits: 500,  priceNgn: 4500, popular: true },
+  { id: 'standard', name: 'Standard', credits: 500,  priceNgn: 4500,  popular: true },
   { id: 'pro_pack', name: 'Power',    credits: 1200, priceNgn: 10000 },
   { id: 'mega',     name: 'Mega',     credits: 3000, priceNgn: 22000 },
 ];
@@ -71,15 +74,101 @@ const PLANS = [
   },
 ];
 
+interface SuccessModal {
+  credits: number;
+  newBalance: number;
+  packageName: string;
+}
+
+function CreditSuccessModal({ data, onClose }: { data: SuccessModal; onClose: () => void }) {
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.94, y: 8 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          onClick={e => e.stopPropagation()}
+          className="relative w-full max-w-sm bg-card border border-border rounded-3xl p-8 shadow-elevation-xl text-center"
+        >
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+
+          {/* Success icon */}
+          <div className="flex justify-center mb-5">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                <Check className="h-7 w-7 text-green-500" strokeWidth={2.5} />
+              </div>
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+                className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center"
+              >
+                <Sparkles className="h-3 w-3 text-blue-500" />
+              </motion.div>
+            </div>
+          </div>
+
+          <h2 className="text-xl font-semibold tracking-tight mb-1">Payment successful!</h2>
+          <p className="text-[13px] text-muted-foreground mb-6">
+            Your {data.packageName} purchase has been confirmed.
+          </p>
+
+          {/* Credits added */}
+          <div className="bg-secondary/40 border border-border rounded-2xl px-5 py-4 mb-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] text-muted-foreground">Credits added</span>
+              <span className="text-[15px] font-bold text-green-500">+{data.credits.toLocaleString()}</span>
+            </div>
+            <div className="border-t border-border/60" />
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] text-muted-foreground">New balance</span>
+              <div className="flex items-center gap-1.5">
+                <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-[15px] font-bold">{data.newBalance.toLocaleString()} credits</span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-muted-foreground/60 mb-5">
+            A receipt has been sent to your email.
+          </p>
+
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl bg-foreground text-background text-sm font-medium hover:bg-foreground/90 transition-colors"
+          >
+            Start learning
+          </button>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export function Billing() {
   const { user, refreshProfile } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [loadingPkg,  setLoadingPkg]  = useState<string | null>(null);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successModal, setSuccessModal] = useState<SuccessModal | null>(null);
 
-  const showToast = (type: 'success' | 'error', msg: string) => {
-    setToast({ type, msg });
-    setTimeout(() => setToast(null), 5000);
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    setTimeout(() => setErrorMsg(null), 5000);
   };
 
   useEffect(() => {
@@ -95,29 +184,31 @@ export function Billing() {
           .then(r => r.json())
           .then(async (data: { success?: boolean; alreadyProcessed?: boolean; planId?: string; bonusCredits?: number; error?: string }) => {
             if (data.success || data.alreadyProcessed) {
-              const planName = data.planId
-                ? data.planId.charAt(0).toUpperCase() + data.planId.slice(1)
-                : 'Plan';
-              const bonus = data.bonusCredits ? ` +${data.bonusCredits} bonus credits added!` : '';
-              showToast('success', `${planName} plan activated!${bonus}`);
               await refreshProfile();
             } else {
-              showToast('error', data.error || 'Could not verify plan payment.');
+              showError(data.error || 'Could not verify plan payment.');
             }
           })
-          .catch(() => showToast('error', 'Error verifying plan payment.'));
+          .catch(() => showError('Error verifying plan payment.'));
       } else {
         fetch(`/api/credits/verify?reference=${reference}`)
           .then(r => r.json())
-          .then(async (data: { success?: boolean; credits?: number; error?: string }) => {
-            if (data.success) {
-              showToast('success', `${data.credits} credits added to your account!`);
+          .then(async (data: { success?: boolean; credits?: number; balance?: number; error?: string }) => {
+            if (data.success && data.credits) {
               await refreshProfile();
+              const pkg = CREDIT_PACKAGES.find(p =>
+                p.credits === data.credits
+              );
+              setSuccessModal({
+                credits: data.credits,
+                newBalance: data.balance ?? 0,
+                packageName: pkg?.name ?? `${data.credits} Credits`,
+              });
             } else {
-              showToast('error', data.error || 'Could not verify credit purchase.');
+              showError(data.error || 'Could not verify credit purchase.');
             }
           })
-          .catch(() => showToast('error', 'Error verifying payment.'));
+          .catch(() => showError('Error verifying payment.'));
       }
     }
   }, [refreshProfile]);
@@ -132,12 +223,12 @@ export function Billing() {
       });
       const data = await res.json() as { authorizationUrl?: string; error?: string };
       if (!res.ok || !data.authorizationUrl) {
-        showToast('error', data.error || 'Could not start payment.');
+        showError(data.error || 'Could not start payment.');
         return;
       }
       window.location.href = data.authorizationUrl;
     } catch {
-      showToast('error', 'Network error. Please try again.');
+      showError('Network error. Please try again.');
     } finally {
       setLoadingPlan(null);
     }
@@ -153,12 +244,12 @@ export function Billing() {
       });
       const data = await res.json() as { authorizationUrl?: string; error?: string };
       if (!res.ok || !data.authorizationUrl) {
-        showToast('error', data.error || 'Could not start payment.');
+        showError(data.error || 'Could not start payment.');
         return;
       }
       window.location.href = data.authorizationUrl;
     } catch {
-      showToast('error', 'Network error. Please try again.');
+      showError('Network error. Please try again.');
     } finally {
       setLoadingPkg(null);
     }
@@ -176,14 +267,17 @@ export function Billing() {
       <AppHeader />
       <Toaster />
 
-      {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-elevation-lg text-sm font-medium ${
-            toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-destructive text-destructive-foreground'
-          }`}
-        >
-          {toast.type === 'success' ? <BadgeCheck size={16} /> : <AlertCircle size={16} />}
-          {toast.msg}
+      {successModal && (
+        <CreditSuccessModal
+          data={successModal}
+          onClose={() => setSuccessModal(null)}
+        />
+      )}
+
+      {errorMsg && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-elevation-lg text-sm font-medium bg-destructive text-destructive-foreground">
+          <AlertCircle size={16} />
+          {errorMsg}
         </div>
       )}
 
@@ -210,7 +304,7 @@ export function Billing() {
             </div>
             <div className="text-right">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">Credits</p>
-              <p className="text-base font-semibold mt-1">{user?.creditBalance ?? 0}</p>
+              <p className="text-base font-semibold mt-1">{(user?.creditBalance ?? 0).toLocaleString()}</p>
             </div>
           </div>
 
@@ -301,7 +395,7 @@ export function Billing() {
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {CREDIT_PACKAGES.map((pkg) => {
                 const isLoading = loadingPkg === pkg.id;
                 return (
@@ -311,6 +405,11 @@ export function Billing() {
                       pkg.popular ? 'border-blue-500/40 ring-1 ring-blue-500/20' : 'border-border'
                     }`}
                   >
+                    {pkg.badge && !pkg.popular && (
+                      <span className="absolute -top-2.5 left-3 text-[10px] font-bold uppercase tracking-widest bg-foreground text-background px-2 py-0.5 rounded-full">
+                        {pkg.badge}
+                      </span>
+                    )}
                     {pkg.popular && (
                       <span className="absolute -top-2.5 left-3 text-[10px] font-bold uppercase tracking-widest bg-blue-600 text-white px-2 py-0.5 rounded-full">
                         Popular

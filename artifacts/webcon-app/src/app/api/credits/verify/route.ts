@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@workspace/db";
-import { creditBalancesTable, creditTransactionsTable } from "@workspace/db";
+import { creditBalancesTable, creditTransactionsTable, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth-server";
+import { sendCreditsPurchaseEmail } from "@/app/lib/email";
+
+const PACKAGE_NAMES: Record<string, { name: string; amountNgn: number }> = {
+  trial:    { name: "Trial Pack",    amountNgn: 100 },
+  starter:  { name: "Starter Pack",  amountNgn: 1000 },
+  standard: { name: "Standard Pack", amountNgn: 4500 },
+  pro_pack: { name: "Power Pack",    amountNgn: 10000 },
+  mega:     { name: "Mega Pack",     amountNgn: 22000 },
+  student:  { name: "Student Pack",  amountNgn: 1200 },
+  scholar:  { name: "Scholar Pack",  amountNgn: 2500 },
+  champion: { name: "Champion Pack", amountNgn: 6000 },
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,23 +35,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Payment not configured" }, { status: 500 });
     }
 
-    // Verify with Paystack API
     const verifyRes = await fetch(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-      {
-        headers: { Authorization: `Bearer ${paystackKey}` },
-      }
+      { headers: { Authorization: `Bearer ${paystackKey}` } }
     );
 
     const verifyData = (await verifyRes.json()) as {
       status: boolean;
       data?: {
         status: string;
-        metadata?: {
-          userId?: number;
-          packageId?: string;
-          credits?: number;
-        };
+        metadata?: { userId?: number; packageId?: string; credits?: number };
       };
     };
 
@@ -54,12 +59,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid payment metadata" }, { status: 400 });
     }
 
-    // Security: only credit the authenticated user
     if (meta.userId !== session.userId) {
       return NextResponse.json({ error: "User mismatch" }, { status: 403 });
     }
 
-    // Idempotency: check if reference was already processed
+    // Idempotency check
     const existing = await db
       .select()
       .from(creditTransactionsTable)
@@ -72,7 +76,7 @@ export async function GET(request: NextRequest) {
         .from(creditBalancesTable)
         .where(eq(creditBalancesTable.userId, session.userId))
         .limit(1);
-      return NextResponse.json({ credits, balance: balance?.balance ?? 0, alreadyProcessed: true });
+      return NextResponse.json({ success: true, credits, balance: balance?.balance ?? 0, alreadyProcessed: true });
     }
 
     // Credit the user
@@ -95,15 +99,39 @@ export async function GET(request: NextRequest) {
         .values({ userId: session.userId, balance: credits });
     }
 
+    const packageId = meta.packageId ?? "unknown";
     await db.insert(creditTransactionsTable).values({
       userId: session.userId,
       amount: credits,
       type: "purchase",
-      description: `Purchased ${credits} credits (${meta.packageId ?? "pack"}) — ref: ${reference}`,
+      description: `Purchased ${credits} credits (${packageId}) — ref: ${reference}`,
       reference,
     });
 
-    return NextResponse.json({ credits, balance: newBalance });
+    // Send confirmation email (non-blocking)
+    try {
+      const [user] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, session.userId))
+        .limit(1);
+
+      if (user && process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+        const pkg = PACKAGE_NAMES[packageId];
+        await sendCreditsPurchaseEmail(
+          user.email,
+          user.firstName || "there",
+          credits,
+          newBalance,
+          pkg?.name ?? `${credits} Credits`,
+          pkg?.amountNgn ?? 0
+        );
+      }
+    } catch (emailErr) {
+      console.error("[credits/verify] Email send failed:", emailErr);
+    }
+
+    return NextResponse.json({ success: true, credits, balance: newBalance });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

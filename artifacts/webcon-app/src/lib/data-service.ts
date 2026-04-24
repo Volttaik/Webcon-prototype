@@ -327,3 +327,24 @@ export async function fetchDashboardStats(_userId?: string | number): Promise<Da
     };
   }
 }
+
+export interface AnalyticsData {
+  totalMessages: number;
+  totalConversations: number;
+  totalAgents: number;
+  creditsUsed: number;
+  creditsBalance: number;
+  streakDays: number;
+  messagesByDay: { date: string; count: number }[];
+  topAgents: { agentId: number; agentName: string; subject: string; messageCount: number }[];
+}
+
+export async function fetchAnalytics(): Promise<AnalyticsData | null> {
+  try {
+    const res = await fetch('/api/analytics');
+    if (!res.ok) return null;
+    return await res.json() as AnalyticsData;
+  } catch {
+    return null;
+  }
+}

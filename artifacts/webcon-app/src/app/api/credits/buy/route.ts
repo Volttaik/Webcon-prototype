@@ -8,12 +8,11 @@ const CREDIT_PACKAGES: Record<
   string,
   { credits: number; amountNgn: number; name: string }
 > = {
-  // Canonical packages used by Billing & Settings UI
+  trial:    { credits: 10,   amountNgn: 100,   name: "Trial Pack" },
   starter:  { credits: 100,  amountNgn: 1000,  name: "Starter Pack" },
   standard: { credits: 500,  amountNgn: 4500,  name: "Standard Pack" },
   pro_pack: { credits: 1200, amountNgn: 10000, name: "Power Pack" },
   mega:     { credits: 3000, amountNgn: 22000, name: "Mega Pack" },
-  // Legacy aliases for backwards compatibility with older clients
   student:  { credits: 300,  amountNgn: 1200,  name: "Student Pack" },
   scholar:  { credits: 700,  amountNgn: 2500,  name: "Scholar Pack" },
   champion: { credits: 2000, amountNgn: 6000,  name: "Champion Pack" },
