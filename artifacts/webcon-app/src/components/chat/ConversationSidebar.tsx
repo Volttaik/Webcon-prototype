@@ -258,7 +258,7 @@ export default function ConversationSidebar({ onClose }: Props) {
       animate={{ x: 0 }}
       exit={{ x: -288 }}
       transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-      className="flex flex-col h-full bg-background/90 backdrop-blur-xl border-r border-border w-72 shadow-panel"
+      className="flex flex-col h-full bg-background border-r border-border w-72 shadow-panel"
     >
       <div className="flex items-center justify-between px-3 py-3 border-b border-border">
         <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest px-1">Conversations</span>

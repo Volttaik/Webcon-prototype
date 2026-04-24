@@ -7,8 +7,10 @@ interface LogoProps {
 }
 
 /**
- * EduBridge brand mark — a stylized bridge (arch + deck + pillars)
- * Uses currentColor so it inherits from text color, matching the app's minimal aesthetic.
+ * EduBridge brand mark — a refined isometric cube.
+ * A clean 3D cube wireframe (hexagon outline + Y-shaped internal edges)
+ * that reads as a structured, geometric "knowledge block".
+ * Uses currentColor so it inherits from text color.
  */
 export function Logo({ className, size, strokeWidth = 1.4 }: LogoProps) {
   return (
@@ -24,13 +26,12 @@ export function Logo({ className, size, strokeWidth = 1.4 }: LogoProps) {
       height={size}
       aria-hidden="true"
     >
-      {/* Arch — the bridge */}
-      <path d="M2.5 11.5 V8.5 Q2.5 4 8 4 Q13.5 4 13.5 8.5 V11.5" />
-      {/* Bridge deck */}
-      <path d="M1 12 H15" />
-      {/* Pillars */}
-      <path d="M5 12 V14" />
-      <path d="M11 12 V14" />
+      {/* Hexagon — the cube's silhouette */}
+      <path d="M8 1.5 L13.6 4.75 L13.6 11.25 L8 14.5 L2.4 11.25 L2.4 4.75 Z" />
+      {/* Three internal edges meeting at the front-top vertex (the cube's "Y") */}
+      <path d="M8 8 L8 1.5" />
+      <path d="M8 8 L13.6 4.75" />
+      <path d="M8 8 L2.4 4.75" />
     </svg>
   );
 }

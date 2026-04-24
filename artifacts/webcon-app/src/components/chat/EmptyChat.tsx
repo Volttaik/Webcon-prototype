@@ -65,7 +65,7 @@ export default function EmptyChat({ onSend }: { onSend: (msg: string) => void })
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-border/70 bg-background/78 backdrop-blur-xl shadow-elevation-lg">
+      <div className="shrink-0 border-t border-border/70 bg-background/95 supports-[backdrop-filter]:bg-background/85 supports-[backdrop-filter]:backdrop-blur-md shadow-elevation-md">
         <MessageInput onSend={onSend} />
       </div>
     </div>

@@ -427,7 +427,7 @@ export default function ChatPage() {
         </AnimatePresence>
 
         <div className="flex flex-col flex-1 overflow-hidden w-full relative z-10">
-          <div className="h-11 border-b border-border/70 flex items-center justify-between px-3 shrink-0 bg-background/78 backdrop-blur-xl shadow-elevation-sm">
+          <div className="h-11 border-b border-border/70 flex items-center justify-between px-3 shrink-0 bg-background/95 supports-[backdrop-filter]:bg-background/80 supports-[backdrop-filter]:backdrop-blur-md shadow-elevation-sm">
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost" size="icon"
@@ -524,7 +524,7 @@ export default function ChatPage() {
                 className="flex flex-col flex-1 min-h-0"
               >
                 <MessageList messages={messages} isThinking={isStreaming} verb={activeVerb} />
-                <div className="shrink-0 border-t border-border/70 bg-background/78 backdrop-blur-xl shadow-elevation-lg">
+                <div className="shrink-0 border-t border-border/70 bg-background/95 supports-[backdrop-filter]:bg-background/85 supports-[backdrop-filter]:backdrop-blur-md shadow-elevation-md">
                   <MessageInput
                     onSend={handleSend}
                     isStreaming={isStreaming}

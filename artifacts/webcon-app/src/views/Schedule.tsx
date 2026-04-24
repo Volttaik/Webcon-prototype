@@ -151,7 +151,7 @@ export default function Schedule() {
   return (
     <div className="min-h-screen bg-background relative">
       <AppHeader />
-      <div className="container mx-auto px-3 sm:px-6 py-6 max-w-6xl">
+      <main className="container mx-auto px-3 sm:px-6 pt-16 pb-8 max-w-6xl">
 
         {/* Hero */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
@@ -326,7 +326,7 @@ export default function Schedule() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       <AnimatePresence>
         {dialogOpen && (
