@@ -168,11 +168,6 @@
     text-rendering: optimizeLegibility;
   }
 
-  .dark h1, .dark h2, .dark h3,
-  .dark p, .dark span, .dark button,
-  .dark a, .dark label {
-    text-shadow: 0 0 1px rgba(255,255,255,0.08);
-  }
 }
 
 @layer utilities {
@@ -252,7 +247,6 @@
     position: absolute;
     border-radius: 9999px;
     pointer-events: none;
-    filter: blur(1px);
   }
 
   html:not(.dark) .ambient-orb-light {
@@ -342,18 +336,6 @@
 
   .glow-border {
     position: relative;
-  }
-  .glow-border::after {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    border: 1px solid hsl(var(--foreground) / 0);
-    box-shadow: 0 0 0px 0px hsl(var(--foreground) / 0);
-    animation: borderGlowPulse 4s ease-in-out infinite;
-    animation-delay: var(--shimmer-delay, 0s);
-    pointer-events: none;
-    z-index: 1;
   }
 }
 
