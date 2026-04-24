@@ -299,8 +299,7 @@ const CREDIT_PACKAGES = [
 
 function CreditsSettings() {
   const navigate = useNavigate();
-  const { user, refreshProfile } = useAuth();
-  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const creditBalance = user?.creditBalance ?? 0;
   const [loadingPkg, setLoadingPkg] = useState<string | null>(null);
 
@@ -313,52 +312,13 @@ function CreditsSettings() {
     },
   });
 
-  // Handle return from Paystack — verify the payment and add credits
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const payment = params.get('payment');
-    const reference = params.get('reference');
-
-    if (payment === 'cancelled') {
-      window.history.replaceState({}, '', '/settings');
-      toast.info('Payment cancelled. No charge was made.');
-      return;
-    }
-
-    if (payment !== 'success' || !reference) return;
-
-    window.history.replaceState({}, '', '/settings');
-    const verifyToast = toast.loading('Verifying your payment…');
-
-    fetch(`/api/credits/verify?reference=${encodeURIComponent(reference)}`)
-      .then(r => r.json())
-      .then(async (data: { success?: boolean; alreadyProcessed?: boolean; credits?: number; balance?: number; error?: string }) => {
-        toast.dismiss(verifyToast);
-        if (data.success && data.credits) {
-          await refreshProfile();
-          queryClient.invalidateQueries({ queryKey: ['credit-transactions'] });
-          toast.success(`${data.credits.toLocaleString()} credits added! New balance: ${(data.balance ?? 0).toLocaleString()}`);
-        } else if (data.alreadyProcessed) {
-          await refreshProfile();
-          queryClient.invalidateQueries({ queryKey: ['credit-transactions'] });
-          toast.info('This payment was already processed. Your credits are up to date.');
-        } else {
-          toast.error(data.error || 'Could not verify payment. Please contact support if you were charged.');
-        }
-      })
-      .catch(() => {
-        toast.dismiss(verifyToast);
-        toast.error('Network error verifying payment. Refresh in a moment to retry.');
-      });
-  }, [refreshProfile, queryClient]);
-
   const handleBuyCredits = async (pkgId: string) => {
     setLoadingPkg(pkgId);
     try {
       const res = await fetch('/api/credits/buy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packageId: pkgId }),
+        body: JSON.stringify({ packageId: pkgId, returnTo: '/settings' }),
       });
       const data = await res.json() as { authorizationUrl?: string; error?: string };
       if (!res.ok || !data.authorizationUrl) {

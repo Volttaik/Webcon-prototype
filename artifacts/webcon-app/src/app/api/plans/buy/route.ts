@@ -17,11 +17,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { planId } = await request.json() as { planId: string };
-    const plan = PLANS[planId];
-    if (!plan) {
+    const body = (await request.json()) as { planId?: string; returnTo?: string };
+    const planId = body.planId;
+    const plan = planId ? PLANS[planId] : undefined;
+    if (!planId || !plan) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
+    const safeReturnTo =
+      body.returnTo && body.returnTo.startsWith("/") && !body.returnTo.startsWith("//")
+        ? body.returnTo
+        : "/billing";
 
     const [user] = await db
       .select()
@@ -51,13 +56,14 @@ export async function POST(request: NextRequest) {
         email: user.email,
         amount: plan.amountNgn * 100,
         reference,
-        callback_url: `${origin}/billing?payment=success&reference=${encodeURIComponent(reference)}`,
+        callback_url: `${origin}/payment/callback?reference=${encodeURIComponent(reference)}&returnTo=${encodeURIComponent(safeReturnTo)}`,
         metadata: {
           userId: session.userId,
           planId,
           durationDays: plan.durationDays,
           type: "plan_subscription",
-          cancel_action: `${origin}/billing?payment=cancelled`,
+          returnTo: safeReturnTo,
+          cancel_action: `${origin}/payment/callback?payment=cancelled&returnTo=${encodeURIComponent(safeReturnTo)}`,
         },
       }),
     });

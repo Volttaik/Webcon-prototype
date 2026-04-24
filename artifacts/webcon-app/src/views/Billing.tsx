@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import AppHeader from '@/components/layout/AppHeader';
 import { Toaster } from '@/components/ui/sonner';
 import {
   Crown, Zap, Star, Check, Loader2, CreditCard,
-  Gift, ArrowRight, BadgeCheck, AlertCircle, X, Sparkles,
+  Gift, ArrowRight, BadgeCheck, AlertCircle,
 } from 'lucide-react';
 
 interface CreditPackage {
@@ -74,144 +73,16 @@ const PLANS = [
   },
 ];
 
-interface SuccessModal {
-  credits: number;
-  newBalance: number;
-  packageName: string;
-}
-
-function CreditSuccessModal({ data, onClose }: { data: SuccessModal; onClose: () => void }) {
-  return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80"
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.92, y: 16 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.94, y: 8 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          onClick={e => e.stopPropagation()}
-          className="relative w-full max-w-sm bg-card border border-border rounded-3xl p-8 shadow-elevation-xl text-center"
-        >
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-
-          {/* Success icon */}
-          <div className="flex justify-center mb-5">
-            <div className="relative">
-              <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-                <Check className="h-7 w-7 text-green-500" strokeWidth={2.5} />
-              </div>
-              <motion.div
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
-                className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center"
-              >
-                <Sparkles className="h-3 w-3 text-blue-500" />
-              </motion.div>
-            </div>
-          </div>
-
-          <h2 className="text-xl font-semibold tracking-tight mb-1">Payment successful!</h2>
-          <p className="text-[13px] text-muted-foreground mb-6">
-            Your {data.packageName} purchase has been confirmed.
-          </p>
-
-          {/* Credits added */}
-          <div className="bg-secondary/40 border border-border rounded-2xl px-5 py-4 mb-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] text-muted-foreground">Credits added</span>
-              <span className="text-[15px] font-bold text-green-500">+{data.credits.toLocaleString()}</span>
-            </div>
-            <div className="border-t border-border/60" />
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] text-muted-foreground">New balance</span>
-              <div className="flex items-center gap-1.5">
-                <Zap className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-[15px] font-bold">{data.newBalance.toLocaleString()} credits</span>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-[11px] text-muted-foreground/60 mb-5">
-            A receipt has been sent to your email.
-          </p>
-
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 rounded-xl bg-foreground text-background text-sm font-medium hover:bg-foreground/90 transition-colors"
-          >
-            Start learning
-          </button>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  );
-}
-
 export function Billing() {
-  const { user, refreshProfile } = useAuth();
+  const { user } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [loadingPkg,  setLoadingPkg]  = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successModal, setSuccessModal] = useState<SuccessModal | null>(null);
 
   const showError = (msg: string) => {
     setErrorMsg(msg);
     setTimeout(() => setErrorMsg(null), 5000);
   };
-
-  useEffect(() => {
-    const params  = new URLSearchParams(window.location.search);
-    const payment = params.get('payment');
-    const reference = params.get('reference');
-
-    if (payment === 'success' && reference) {
-      window.history.replaceState({}, '', '/billing');
-
-      if (reference.startsWith('PLAN-')) {
-        fetch(`/api/plans/verify?reference=${reference}`)
-          .then(r => r.json())
-          .then(async (data: { success?: boolean; alreadyProcessed?: boolean; planId?: string; bonusCredits?: number; error?: string }) => {
-            if (data.success || data.alreadyProcessed) {
-              await refreshProfile();
-            } else {
-              showError(data.error || 'Could not verify plan payment.');
-            }
-          })
-          .catch(() => showError('Error verifying plan payment.'));
-      } else {
-        fetch(`/api/credits/verify?reference=${reference}`)
-          .then(r => r.json())
-          .then(async (data: { success?: boolean; credits?: number; balance?: number; error?: string }) => {
-            if (data.success && data.credits) {
-              await refreshProfile();
-              const pkg = CREDIT_PACKAGES.find(p =>
-                p.credits === data.credits
-              );
-              setSuccessModal({
-                credits: data.credits,
-                newBalance: data.balance ?? 0,
-                packageName: pkg?.name ?? `${data.credits} Credits`,
-              });
-            } else {
-              showError(data.error || 'Could not verify credit purchase.');
-            }
-          })
-          .catch(() => showError('Error verifying payment.'));
-      }
-    }
-  }, [refreshProfile]);
 
   const handleBuyPlan = async (planId: string) => {
     setLoadingPlan(planId);
@@ -219,7 +90,7 @@ export function Billing() {
       const res  = await fetch('/api/plans/buy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({ planId, returnTo: '/billing' }),
       });
       const data = await res.json() as { authorizationUrl?: string; error?: string };
       if (!res.ok || !data.authorizationUrl) {
@@ -240,7 +111,7 @@ export function Billing() {
       const res  = await fetch('/api/credits/buy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packageId: pkg.id }),
+        body: JSON.stringify({ packageId: pkg.id, returnTo: '/billing' }),
       });
       const data = await res.json() as { authorizationUrl?: string; error?: string };
       if (!res.ok || !data.authorizationUrl) {
@@ -266,13 +137,6 @@ export function Billing() {
     <div className="min-h-screen bg-background">
       <AppHeader />
       <Toaster />
-
-      {successModal && (
-        <CreditSuccessModal
-          data={successModal}
-          onClose={() => setSuccessModal(null)}
-        />
-      )}
 
       {errorMsg && (
         <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-elevation-lg text-sm font-medium bg-destructive text-destructive-foreground">

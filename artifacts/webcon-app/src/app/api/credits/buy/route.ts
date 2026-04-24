@@ -26,11 +26,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { packageId } = await request.json();
-    const pkg = CREDIT_PACKAGES[packageId];
-    if (!pkg) {
+    const body = (await request.json()) as { packageId?: string; returnTo?: string };
+    const packageId = body.packageId;
+    const pkg = packageId ? CREDIT_PACKAGES[packageId] : undefined;
+    if (!packageId || !pkg) {
       return NextResponse.json({ error: "Invalid package" }, { status: 400 });
     }
+    // Only allow same-origin paths to prevent open-redirect via metadata
+    const safeReturnTo =
+      body.returnTo && body.returnTo.startsWith("/") && !body.returnTo.startsWith("//")
+        ? body.returnTo
+        : "/billing";
 
     const [user] = await db
       .select()
@@ -64,12 +70,13 @@ export async function POST(request: NextRequest) {
           email: user.email,
           amount: pkg.amountNgn * 100,
           reference,
-          callback_url: `${origin}/settings?payment=success&reference=${encodeURIComponent(reference)}`,
+          callback_url: `${origin}/payment/callback?reference=${encodeURIComponent(reference)}&returnTo=${encodeURIComponent(safeReturnTo)}`,
           metadata: {
             userId: session.userId,
             packageId,
             credits: pkg.credits,
-            cancel_action: `${origin}/settings?payment=cancelled`,
+            returnTo: safeReturnTo,
+            cancel_action: `${origin}/payment/callback?payment=cancelled&returnTo=${encodeURIComponent(safeReturnTo)}`,
           },
         }),
       }
