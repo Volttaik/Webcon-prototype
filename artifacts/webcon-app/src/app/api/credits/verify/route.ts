@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@workspace/db";
-import { creditBalancesTable, creditTransactionsTable, usersTable } from "@workspace/db";
+import { creditBalancesTable, creditTransactionsTable, notificationsTable, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth-server";
 import { sendCreditsPurchaseEmail } from "@/app/lib/email";
+import { sendPushToUser } from "@/lib/push-server";
 
 const PACKAGE_NAMES: Record<string, { name: string; amountNgn: number }> = {
   trial:    { name: "Trial Pack",    amountNgn: 100 },
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid payment metadata" }, { status: 400 });
     }
 
-    if (meta.userId !== session.userId) {
+    if (Number(meta.userId) !== Number(session.userId)) {
       return NextResponse.json({ error: "User mismatch" }, { status: 403 });
     }
 
@@ -107,6 +108,33 @@ export async function GET(request: NextRequest) {
       description: `Purchased ${credits} credits (${packageId}) — ref: ${reference}`,
       reference,
     });
+
+    // Create in-app notification + send push notification
+    try {
+      const pkgInfo = PACKAGE_NAMES[packageId];
+      const title = `${credits.toLocaleString()} credits added`;
+      const body = `Your ${pkgInfo?.name ?? `${credits} Credits`} purchase was successful. New balance: ${newBalance.toLocaleString()} credits.`;
+
+      await db.insert(notificationsTable).values({
+        userId: session.userId,
+        type: "credits_purchase",
+        title,
+        body,
+        icon: "zap",
+        href: "/billing",
+        meta: JSON.stringify({ credits, balance: newBalance, reference, packageId }),
+      });
+
+      void sendPushToUser(session.userId, {
+        title,
+        body,
+        url: "/billing",
+        tag: `credits-${reference}`,
+        data: { type: "credits_purchase", credits, balance: newBalance },
+      }).catch((e) => console.error("[credits/verify] push failed:", e));
+    } catch (notifErr) {
+      console.error("[credits/verify] Notification insert failed:", notifErr);
+    }
 
     // Send confirmation email (non-blocking)
     try {

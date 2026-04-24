@@ -88,6 +88,7 @@ EduBridge (formerly WebCon) — an AI-powered learning platform that pairs stude
 - `GMAIL_USER` + `GMAIL_APP_PASSWORD` — verification + hub emails
 - `NEXT_PUBLIC_SITE_URL` — production callback URL
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` — admin page basic auth (defaults `admin` / `liquid4*`)
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` — Web Push notifications (auto-generated; persist in shared env)
 
 If a secret is missing the app launches and the affected feature returns a clear configuration error when used.
 
@@ -97,8 +98,17 @@ If a secret is missing the app launches and the affected feature returns a clear
 - Dashboard and chat surfaces use elevated card shadows, glassy panels, and ambient gradients.
 - New EduBridge brand mark — a stylized bridge — appears in the header, sidebar, landing page, footer, and chat empty state.
 
+## Notifications & Web Push
+
+- **In-app notification center**: bell icon in the top header (`src/components/NotificationBell.tsx`) reads from `notifications` table via `/api/notifications` (GET/PATCH/DELETE). Supports unread badge, mark-all-read, and click-through to `href`.
+- **Web Push (PWA)**: service worker (`public/sw.js`) handles `push` and `notificationclick` events. Browsers subscribe via `enablePushNotifications()` in `src/lib/push-client.ts`, which calls `/api/push/subscribe` to persist a `push_subscriptions` row.
+- **Server-side send**: `src/lib/push-server.ts` exposes `sendPushToUser(userId, payload)`, used by `/api/credits/verify` and `/api/plans/verify` to fire a phone-style notification on payment success. Stale subscriptions (404/410) are auto-pruned.
+- **Schema migrations** for both tables live in `src/instrumentation.ts` and are applied at startup; each step runs in its own try/catch so dev environments without `users` don't block other migrations.
+
 ## Recent Changes (April 2026)
 
+- Unified Paystack flow: every redirect lands on `/payment/callback` with branded success/cancel/error cards. `/api/credits/verify` and `/api/plans/verify` now coerce `meta.userId` to `Number()` to fix spurious "User mismatch" errors.
+- Added in-app notifications + Web Push: bell in header, `notifications` + `push_subscriptions` tables, push fired on credits/plan purchase, service worker upgraded to handle push & click-through.
 - Migrated Vercel/Turso → Replit (port 5000 workflow).
 - Rebranded WebCon → EduBridge across UI, manifest, service worker, emails, WhatsApp copy, and admin auth realm.
 - New `Logo` component (bridge arch + deck + pillars).

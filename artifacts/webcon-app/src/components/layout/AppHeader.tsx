@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
+import NotificationBell from '@/components/NotificationBell';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 import { fetchConversations, type Conversation } from '@/lib/data-service';
@@ -425,7 +426,7 @@ export default function AppHeader() {
  <span className="text-sm font-semibold tracking-tight">EduBridge</span>
  </button>
  </div>
- <div className="flex items-center gap-3">
+ <div className="flex items-center gap-2">
  {user && (
  <div
  className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground border border-border rounded-full px-2.5 py-1 cursor-pointer hover:border-foreground/20 transition-colors credit-glow"
@@ -435,6 +436,7 @@ export default function AppHeader() {
  <span>{(user.creditBalance ?? 0).toLocaleString()} credits</span>
  </div>
  )}
+ {user && <NotificationBell />}
  <div className="relative">
  <button
  onClick={() => setUserOpen(o => !o)}

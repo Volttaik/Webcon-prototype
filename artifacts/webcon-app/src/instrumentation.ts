@@ -27,14 +27,47 @@ export async function register() {
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan TEXT NOT NULL DEFAULT 'free'`,
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TEXT`,
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_reference TEXT`,
+        `CREATE TABLE IF NOT EXISTS notifications (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          type TEXT NOT NULL,
+          title TEXT NOT NULL,
+          body TEXT NOT NULL,
+          icon TEXT,
+          href TEXT,
+          meta TEXT,
+          read BOOLEAN NOT NULL DEFAULT FALSE,
+          created_at TEXT NOT NULL DEFAULT NOW()::TEXT
+        )`,
+        `CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC)`,
+        `CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, read) WHERE read = FALSE`,
+        `CREATE TABLE IF NOT EXISTS push_subscriptions (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          endpoint TEXT NOT NULL,
+          p256dh TEXT NOT NULL,
+          auth TEXT NOT NULL,
+          user_agent TEXT,
+          created_at TEXT NOT NULL DEFAULT NOW()::TEXT,
+          CONSTRAINT push_subscriptions_endpoint_key UNIQUE (endpoint)
+        )`,
+        `CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)`,
       ];
 
+      let ok = 0;
+      let failed = 0;
       for (const sql of migrations) {
-        await client.query(sql);
+        try {
+          await client.query(sql);
+          ok += 1;
+        } catch (stepErr) {
+          failed += 1;
+          console.warn("[startup] Migration step skipped:", (stepErr as Error).message);
+        }
       }
 
       await client.end();
-      console.log("[startup] Subscription schema migration complete");
+      console.log(`[startup] Schema migrations complete (ok: ${ok}, skipped: ${failed})`);
     } catch (err) {
       console.error("[startup] Migration warning:", (err as Error).message);
     }

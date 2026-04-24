@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth-server";
 import { db } from "@workspace/db";
-import { usersTable, creditBalancesTable, creditTransactionsTable } from "@workspace/db";
+import { usersTable, creditBalancesTable, creditTransactionsTable, notificationsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { sendPlanUpgradeEmail } from "@/app/lib/email";
+import { sendPushToUser } from "@/lib/push-server";
 
 const PRO_BONUS_CREDITS = 200;
 
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid payment metadata" }, { status: 400 });
     }
 
-    if (meta.userId !== session.userId) {
+    if (Number(meta.userId) !== Number(session.userId)) {
       return NextResponse.json({ error: "User mismatch" }, { status: 403 });
     }
 
@@ -113,6 +114,36 @@ export async function GET(request: NextRequest) {
         description: `Pro plan bonus: ${PRO_BONUS_CREDITS} free credits`,
         reference,
       });
+    }
+
+    // Create in-app notification + send push notification
+    try {
+      const planInfo = PLAN_INFO[meta.planId];
+      const title = `${planInfo?.name ?? meta.planId} activated`;
+      const expiryStr = new Date(expiresAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+      const bodyText = bonusCredits > 0
+        ? `Welcome to ${planInfo?.name ?? meta.planId}! ${bonusCredits.toLocaleString()} bonus credits added. Renews ${expiryStr}.`
+        : `Your ${planInfo?.name ?? meta.planId} is active until ${expiryStr}.`;
+
+      await db.insert(notificationsTable).values({
+        userId: session.userId,
+        type: "plan_upgrade",
+        title,
+        body: bodyText,
+        icon: "crown",
+        href: "/billing",
+        meta: JSON.stringify({ planId: meta.planId, expiresAt, bonusCredits, reference }),
+      });
+
+      void sendPushToUser(session.userId, {
+        title,
+        body: bodyText,
+        url: "/billing",
+        tag: `plan-${reference}`,
+        data: { type: "plan_upgrade", planId: meta.planId, expiresAt },
+      }).catch((e) => console.error("[plans/verify] push failed:", e));
+    } catch (notifErr) {
+      console.error("[plans/verify] Notification insert failed:", notifErr);
     }
 
     // Send confirmation email (non-blocking)

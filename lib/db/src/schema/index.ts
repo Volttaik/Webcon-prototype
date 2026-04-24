@@ -9,3 +9,4 @@ export * from "./schedule";
 export * from "./projects";
 export * from "./whatsapp";
 export * from "./learning_hubs";
+export * from "./notifications";
