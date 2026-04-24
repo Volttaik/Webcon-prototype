@@ -124,7 +124,8 @@ export async function GET(request: NextRequest) {
           credits,
           newBalance,
           pkg?.name ?? `${credits} Credits`,
-          pkg?.amountNgn ?? 0
+          pkg?.amountNgn ?? 0,
+          reference
         );
       }
     } catch (emailErr) {

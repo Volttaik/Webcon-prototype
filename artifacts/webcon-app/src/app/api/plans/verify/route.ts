@@ -3,8 +3,14 @@ import { getAuthSession } from "@/lib/auth-server";
 import { db } from "@workspace/db";
 import { usersTable, creditBalancesTable, creditTransactionsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
+import { sendPlanUpgradeEmail } from "@/app/lib/email";
 
 const PRO_BONUS_CREDITS = 200;
+
+const PLAN_INFO: Record<string, { name: string; amountNgn: number }> = {
+  pro: { name: "Pro Plan", amountNgn: 6000 },
+  creator: { name: "Creator Plan", amountNgn: 15000 },
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -107,6 +113,32 @@ export async function GET(request: NextRequest) {
         description: `Pro plan bonus: ${PRO_BONUS_CREDITS} free credits`,
         reference,
       });
+    }
+
+    // Send confirmation email (non-blocking)
+    try {
+      const [user] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, session.userId))
+        .limit(1);
+
+      if (user && process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+        const planInfo = PLAN_INFO[meta.planId];
+        await sendPlanUpgradeEmail(
+          user.email,
+          user.firstName || "there",
+          meta.planId,
+          planInfo?.name ?? meta.planId,
+          planInfo?.amountNgn ?? 0,
+          durationDays,
+          expiresAt,
+          bonusCredits,
+          reference
+        );
+      }
+    } catch (emailErr) {
+      console.error("[plans/verify] Email send failed:", emailErr);
     }
 
     return NextResponse.json({
