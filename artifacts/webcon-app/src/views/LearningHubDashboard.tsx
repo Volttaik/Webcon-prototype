@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, FileText, Coins, Plus, Loader2, CheckCircle, AlertCircle,
   Users, Brain, TrendingUp, Trash2, User, MessageCircle, Send, BadgeCheck,
-  Building2, CreditCard, ChevronDown
+  Building2, CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,28 +18,6 @@ type HubFile = { id: number; title: string; content: string; wordCount: number; 
 type Earning = { id: number; type: string; amountNgn: number; description: string; transferStatus: string; createdAt: string; };
 type Hub = { id: number; title: string; description: string | null; domain: string; subscriberCount: number; status: string; };
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
-
-const NIGERIAN_BANKS = [
-  { code: '044', name: 'Access Bank' },
-  { code: '070', name: 'Fidelity Bank' },
-  { code: '011', name: 'First Bank of Nigeria' },
-  { code: '214', name: 'First City Monument Bank' },
-  { code: '058', name: 'Guaranty Trust Bank' },
-  { code: '030', name: 'Heritage Bank' },
-  { code: '301', name: 'Jaiz Bank' },
-  { code: '082', name: 'Keystone Bank' },
-  { code: '90267', name: 'Kuda MFBank' },
-  { code: '50515', name: 'Moniepoint MFBank' },
-  { code: '50211', name: 'OPay' },
-  { code: '076', name: 'Polaris Bank' },
-  { code: '039', name: 'Stanbic IBTC' },
-  { code: '232', name: 'Sterling Bank' },
-  { code: '032', name: 'Union Bank' },
-  { code: '033', name: 'United Bank For Africa' },
-  { code: '215', name: 'Unity Bank' },
-  { code: '035', name: 'Wema Bank' },
-  { code: '057', name: 'Zenith Bank' },
-];
 
 async function fetchDashboard(token?: string, hubId?: string) {
   const params = new URLSearchParams();
@@ -75,9 +53,10 @@ export default function LearningHubDashboard() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Paystack state
-  const [bankCode, setBankCode] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [verifiedName, setVerifiedName] = useState('');
+  const [verifiedBankCode, setVerifiedBankCode] = useState('');
+  const [verifiedBankName, setVerifiedBankName] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [savingBank, setSavingBank] = useState(false);
   const [bankStep, setBankStep] = useState<'form' | 'confirm' | 'done'>('form');
@@ -165,8 +144,8 @@ export default function LearningHubDashboard() {
   };
 
   const handleVerifyAccount = async () => {
-    if (!bankCode || accountNumber.length !== 10) {
-      toast.error('Select a bank and enter a 10-digit account number');
+    if (accountNumber.length !== 10) {
+      toast.error('Enter a 10-digit account number');
       return;
     }
     setVerifying(true);
@@ -174,9 +153,9 @@ export default function LearningHubDashboard() {
       const res = await fetch('/api/paystack/recipient', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bankCode, accountNumber, verifyOnly: true }),
+        body: JSON.stringify({ accountNumber, verifyOnly: true }),
       });
-      const result = await res.json().catch(() => ({} as { error?: string; accountName?: string }));
+      const result = await res.json().catch(() => ({} as { error?: string; accountName?: string; bankCode?: string; bankName?: string }));
       if (!res.ok) {
         const msg = (result as { error?: string }).error;
         if (res.status === 503) {
@@ -186,12 +165,16 @@ export default function LearningHubDashboard() {
         }
         return;
       }
-      const name = (result as { accountName?: string }).accountName;
-      if (!name) {
-        toast.error('Paystack returned no account name. Please double-check the bank and account number.');
+      const { accountName: name, bankCode: bc, bankName: bn } = result as {
+        accountName?: string; bankCode?: string; bankName?: string;
+      };
+      if (!name || !bc) {
+        toast.error('Could not verify this account. Please double-check the account number.');
         return;
       }
       setVerifiedName(name);
+      setVerifiedBankCode(bc);
+      setVerifiedBankName(bn || '');
       setBankStep('confirm');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not reach verification service');
@@ -206,7 +189,7 @@ export default function LearningHubDashboard() {
       const res = await fetch('/api/paystack/recipient', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bankCode, accountNumber }),
+        body: JSON.stringify({ bankCode: verifiedBankCode, accountNumber }),
       });
       const result = await res.json();
       if (!res.ok) { toast.error(result.error); return; }
@@ -555,7 +538,7 @@ export default function LearningHubDashboard() {
                         <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3">
                           <p className="text-[11px] text-muted-foreground mb-0.5">Account verified</p>
                           <p className="text-sm font-semibold text-green-600 dark:text-green-400">{verifiedName}</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">{NIGERIAN_BANKS.find(b => b.code === bankCode)?.name} · ****{accountNumber.slice(-4)}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{verifiedBankName} · ****{accountNumber.slice(-4)}</p>
                         </div>
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" onClick={() => setBankStep('form')} className="h-7 text-xs">Back</Button>
@@ -566,23 +549,7 @@ export default function LearningHubDashboard() {
                       </div>
                     ) : (
                       <div className="p-4 space-y-3">
-                        <p className="text-[11px] text-muted-foreground">Add your Nigerian bank account to receive payouts from Paystack.</p>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Bank</Label>
-                          <div className="relative">
-                            <select
-                              value={bankCode}
-                              onChange={e => setBankCode(e.target.value)}
-                              className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs appearance-none focus:outline-none focus:ring-1 focus:ring-ring pr-8"
-                            >
-                              <option value="">Select bank…</option>
-                              {NIGERIAN_BANKS.map(b => (
-                                <option key={b.code} value={b.code}>{b.name}</option>
-                              ))}
-                            </select>
-                            <ChevronDown className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                          </div>
-                        </div>
+                        <p className="text-[11px] text-muted-foreground">Add your Nigerian bank account to receive payouts from Paystack. We'll detect your bank automatically.</p>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Account Number</Label>
                           <Input
@@ -593,7 +560,7 @@ export default function LearningHubDashboard() {
                             maxLength={10}
                           />
                         </div>
-                        <Button size="sm" onClick={handleVerifyAccount} disabled={verifying || !bankCode || accountNumber.length !== 10} className="w-full h-8 text-xs gap-1">
+                        <Button size="sm" onClick={handleVerifyAccount} disabled={verifying || accountNumber.length !== 10} className="w-full h-8 text-xs gap-1">
                           {verifying ? <><Loader2 className="h-3 w-3 animate-spin" /> Verifying…</> : <><Building2 className="h-3 w-3" /> Verify Account</>}
                         </Button>
                       </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth-server";
+import { getPublicOrigin } from "@/lib/request-origin";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     const reference = `WC-${Date.now()}-${session.userId}`;
+    const origin = getPublicOrigin(request);
     const response = await fetch(
       "https://api.paystack.co/transaction/initialize",
       {
@@ -62,10 +64,12 @@ export async function POST(request: NextRequest) {
           email: user.email,
           amount: pkg.amountNgn * 100,
           reference,
+          callback_url: `${origin}/settings?payment=success&reference=${encodeURIComponent(reference)}`,
           metadata: {
             userId: session.userId,
             packageId,
             credits: pkg.credits,
+            cancel_action: `${origin}/settings?payment=cancelled`,
           },
         }),
       }
