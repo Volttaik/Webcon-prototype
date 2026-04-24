@@ -251,22 +251,18 @@
 
   html:not(.dark) .ambient-orb-light {
     background: radial-gradient(circle at 32% 26%, hsl(0 0% 100% / 0.98), hsl(40 35% 90% / 0.64) 54%, transparent 72%);
-    box-shadow: 0 42px 110px hsl(35 24% 30% / 0.18);
   }
 
   html:not(.dark) .ambient-orb-dark {
     background: radial-gradient(circle at 30% 25%, hsl(0 0% 20% / 0.48), hsl(0 0% 0% / 0.16) 56%, transparent 72%);
-    box-shadow: 0 38px 110px hsl(0 0% 0% / 0.16);
   }
 
   .ambient-orb-light {
     background: radial-gradient(circle at 30% 25%, hsl(0 0% 100%), hsl(40 38% 94% / 0.52) 54%, transparent 72%);
-    box-shadow: 0 32px 90px hsl(35 24% 34% / 0.13);
   }
 
   .ambient-orb-dark {
     background: radial-gradient(circle at 30% 25%, hsl(0 0% 26%), hsl(0 0% 0% / 0.2) 58%, transparent 72%);
-    box-shadow: 0 30px 80px hsl(0 0% 0% / 0.12);
   }
 
   .chat-ambient-bg {
@@ -344,29 +340,12 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes borderGlowPulse {
-  0%, 100% {
-    border-color: hsl(var(--foreground) / 0);
-    box-shadow: 0 0 0px 0px hsl(var(--foreground) / 0);
-  }
-  50% {
-    border-color: hsl(var(--foreground) / 0.18);
-    box-shadow: 0 0 10px 2px hsl(var(--foreground) / 0.07), 0 0 4px 0px hsl(var(--foreground) / 0.12);
-  }
-}
 .animate-fade-slide-up {
   animation: fadeSlideUp 0.4s ease-out both;
 }
 
-@keyframes brainGlowWave {
-  0%   { filter: drop-shadow(0 0 0px hsl(270 80% 65% / 0)); }
-  25%  { filter: drop-shadow(0 0 5px hsl(270 80% 70% / 0.55)) drop-shadow(0 0 10px hsl(270 60% 55% / 0.25)); }
-  50%  { filter: drop-shadow(0 0 8px hsl(270 80% 65% / 0.75)) drop-shadow(0 0 18px hsl(270 55% 50% / 0.35)); }
-  75%  { filter: drop-shadow(0 0 5px hsl(270 80% 70% / 0.55)) drop-shadow(0 0 10px hsl(270 60% 55% / 0.25)); }
-  100% { filter: drop-shadow(0 0 0px hsl(270 80% 65% / 0)); }
-}
 .brain-glow {
-  animation: brainGlowWave 2.8s ease-in-out infinite;
+  color: hsl(270 60% 60%);
 }
 
 @keyframes iconPulse {

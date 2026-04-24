@@ -82,9 +82,7 @@ function NavBtn({ label, href, icon: Icon, onClick, glowBrain = false }: {
  const location = useLocation();
  const active = location.pathname === href || location.pathname.startsWith(href + '/');
  return (
- <motion.button
- whileHover={{ x: 2 }}
- transition={{ duration: 0.12 }}
+ <button
  onClick={onClick}
  className={cn(
  'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-colors text-[13px]',
@@ -97,7 +95,7 @@ function NavBtn({ label, href, icon: Icon, onClick, glowBrain = false }: {
  <Icon className="h-3.5 w-3.5" strokeWidth={1.5} />
  </span>
  {label}
- </motion.button>
+ </button>
  );
 }
 
@@ -116,9 +114,7 @@ function AgentsSubmenu({ onNavigate }: { onNavigate: (href: string) => void }) {
 
  return (
  <div>
- <motion.button
- whileHover={{ x: 2 }}
- transition={{ duration: 0.12 }}
+ <button
  onClick={() => setOpen(o => !o)}
  className={cn(
  'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-colors text-[13px]',
@@ -132,7 +128,7 @@ function AgentsSubmenu({ onNavigate }: { onNavigate: (href: string) => void }) {
  </span>
  <span className="flex-1">My Agents</span>
  <ChevronDown className={cn('h-3 w-3 shrink-0 transition-transform duration-200', open && 'rotate-180')} />
- </motion.button>
+ </button>
 
  <AnimatePresence initial={false}>
  {open && (
@@ -156,10 +152,8 @@ function AgentsSubmenu({ onNavigate }: { onNavigate: (href: string) => void }) {
  <p className="text-[11px] text-muted-foreground/50 px-2 py-2">No conversations yet</p>
  ) : (
  conversations.map(conv => (
- <motion.button
+ <button
  key={conv.id}
- whileHover={{ x: 1 }}
- transition={{ duration: 0.1 }}
  onClick={() => onNavigate(`/chat/${conv.id}`)}
  className={cn(
  'w-full flex items-start gap-2 px-2 py-1.5 rounded-lg text-left transition-colors',
@@ -176,7 +170,7 @@ function AgentsSubmenu({ onNavigate }: { onNavigate: (href: string) => void }) {
  <p className="text-[10px] opacity-40 truncate">{formatDistanceToNow(new Date(conv.updated_at ?? conv.updatedAt), { addSuffix: true })}</p>
  </div>
  </div>
- </motion.button>
+ </button>
  ))
  )}
  </div>
@@ -211,9 +205,9 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  initial={{ x: -272 }}
  animate={{ x: 0 }}
  exit={{ x: -272 }}
- transition={{ type: 'spring', stiffness: 340, damping: 34 }}
- className="fixed left-0 top-0 bottom-0 z-50 w-64 bg-background border-r border-border flex flex-col shadow-elevation-xl"
- style={{ boxShadow: '4px 0 32px rgba(0,0,0,0.12)' }}
+ transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+ className="fixed left-0 top-0 bottom-0 z-50 w-64 bg-background border-r border-border flex flex-col"
+ style={{ boxShadow: '4px 0 20px rgba(0,0,0,0.10)', willChange: 'transform' }}
  >
  <div className="h-12 flex items-center justify-between px-4 border-b border-border shrink-0">
  <button onClick={() => go('/')} className="flex items-center gap-2 hover:opacity-60 transition-opacity">
@@ -226,15 +220,13 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  </div>
 
  <div className="px-3 pt-3 pb-2 shrink-0">
- <motion.button
- whileHover={{ scale: 1.01 }}
- whileTap={{ scale: 0.99 }}
+ <button
  onClick={() => go('/dashboard')}
  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground/25 hover:bg-secondary/40 transition-all text-[13px]"
  >
  <Plus className="h-3.5 w-3.5 shrink-0" />
  New Agent
- </motion.button>
+ </button>
  </div>
 
  <nav className="flex-1 overflow-y-auto px-3 py-1 space-y-4">
@@ -381,28 +373,24 @@ function UserDropdown({ open, onClose }: { open: boolean; onClose: () => void })
  </div>
  <div className="py-1">
  {USER_MENU.map(({ label, icon: Icon, action }) => (
- <motion.button
+ <button
  key={label}
- whileHover={{ x: 2 }}
- transition={{ duration: 0.1 }}
  onClick={() => handle(action)}
  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-secondary/60 transition-colors text-left"
  >
  <Icon className="h-4 w-4 text-muted-foreground shrink-0" strokeWidth={1.5} />
  {label}
- </motion.button>
+ </button>
  ))}
  </div>
  <div className="border-t border-border py-1">
- <motion.button
- whileHover={{ x: 2 }}
- transition={{ duration: 0.1 }}
+ <button
  onClick={handleLogout}
  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-secondary/60 transition-colors text-left"
  >
  <LogOut className="h-4 w-4 text-muted-foreground shrink-0" strokeWidth={1.5} />
  Sign Out
- </motion.button>
+ </button>
  </div>
  </motion.div>
  </>
@@ -439,20 +427,16 @@ export default function AppHeader() {
  </div>
  <div className="flex items-center gap-3">
  {user && (
- <motion.div
- whileHover={{ scale: 1.02 }}
- transition={{ duration: 0.15 }}
+ <div
  className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground border border-border rounded-full px-2.5 py-1 cursor-pointer hover:border-foreground/20 transition-colors credit-glow"
  onClick={() => navigate('/settings')}
  >
  <Zap className="h-3 w-3" />
  <span>{(user.creditBalance ?? 0).toLocaleString()} credits</span>
- </motion.div>
+ </div>
  )}
  <div className="relative">
- <motion.button
- whileHover={{ scale: 1.05 }}
- whileTap={{ scale: 0.95 }}
+ <button
  onClick={() => setUserOpen(o => !o)}
  className="rounded-full overflow-hidden ring-1 ring-border hover:ring-foreground/30 transition-all"
  style={{ width: 32, height: 32 }}
@@ -466,7 +450,7 @@ export default function AppHeader() {
  email={user?.email || ''}
  />
  )}
- </motion.button>
+ </button>
  <UserDropdown open={userOpen} onClose={() => setUserOpen(false)} />
  </div>
  </div>

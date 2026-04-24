@@ -54,7 +54,7 @@ function AgentCard({ agent, index, onDelete }: { agent: Agent; index: number; on
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ delay: index * 0.04, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ delay: index * 0.02, duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
       className="glow-border elevated-surface rounded-2xl p-5 hover:shadow-elevation-lg hover:border-foreground/20 transition-all cursor-pointer group relative hover:-translate-y-1"
       style={{ '--shimmer-delay': `${index * 0.8}s` } as React.CSSProperties}
       onClick={() => navigate(`/chat?agent=${agent.id}`)}
@@ -211,9 +211,9 @@ export default function Dashboard() {
         <div className="px-6 py-12">
           <div className="max-w-5xl mx-auto">
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
               className="elevated-surface-strong rounded-[2rem] px-6 py-7 md:px-8 md:py-8 mb-4"
             >
               <p className="text-[11px] text-muted-foreground/50 uppercase tracking-widest font-medium mb-2">Dashboard</p>
@@ -221,12 +221,7 @@ export default function Dashboard() {
                 Good to see you back{firstName !== 'there' ? `, ${firstName}` : ''}.
               </h1>
 
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-                className="grid grid-cols-2 md:grid-cols-4 gap-3"
-              >
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatCard
                   icon={Brain}
                   label="Active agents"
@@ -259,7 +254,7 @@ export default function Dashboard() {
                   loading={isLoading}
                   shimmerDelay="3.6s"
                 />
-              </motion.div>
+              </div>
             </motion.div>
           </div>
         </div>
