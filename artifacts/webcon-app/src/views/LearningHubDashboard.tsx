@@ -176,12 +176,25 @@ export default function LearningHubDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bankCode, accountNumber, verifyOnly: true }),
       });
-      const result = await res.json();
-      if (!res.ok) { toast.error(result.error); return; }
-      setVerifiedName(result.accountName);
+      const result = await res.json().catch(() => ({} as { error?: string; accountName?: string }));
+      if (!res.ok) {
+        const msg = (result as { error?: string }).error;
+        if (res.status === 503) {
+          toast.error('Bank verification is not configured yet. The site owner must add a Paystack secret key.');
+        } else {
+          toast.error(msg || `Verification failed (${res.status})`);
+        }
+        return;
+      }
+      const name = (result as { accountName?: string }).accountName;
+      if (!name) {
+        toast.error('Paystack returned no account name. Please double-check the bank and account number.');
+        return;
+      }
+      setVerifiedName(name);
       setBankStep('confirm');
-    } catch {
-      toast.error('Could not verify account');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not reach verification service');
     } finally {
       setVerifying(false);
     }

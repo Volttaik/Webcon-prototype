@@ -1,3 +1,4 @@
+import { Box } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LogoProps {
@@ -7,50 +8,46 @@ interface LogoProps {
 }
 
 /**
- * EduBridge brand mark — a refined isometric cube.
- * A clean 3D cube wireframe (hexagon outline + Y-shaped internal edges)
- * that reads as a structured, geometric "knowledge block".
- * Uses currentColor so it inherits from text color.
+ * EduBridge brand mark — uses the lucide `Box` cube icon.
+ * Bumped stroke width gives it a confident, premium look while keeping
+ * perfect alignment with the rest of the lucide icon set.
+ * Inherits color via `currentColor`.
  */
-export function Logo({ className, size, strokeWidth = 1.4 }: LogoProps) {
+export function Logo({ className, size, strokeWidth = 1.9 }: LogoProps) {
   return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
+    <Box
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn('shrink-0', className)}
       width={size}
       height={size}
-      aria-hidden="true"
-    >
-      {/* Hexagon — the cube's silhouette */}
-      <path d="M8 1.5 L13.6 4.75 L13.6 11.25 L8 14.5 L2.4 11.25 L2.4 4.75 Z" />
-      {/* Three internal edges meeting at the front-top vertex (the cube's "Y") */}
-      <path d="M8 8 L8 1.5" />
-      <path d="M8 8 L13.6 4.75" />
-      <path d="M8 8 L2.4 4.75" />
-    </svg>
+      aria-hidden
+    />
   );
 }
 
 /**
- * Filled badge variant — used when we want a contained brand mark on hero/landing.
+ * Filled badge variant — a polished container around the cube for hero
+ * placement. Solid surface, subtle elevation, no glass effects.
  */
 export function LogoBadge({ className, size = 36 }: { className?: string; size?: number }) {
   return (
     <div
       className={cn(
         'rounded-2xl bg-foreground flex items-center justify-center shadow-elevation-md',
-        className
+        className,
       )}
       style={{ width: size, height: size }}
     >
-      <span className="text-background flex" style={{ width: size * 0.55, height: size * 0.55 }}>
-        <Logo strokeWidth={1.6} className="w-full h-full" />
-      </span>
+      <Box
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-background"
+        width={size * 0.55}
+        height={size * 0.55}
+      />
     </div>
   );
 }
