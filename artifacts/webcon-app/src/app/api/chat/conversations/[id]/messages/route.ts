@@ -21,6 +21,42 @@ const COST_PER_MESSAGE = 1;
 const TEXT_MODEL = "llama-3.3-70b-versatile";
 const VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
+const INLINE_FUNCTION_RE = /<function=([a-zA-Z0-9_]+)\s*>([\s\S]*?)<\/function>/g;
+
+type InlineCall = { id: string; name: string; argsJson: string };
+
+function parseInlineFunctionCalls(content: string | null | undefined): {
+  calls: InlineCall[];
+  cleaned: string;
+} {
+  if (!content) return { calls: [], cleaned: "" };
+  const calls: InlineCall[] = [];
+  let i = 0;
+  const cleaned = content.replace(INLINE_FUNCTION_RE, (_m, name: string, body: string) => {
+    let argsJson = (body || "").trim();
+    try {
+      JSON.parse(argsJson);
+    } catch {
+      const first = argsJson.indexOf("{");
+      const last = argsJson.lastIndexOf("}");
+      if (first !== -1 && last !== -1 && last > first) {
+        const slice = argsJson.slice(first, last + 1);
+        try {
+          JSON.parse(slice);
+          argsJson = slice;
+        } catch {
+          argsJson = "{}";
+        }
+      } else {
+        argsJson = "{}";
+      }
+    }
+    calls.push({ id: `inline_${i++}`, name, argsJson });
+    return "";
+  });
+  return { calls, cleaned: cleaned.trim() };
+}
+
 async function getUserPlan(userId: number): Promise<{ plan: string; active: boolean }> {
   try {
     const rows = await db.execute(
@@ -515,7 +551,34 @@ export async function POST(
             });
 
             const choice = response.choices[0];
-            const toolCalls = choice.message.tool_calls || [];
+            const realToolCalls = choice.message.tool_calls || [];
+
+            // Llama sometimes leaks `<function=NAME>{...}</function>` as plain
+            // text content instead of using the structured tool_calls field.
+            // Re-route those through the proper tool-execution path so the
+            // user never sees the raw markup and the streaming/typing
+            // animation still fires from the follow-up completion call.
+            const inlineParsed = parseInlineFunctionCalls(choice.message.content);
+            if (realToolCalls.length === 0 && inlineParsed.calls.length > 0) {
+              choice.message.content = inlineParsed.cleaned;
+            }
+
+            const toolCalls: Array<{
+              id: string;
+              type: "function";
+              function: { name: string; arguments: string };
+            }> =
+              realToolCalls.length > 0
+                ? (realToolCalls as unknown as Array<{
+                    id: string;
+                    type: "function";
+                    function: { name: string; arguments: string };
+                  }>)
+                : inlineParsed.calls.map((c) => ({
+                    id: c.id,
+                    type: "function" as const,
+                    function: { name: c.name, arguments: c.argsJson },
+                  }));
 
             for (const toolCall of toolCalls) {
               const toolName = toolCall.function.name;
@@ -699,8 +762,12 @@ export async function POST(
                 }
               }
             } else if (choice.message.content) {
-              // No tool calls — model already returned content
-              fullText = choice.message.content;
+              // No tool calls — model already returned content.
+              // Final safety net: scrub any `<function=...>...</function>`
+              // markup that slipped through without parseable JSON.
+              fullText = choice.message.content
+                .replace(INLINE_FUNCTION_RE, "")
+                .trim();
               // Stream it out in chunks for nicer UX
               const chunks = fullText.match(/[\s\S]{1,30}/g) || [fullText];
               for (const c of chunks) {
