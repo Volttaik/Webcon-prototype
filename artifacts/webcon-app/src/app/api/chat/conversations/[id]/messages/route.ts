@@ -482,7 +482,7 @@ export async function POST(
     const detectedVerb = hasImage
       ? "looking"
       : agent?.learningHubId && hubContext
-        ? "reading"
+        ? "reading-hub"
         : detectVerbFromMessage(content, hasImage);
 
     const systemPrompt = buildSystemPrompt(

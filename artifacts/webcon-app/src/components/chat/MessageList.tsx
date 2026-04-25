@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Copy, Check, Globe, PenLine, FileText, BookOpen, FolderPlus, ImageOff } from 'lucide-react';
+import { Brain, Copy, Check, Globe, PenLine, FileText, BookOpen, FolderPlus, ImageOff, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -13,17 +13,41 @@ interface Message {
   verb?: string;
 }
 
-export type VerbType = 'thinking' | 'searching' | 'creating-project' | 'creating-file' | 'reading' | 'creating' | 'planning';
+export type VerbType = 'thinking' | 'searching' | 'creating-project' | 'creating-file' | 'reading' | 'creating' | 'planning' | 'reading-hub';
 
 const VERB_CONFIG: Record<string, { Icon: React.ElementType; label: string; doneLabel: (ms: number) => string }> = {
-  thinking:          { Icon: Brain,      label: 'Thinking…',              doneLabel: ms => ms <= 0 ? 'Thought' : `Thought for ${Math.round(ms / 1000)}s` },
-  searching:         { Icon: Globe,      label: 'Searching the web…',     doneLabel: ms => ms <= 0 ? 'Searched' : `Searched in ${Math.round(ms / 1000)}s` },
-  reading:           { Icon: BookOpen,   label: 'Reading database…',      doneLabel: ms => ms <= 0 ? 'Read database' : `Read in ${Math.round(ms / 1000)}s` },
-  creating:          { Icon: PenLine,    label: 'Creating…',              doneLabel: ms => ms <= 0 ? 'Created' : `Created in ${Math.round(ms / 1000)}s` },
-  planning:          { Icon: FileText,   label: 'Planning…',              doneLabel: ms => ms <= 0 ? 'Planned' : `Planned in ${Math.round(ms / 1000)}s` },
-  'creating-project':{ Icon: FolderPlus, label: 'Creating project…',      doneLabel: ms => ms <= 0 ? 'Created project' : `Created project in ${Math.round(ms / 1000)}s` },
-  'creating-file':   { Icon: PenLine,    label: 'Creating file…',         doneLabel: ms => ms <= 0 ? 'Created file' : `Created file in ${Math.round(ms / 1000)}s` },
+  thinking:          { Icon: Brain,      label: 'Thinking…',                  doneLabel: ms => ms <= 0 ? 'Thought' : `Thought for ${Math.round(ms / 1000)}s` },
+  searching:         { Icon: Globe,      label: 'Searching the web…',         doneLabel: ms => ms <= 0 ? 'Searched' : `Searched in ${Math.round(ms / 1000)}s` },
+  reading:           { Icon: BookOpen,   label: 'Reading database…',          doneLabel: ms => ms <= 0 ? 'Read database' : `Read in ${Math.round(ms / 1000)}s` },
+  'reading-hub':     { Icon: Database,   label: 'Looking at database…',       doneLabel: ms => ms <= 0 ? 'Read hub database' : `Read hub in ${Math.round(ms / 1000)}s` },
+  creating:          { Icon: PenLine,    label: 'Creating…',                  doneLabel: ms => ms <= 0 ? 'Created' : `Created in ${Math.round(ms / 1000)}s` },
+  planning:          { Icon: FileText,   label: 'Planning…',                  doneLabel: ms => ms <= 0 ? 'Planned' : `Planned in ${Math.round(ms / 1000)}s` },
+  'creating-project':{ Icon: FolderPlus, label: 'Creating project…',          doneLabel: ms => ms <= 0 ? 'Created project' : `Created project in ${Math.round(ms / 1000)}s` },
+  'creating-file':   { Icon: PenLine,    label: 'Creating file…',             doneLabel: ms => ms <= 0 ? 'Created file' : `Created file in ${Math.round(ms / 1000)}s` },
 };
+
+function CopyButton({ text, className }: { text: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <motion.button
+      onClick={copy}
+      whileTap={{ scale: 0.88 }}
+      className={cn(
+        'flex items-center gap-1 px-1.5 py-1 rounded-lg transition-all duration-150',
+        'text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/60',
+        className
+      )}
+      title="Copy message"
+    >
+      {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+    </motion.button>
+  );
+}
 
 function CodeBlock({ code, lang }: { code: string; lang?: string }) {
   const [copied, setCopied] = useState(false);
@@ -46,6 +70,31 @@ function CodeBlock({ code, lang }: { code: string; lang?: string }) {
   );
 }
 
+function InlineHighlight({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className={cn(
+        'inline rounded px-[5px] py-[1.5px] mx-[1px] font-semibold text-foreground',
+        'bg-foreground/[0.08] border border-foreground/[0.12]',
+        'backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+      )}
+      style={{ WebkitBackdropFilter: 'blur(4px)' }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function renderInline(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      return <InlineHighlight key={i}>{part.slice(2, -2)}</InlineHighlight>;
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
 function AssistantContent({ content }: { content: string }) {
   const parts = content.split(/(```[\s\S]*?```)/g);
   return (
@@ -59,17 +108,15 @@ function AssistantContent({ content }: { content: string }) {
         return (
           <div key={i}>
             {part.split('\n').map((line, j) => {
-              if (line.startsWith('**') && line.endsWith('**'))
-                return <p key={j} className="font-semibold text-[13px] text-foreground mt-4 mb-1.5 first:mt-0">{line.slice(2, -2)}</p>;
               if (line.startsWith('- ') || line.startsWith('· '))
                 return (
                   <p key={j} className="flex gap-2 text-[13px] text-foreground/80 leading-[1.7] py-[1px] ml-1">
                     <span className="text-muted-foreground/50 shrink-0 mt-[2px]">–</span>
-                    <span>{line.slice(2)}</span>
+                    <span>{renderInline(line.slice(2))}</span>
                   </p>
                 );
               if (!line.trim()) return <div key={j} className="h-3" />;
-              return <p key={j} className="text-[13px] text-foreground/85 leading-[1.75]">{line}</p>;
+              return <p key={j} className="text-[13px] text-foreground/85 leading-[1.75]">{renderInline(line)}</p>;
             })}
           </div>
         );
@@ -87,23 +134,47 @@ function TypewriterAssistant({ content, active }: { content: string; active: boo
   useEffect(() => { targetRef.current = content; }, [content]);
 
   useEffect(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     if (!active) {
-      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-      setShown(content);
-      shownLenRef.current = content.length;
+      const remaining = targetRef.current.length - shownLenRef.current;
+      if (remaining <= 0) {
+        setShown(content);
+        shownLenRef.current = content.length;
+        return;
+      }
+      intervalRef.current = setInterval(() => {
+        const target = targetRef.current;
+        const cur = shownLenRef.current;
+        if (cur >= target.length) {
+          clearInterval(intervalRef.current!);
+          intervalRef.current = null;
+          return;
+        }
+        const next = Math.min(cur + 10, target.length);
+        shownLenRef.current = next;
+        setShown(target.slice(0, next));
+      }, 12);
       return;
     }
-    if (intervalRef.current) return;
+
     intervalRef.current = setInterval(() => {
       const target = targetRef.current;
       const cur = shownLenRef.current;
-      if (cur < target.length) {
-        const next = Math.min(cur + 2, target.length);
-        shownLenRef.current = next;
-        setShown(target.slice(0, next));
-      }
-    }, 22);
-    return () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
+      if (cur >= target.length) return;
+      const lag = target.length - cur;
+      const charsPerTick = lag > 120 ? 10 : lag > 50 ? 5 : lag > 20 ? 3 : 2;
+      const next = Math.min(cur + charsPerTick, target.length);
+      shownLenRef.current = next;
+      setShown(target.slice(0, next));
+    }, 18);
+
+    return () => {
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    };
   }, [active]);
 
   useEffect(() => { return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; }, []);
@@ -150,7 +221,7 @@ function PulseDot({ delay }: { delay: number }) {
   );
 }
 
-function VerbIndicator({ verb = 'thinking' }: { verb?: string }) {
+export function VerbIndicator({ verb = 'thinking' }: { verb?: string }) {
   const config = VERB_CONFIG[verb] ?? VERB_CONFIG.thinking;
   const { Icon, label } = config;
 
@@ -239,13 +310,18 @@ export default function MessageList({ messages, isThinking, verb = 'thinking' }:
 
             if (msg.role === 'assistant') {
               return (
-                <motion.div key={msg.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
+                <motion.div key={msg.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className="group">
                   {showDivider && <DateDivider date={msg.timestamp} />}
                   <div className="py-3 rounded-2xl px-1">
                     {msg.thinkMs !== undefined && (
                       <ActionBadge ms={msg.thinkMs} verb={msg.verb ?? 'thinking'} />
                     )}
                     <TypewriterAssistant content={msg.content} active={!!isStreamingMsg} />
+                    {!isStreamingMsg && (
+                      <div className="flex mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                        <CopyButton text={msg.content} />
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               );
@@ -257,16 +333,21 @@ export default function MessageList({ messages, isThinking, verb = 'thinking' }:
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col items-end py-2 gap-1.5"
+                className="group flex flex-col items-end py-2 gap-1.5"
               >
                 {msg.imageUrl && <ChatImage url={msg.imageUrl} />}
                 {msg.content && msg.content !== '[User sent an image]' && (
-                  <div className={cn(
-                    'inline-block px-4 py-2.5 rounded-2xl text-[13px] text-foreground/85 leading-relaxed',
-                    'elevated-surface border-border/70',
-                    'max-w-[80%] shadow-elevation-md'
-                  )}>
-                    {msg.content}
+                  <div className="flex flex-col items-end gap-1">
+                    <div className={cn(
+                      'inline-block px-4 py-2.5 rounded-2xl text-[13px] text-foreground/85 leading-relaxed',
+                      'elevated-surface border-border/70',
+                      'max-w-[80%] shadow-elevation-md'
+                    )}>
+                      {msg.content}
+                    </div>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      <CopyButton text={msg.content} />
+                    </div>
                   </div>
                 )}
               </motion.div>

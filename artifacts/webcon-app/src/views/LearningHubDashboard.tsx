@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppHeader from '@/components/layout/AppHeader';
+import { VerbIndicator } from '@/components/chat/MessageList';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -480,13 +481,7 @@ export default function LearningHubDashboard() {
                       ))}
                       {chatLoading && (
                         <div className="flex justify-start">
-                          <div className="bg-secondary rounded-2xl rounded-bl-sm px-3 py-2">
-                            <div className="flex gap-1">
-                              {[0, 1, 2].map(i => (
-                                <span key={i} className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-                              ))}
-                            </div>
-                          </div>
+                          <VerbIndicator verb="reading-hub" />
                         </div>
                       )}
                       <div ref={chatEndRef} />
