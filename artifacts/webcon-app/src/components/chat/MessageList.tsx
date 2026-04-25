@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Brain, Copy, Check, Globe, PenLine, FileText, BookOpen,
+  Copy, Check, Globe, PenLine, FileText, BookOpen,
   FolderPlus, ImageOff, Database, ThumbsUp, ThumbsDown,
-  Bookmark, BookmarkCheck, Pin, PinOff, RotateCcw, ChevronRight
+  Bookmark, BookmarkCheck, Pin, PinOff, RotateCcw, ChevronRight, Box, Brain
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+function sanitizeContent(content: string): string {
+  return content
+    .replace(/<function=[^>]*>[\s\S]*?<\/function>/g, '')
+    .replace(/<\/function>/g, '')
+    .replace(/<function=[^>]*\/>/g, '')
+    .replace(/<function=[^>]*>/g, '')
+    .replace(/\s{3,}/g, '\n\n')
+    .trim();
+}
 
 export interface Message {
   id: number | string;
@@ -60,15 +70,12 @@ function useLocalMap(key: string) {
   return { map, set };
 }
 
-function AgentAvatar({ name }: { name?: string | null }) {
-  const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'AI';
-  const hue = name ? [...name].reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360 : 220;
+function AgentAvatar() {
   return (
-    <div
-      className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-[9px] font-bold text-white shadow-sm"
-      style={{ background: `hsl(${hue},55%,48%)` }}
-    >
-      {initials}
+    <div className="agent-avatar-tracer">
+      <div className="agent-avatar-tracer-inner">
+        <Box className="h-3 w-3 text-foreground/70" strokeWidth={1.4} />
+      </div>
     </div>
   );
 }
@@ -109,11 +116,20 @@ function CodeBlock({ code, lang }: { code: string; lang?: string }) {
 
 function InlineHighlight({ children }: { children: React.ReactNode }) {
   return (
-    <span className={cn(
-      'inline rounded px-[5px] py-[1.5px] mx-[1px] font-semibold text-foreground',
-      'bg-foreground/[0.08] border border-foreground/[0.12] backdrop-blur-sm',
-      'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-    )}>
+    <span
+      style={{
+        display: 'inline',
+        borderRadius: '5px',
+        padding: '1px 5px 2px',
+        margin: '0 1px',
+        fontWeight: 600,
+        background: 'rgba(255,255,255,0.07)',
+        border: '1px solid rgba(255,255,255,0.13)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.15)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+      }}
+    >
       {children}
     </span>
   );
@@ -159,55 +175,23 @@ function AssistantContent({ content }: { content: string }) {
   );
 }
 
-function TypewriterAssistant({ content, active }: { content: string; active: boolean }) {
-  const [shown, setShown] = useState(active ? '' : content);
-  const targetRef = useRef(content);
-  const shownLenRef = useRef(active ? 0 : content.length);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => { targetRef.current = content; }, [content]);
-
-  useEffect(() => {
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-    if (!active) {
-      const remaining = targetRef.current.length - shownLenRef.current;
-      if (remaining <= 0) { setShown(content); shownLenRef.current = content.length; return; }
-      intervalRef.current = setInterval(() => {
-        const target = targetRef.current;
-        const cur = shownLenRef.current;
-        if (cur >= target.length) { clearInterval(intervalRef.current!); intervalRef.current = null; return; }
-        const next = Math.min(cur + 10, target.length);
-        shownLenRef.current = next;
-        setShown(target.slice(0, next));
-      }, 12);
-      return;
-    }
-    intervalRef.current = setInterval(() => {
-      const target = targetRef.current;
-      const cur = shownLenRef.current;
-      if (cur >= target.length) return;
-      const lag = target.length - cur;
-      const charsPerTick = lag > 120 ? 10 : lag > 50 ? 5 : lag > 20 ? 3 : 2;
-      const next = Math.min(cur + charsPerTick, target.length);
-      shownLenRef.current = next;
-      setShown(target.slice(0, next));
-    }, 18);
-    return () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
-  }, [active]);
-
-  useEffect(() => { return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; }, []);
-
+function AssistantMessage({ content, streaming }: { content: string; streaming: boolean }) {
+  const clean = sanitizeContent(content);
   return (
-    <div className="relative">
-      <AssistantContent content={shown} />
-      {active && (
-        <motion.span className="inline-flex items-center gap-1 mt-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-          <motion.span animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut' }}>
-            <PenLine className="h-3 w-3 text-muted-foreground/50" strokeWidth={1.5} />
-          </motion.span>
-        </motion.span>
+    <motion.div
+      initial={{ opacity: 0, y: 2 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <AssistantContent content={clean} />
+      {streaming && (
+        <motion.span
+          className="inline-block w-[2px] h-[14px] bg-muted-foreground/40 rounded-full ml-0.5 align-middle"
+          animate={{ opacity: [1, 0, 1] }}
+          transition={{ duration: 0.7, repeat: Infinity, ease: 'easeInOut' }}
+        />
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -412,7 +396,7 @@ export default function MessageList({
                   {showDivider && <DateDivider date={msg.timestamp} />}
                   <div className="py-3 rounded-2xl px-1">
                     <div className="flex items-start gap-2 mb-1.5">
-                      <AgentAvatar name={agentName} />
+                      <AgentAvatar />
                       <span className="text-[11px] text-muted-foreground/50 mt-1">{agentName ?? 'EduBridge'}</span>
                       <span
                         className="text-[10px] text-muted-foreground/30 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -424,7 +408,7 @@ export default function MessageList({
                     {msg.thinkMs !== undefined && (
                       <ActionBadge ms={msg.thinkMs} verb={msg.verb ?? 'thinking'} />
                     )}
-                    <TypewriterAssistant content={msg.content} active={!!isStreamingMsg} />
+                    <AssistantMessage content={msg.content} streaming={!!isStreamingMsg} />
 
                     {isLastAssistant && !isStreamingMsg && followUpSuggestions.length > 0 && onFollowUp && (
                       <FollowUpChips suggestions={followUpSuggestions} onSelect={onFollowUp} />
