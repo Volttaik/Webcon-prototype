@@ -77,7 +77,7 @@ POSTGRES_USER = "postgres"
 NEXT_PUBLIC_SITE_URL = "https://481ddaaa-e218-47df-94c3-4e76adb252a2-00-3e43at55yxel6.janeway.replit.dev"
 NEXT_PUBLIC_VAPID_PUBLIC_KEY = "BMKPcOgM7z0R6W_yd6h3hG5g_60gKdVPoNJoK0s_Z6JWa8KXYBL8YnFj-ecxHIfluXrBpGVDnn0igkjD569gjF4"
 VAPID_PRIVATE_KEY = "fEU23iz5V4GntvF-9OJ8pVHJOZ6c3NRHarRzvecUTeA"
-VAPID_SUBJECT = "mailto:notifications@edubridge.app"
+VAPID_SUBJECT = "https://webcon-prototype-webcon-app.vercel.app"
 
 [nix]
 channel = "stable-25_05"
