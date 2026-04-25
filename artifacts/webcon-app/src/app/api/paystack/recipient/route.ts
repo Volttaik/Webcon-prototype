@@ -106,10 +106,14 @@ async function resolveAccount(
 async function autoResolveAccount(
   paystackKey: string,
   accountNumber: string
-): Promise<{ bank: Bank; accountName: string } | null> {
+): Promise<Array<{ bank: Bank; accountName: string }>> {
   const banks = await getAllNigerianBanks(paystackKey);
+  const matches: Array<{ bank: Bank; accountName: string }> = [];
 
-  // Resolve in parallel chunks to respect Paystack's rate limit (~30 req/sec)
+  // Resolve in parallel chunks to respect Paystack's rate limit (~30 req/sec).
+  // Scan every bank — the same 10-digit number can belong to several banks
+  // (OPay/PalmPay/Kuda often share NUBANs), so we collect ALL matches and
+  // let the user pick.
   const CHUNK_SIZE = 12;
   for (let i = 0; i < banks.length; i += CHUNK_SIZE) {
     const chunk = banks.slice(i, i + CHUNK_SIZE);
@@ -119,10 +123,11 @@ async function autoResolveAccount(
         return name ? { bank, accountName: name } : null;
       })
     );
-    const found = results.find((r): r is { bank: Bank; accountName: string } => r !== null);
-    if (found) return found;
+    for (const r of results) {
+      if (r) matches.push(r);
+    }
   }
-  return null;
+  return matches;
 }
 
 export async function POST(request: NextRequest) {
@@ -182,8 +187,8 @@ export async function POST(request: NextRequest) {
       resolvedBankName =
         banks.find((b) => b.code === bankCode)?.name || "";
     } else {
-      const match = await autoResolveAccount(paystackKey, accountNumber);
-      if (!match) {
+      const matches = await autoResolveAccount(paystackKey, accountNumber);
+      if (matches.length === 0) {
         return NextResponse.json(
           {
             error:
@@ -192,9 +197,26 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      accountName = match.accountName;
-      resolvedBankCode = match.bank.code;
-      resolvedBankName = match.bank.name;
+
+      // Multiple banks matched this account number (common for OPay /
+      // PalmPay / Kuda etc that share NUBANs). Return all options on a
+      // verifyOnly call so the frontend can let the user pick.
+      if (matches.length > 1 && verifyOnly) {
+        return NextResponse.json({
+          multiple: true,
+          matches: matches.map((m) => ({
+            bankCode: m.bank.code,
+            bankName: m.bank.name,
+            accountName: m.accountName,
+          })),
+        });
+      }
+
+      // Single match (or non-verifyOnly fallback — pick first deterministically)
+      const chosen = matches[0];
+      accountName = chosen.accountName;
+      resolvedBankCode = chosen.bank.code;
+      resolvedBankName = chosen.bank.name;
     }
 
     // If only verifying, return here

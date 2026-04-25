@@ -59,7 +59,8 @@ export default function LearningHubDashboard() {
   const [verifiedBankName, setVerifiedBankName] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [savingBank, setSavingBank] = useState(false);
-  const [bankStep, setBankStep] = useState<'form' | 'confirm' | 'done'>('form');
+  const [bankStep, setBankStep] = useState<'form' | 'pick' | 'confirm' | 'done'>('form');
+  const [bankMatches, setBankMatches] = useState<Array<{ bankCode: string; bankName: string; accountName: string }>>([]);
 
   const searchParams = new URLSearchParams(window.location.search);
   const urlToken = searchParams.get('token') ?? undefined;
@@ -143,7 +144,7 @@ export default function LearningHubDashboard() {
     }
   };
 
-  const handleVerifyAccount = async () => {
+  const handleVerifyAccount = async (overrideBankCode?: string) => {
     if (accountNumber.length !== 10) {
       toast.error('Enter a 10-digit account number');
       return;
@@ -153,9 +154,13 @@ export default function LearningHubDashboard() {
       const res = await fetch('/api/paystack/recipient', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountNumber, verifyOnly: true }),
+        body: JSON.stringify({
+          accountNumber,
+          verifyOnly: true,
+          ...(overrideBankCode ? { bankCode: overrideBankCode } : {}),
+        }),
       });
-      const result = await res.json().catch(() => ({} as { error?: string; accountName?: string; bankCode?: string; bankName?: string }));
+      const result = await res.json().catch(() => ({} as Record<string, unknown>));
       if (!res.ok) {
         const msg = (result as { error?: string }).error;
         if (res.status === 503) {
@@ -165,9 +170,20 @@ export default function LearningHubDashboard() {
         }
         return;
       }
-      const { accountName: name, bankCode: bc, bankName: bn } = result as {
+
+      // Multiple banks matched — let the user pick
+      const r = result as {
+        multiple?: boolean;
+        matches?: Array<{ bankCode: string; bankName: string; accountName: string }>;
         accountName?: string; bankCode?: string; bankName?: string;
       };
+      if (r.multiple && r.matches && r.matches.length > 0) {
+        setBankMatches(r.matches);
+        setBankStep('pick');
+        return;
+      }
+
+      const { accountName: name, bankCode: bc, bankName: bn } = r;
       if (!name || !bc) {
         toast.error('Could not verify this account. Please double-check the account number.');
         return;
@@ -181,6 +197,13 @@ export default function LearningHubDashboard() {
     } finally {
       setVerifying(false);
     }
+  };
+
+  const handlePickBank = (m: { bankCode: string; bankName: string; accountName: string }) => {
+    setVerifiedName(m.accountName);
+    setVerifiedBankCode(m.bankCode);
+    setVerifiedBankName(m.bankName);
+    setBankStep('confirm');
   };
 
   const handleSaveBank = async () => {
@@ -533,6 +556,30 @@ export default function LearningHubDashboard() {
                         </div>
                         <button onClick={() => setBankStep('form')} className="text-[11px] text-muted-foreground hover:text-foreground underline">Change</button>
                       </div>
+                    ) : bankStep === 'pick' ? (
+                      <div className="p-4 space-y-3">
+                        <div>
+                          <p className="text-xs font-medium">Multiple banks found</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            This account number is linked to {bankMatches.length} banks. Select the one you want to receive payouts at.
+                          </p>
+                        </div>
+                        <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                          {bankMatches.map(m => (
+                            <button
+                              key={m.bankCode}
+                              onClick={() => handlePickBank(m)}
+                              className="w-full text-left border border-border hover:border-foreground/30 hover:bg-secondary/40 rounded-lg p-3 transition-colors"
+                            >
+                              <p className="text-xs font-semibold">{m.bankName}</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">{m.accountName} · ****{accountNumber.slice(-4)}</p>
+                            </button>
+                          ))}
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => { setBankMatches([]); setBankStep('form'); }} className="h-7 text-xs w-full">
+                          Cancel
+                        </Button>
+                      </div>
                     ) : bankStep === 'confirm' ? (
                       <div className="p-4 space-y-3">
                         <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3">
@@ -541,7 +588,14 @@ export default function LearningHubDashboard() {
                           <p className="text-[11px] text-muted-foreground mt-0.5">{verifiedBankName} · ****{accountNumber.slice(-4)}</p>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setBankStep('form')} className="h-7 text-xs">Back</Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setBankStep(bankMatches.length > 1 ? 'pick' : 'form')}
+                            className="h-7 text-xs"
+                          >
+                            Back
+                          </Button>
                           <Button size="sm" onClick={handleSaveBank} disabled={savingBank} className="h-7 text-xs flex-1 gap-1">
                             {savingBank ? <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</> : 'Confirm & Link Account'}
                           </Button>
@@ -560,7 +614,7 @@ export default function LearningHubDashboard() {
                             maxLength={10}
                           />
                         </div>
-                        <Button size="sm" onClick={handleVerifyAccount} disabled={verifying || accountNumber.length !== 10} className="w-full h-8 text-xs gap-1">
+                        <Button size="sm" onClick={() => handleVerifyAccount()} disabled={verifying || accountNumber.length !== 10} className="w-full h-8 text-xs gap-1">
                           {verifying ? <><Loader2 className="h-3 w-3 animate-spin" /> Verifying…</> : <><Building2 className="h-3 w-3" /> Verify Account</>}
                         </Button>
                       </div>
