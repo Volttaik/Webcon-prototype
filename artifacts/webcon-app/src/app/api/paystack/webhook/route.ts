@@ -55,6 +55,16 @@ async function processCreditsPurchase(
   packageId: string,
   credits: number
 ): Promise<void> {
+  // Defensive: Paystack metadata is sometimes returned as strings, and PG
+  // numeric columns can be returned as strings depending on driver settings.
+  // Force everything through Number() to prevent string concatenation.
+  userId = Number(userId);
+  credits = Number(credits) || 0;
+  if (!Number.isFinite(userId) || credits <= 0) {
+    console.warn("[paystack-webhook] invalid credits payload", { userId, credits, reference });
+    return;
+  }
+
   // Idempotency
   const existing = await db
     .select()
@@ -72,7 +82,7 @@ async function processCreditsPurchase(
     .where(eq(creditBalancesTable.userId, userId))
     .limit(1);
 
-  const newBalance = (current?.balance ?? 0) + credits;
+  const newBalance = Number(current?.balance ?? 0) + credits;
 
   if (current) {
     await db
@@ -123,6 +133,12 @@ async function processPlanUpgrade(
   planId: string,
   durationDays: number
 ): Promise<void> {
+  userId = Number(userId);
+  durationDays = Number(durationDays) || 30;
+  if (!Number.isFinite(userId)) {
+    console.warn("[paystack-webhook] invalid plan payload", { userId, reference });
+    return;
+  }
   // Idempotency
   const existing = await db.execute(
     sql`SELECT subscription_reference FROM users WHERE id = ${userId} LIMIT 1`
@@ -156,7 +172,7 @@ async function processPlanUpgrade(
       await db
         .update(creditBalancesTable)
         .set({
-          balance: balance.balance + PRO_BONUS_CREDITS,
+          balance: Number(balance.balance) + PRO_BONUS_CREDITS,
           updatedAt: new Date().toISOString(),
         })
         .where(eq(creditBalancesTable.userId, userId));
@@ -249,17 +265,17 @@ export async function POST(request: NextRequest) {
 
     if (meta.type === "plan_subscription" && meta.planId) {
       await processPlanUpgrade(
-        meta.userId,
+        Number(meta.userId),
         reference,
         meta.planId,
-        meta.durationDays ?? 30
+        Number(meta.durationDays) || 30
       );
     } else if (meta.credits && meta.packageId) {
       await processCreditsPurchase(
-        meta.userId,
+        Number(meta.userId),
         reference,
         meta.packageId,
-        meta.credits
+        Number(meta.credits)
       );
     } else {
       console.warn(
