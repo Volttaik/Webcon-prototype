@@ -11,6 +11,26 @@ EduBridge (formerly WebCon) — an AI-powered learning platform that pairs stude
 - **Theme**: Dark by default, warm monochrome palette
 - **Note**: The pnpm workspace package name is still `@workspace/webcon-app` for backwards compatibility with the workflow filter — the brand was rebranded at the UI/copy level.
 
+## Chat Features (implemented)
+
+- **Timestamps on hover** — exact time shown on hover for every message
+- **Agent avatar** — coloured initials avatar per agent shown next to replies
+- **Thumbs up/down reactions** — per-message quality signal (localStorage)
+- **Bookmark messages** — save individual agent replies (localStorage: `edubridge:bookmarks`)
+- **Pin messages** — pin replies to top of chat (localStorage: `edubridge:pins`)
+- **Regenerate response** — retry button on last agent message
+- **Smart follow-up suggestions** — 3 clickable question chips after each reply (via `/api/chat/suggestions` → Groq)
+- **Edit sent message** — click any user message to edit and resend it
+- **Voice input** — microphone button using Web Speech API
+- **In-chat search** — ⌘F toggles a search bar that highlights and filters messages
+- **Quiz mode** — toggle turns on quiz mode banner + prefixes user messages with quiz intent
+- **Conversation summary** — "Summary" button sends a prompt to save a study note to workspace
+- **Bookmark conversations** — star icon in toolbar or sidebar long-press menu
+- **Export conversation** — download icon saves full chat as Markdown file
+- **Conversation tags** — long-press in sidebar → tag with 📚 Study, 🧪 Science, etc. (localStorage)
+- **Keyboard shortcuts** — ⌘K = new chat, ⌘F = search, Escape = close search/edit/sidebar
+- **Code block copy** — syntax-highlighted code blocks with one-click copy
+
 ## Architecture
 
 - **Frontend/Main App**: Next.js 15 (`artifacts/webcon-app`) — serves React SPA + API routes

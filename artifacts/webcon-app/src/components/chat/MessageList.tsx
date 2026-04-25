@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Copy, Check, Globe, PenLine, FileText, BookOpen, FolderPlus, ImageOff, Database } from 'lucide-react';
+import {
+  Brain, Copy, Check, Globe, PenLine, FileText, BookOpen,
+  FolderPlus, ImageOff, Database, ThumbsUp, ThumbsDown,
+  Bookmark, BookmarkCheck, Pin, PinOff, RotateCcw, ChevronRight
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface Message {
+export interface Message {
   id: number | string;
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -16,15 +20,58 @@ interface Message {
 export type VerbType = 'thinking' | 'searching' | 'creating-project' | 'creating-file' | 'reading' | 'creating' | 'planning' | 'reading-hub';
 
 const VERB_CONFIG: Record<string, { Icon: React.ElementType; label: string; doneLabel: (ms: number) => string }> = {
-  thinking:          { Icon: Brain,      label: 'Thinking…',                  doneLabel: ms => ms <= 0 ? 'Thought' : `Thought for ${Math.round(ms / 1000)}s` },
-  searching:         { Icon: Globe,      label: 'Searching the web…',         doneLabel: ms => ms <= 0 ? 'Searched' : `Searched in ${Math.round(ms / 1000)}s` },
-  reading:           { Icon: BookOpen,   label: 'Reading database…',          doneLabel: ms => ms <= 0 ? 'Read database' : `Read in ${Math.round(ms / 1000)}s` },
-  'reading-hub':     { Icon: Database,   label: 'Looking at database…',       doneLabel: ms => ms <= 0 ? 'Read hub database' : `Read hub in ${Math.round(ms / 1000)}s` },
-  creating:          { Icon: PenLine,    label: 'Creating…',                  doneLabel: ms => ms <= 0 ? 'Created' : `Created in ${Math.round(ms / 1000)}s` },
-  planning:          { Icon: FileText,   label: 'Planning…',                  doneLabel: ms => ms <= 0 ? 'Planned' : `Planned in ${Math.round(ms / 1000)}s` },
-  'creating-project':{ Icon: FolderPlus, label: 'Creating project…',          doneLabel: ms => ms <= 0 ? 'Created project' : `Created project in ${Math.round(ms / 1000)}s` },
-  'creating-file':   { Icon: PenLine,    label: 'Creating file…',             doneLabel: ms => ms <= 0 ? 'Created file' : `Created file in ${Math.round(ms / 1000)}s` },
+  thinking:          { Icon: Brain,      label: 'Thinking…',              doneLabel: ms => ms <= 0 ? 'Thought' : `Thought for ${Math.round(ms / 1000)}s` },
+  searching:         { Icon: Globe,      label: 'Searching the web…',     doneLabel: ms => ms <= 0 ? 'Searched' : `Searched in ${Math.round(ms / 1000)}s` },
+  reading:           { Icon: BookOpen,   label: 'Reading database…',      doneLabel: ms => ms <= 0 ? 'Read database' : `Read in ${Math.round(ms / 1000)}s` },
+  'reading-hub':     { Icon: Database,   label: 'Looking at database…',   doneLabel: ms => ms <= 0 ? 'Read hub database' : `Read hub in ${Math.round(ms / 1000)}s` },
+  creating:          { Icon: PenLine,    label: 'Creating…',              doneLabel: ms => ms <= 0 ? 'Created' : `Created in ${Math.round(ms / 1000)}s` },
+  planning:          { Icon: FileText,   label: 'Planning…',              doneLabel: ms => ms <= 0 ? 'Planned' : `Planned in ${Math.round(ms / 1000)}s` },
+  'creating-project':{ Icon: FolderPlus, label: 'Creating project…',      doneLabel: ms => ms <= 0 ? 'Created project' : `Created project in ${Math.round(ms / 1000)}s` },
+  'creating-file':   { Icon: PenLine,    label: 'Creating file…',         doneLabel: ms => ms <= 0 ? 'Created file' : `Created file in ${Math.round(ms / 1000)}s` },
 };
+
+function useLocalSet(key: string) {
+  const [set, setSet] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(key) ?? '[]')); } catch { return new Set(); }
+  });
+  const toggle = useCallback((id: string) => {
+    setSet(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      try { localStorage.setItem(key, JSON.stringify([...next])); } catch { /* noop */ }
+      return next;
+    });
+  }, [key]);
+  return { set, toggle };
+}
+
+function useLocalMap(key: string) {
+  const [map, setMap] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem(key) ?? '{}'); } catch { return {}; }
+  });
+  const set = useCallback((id: string, value: string | null) => {
+    setMap(prev => {
+      const next = { ...prev };
+      if (value === null) delete next[id]; else next[id] = value;
+      try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* noop */ }
+      return next;
+    });
+  }, [key]);
+  return { map, set };
+}
+
+function AgentAvatar({ name }: { name?: string | null }) {
+  const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'AI';
+  const hue = name ? [...name].reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360 : 220;
+  return (
+    <div
+      className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-[9px] font-bold text-white shadow-sm"
+      style={{ background: `hsl(${hue},55%,48%)` }}
+    >
+      {initials}
+    </div>
+  );
+}
 
 function CopyButton({ text, className }: { text: string; className?: string }) {
   const [copied, setCopied] = useState(false);
@@ -34,15 +81,9 @@ function CopyButton({ text, className }: { text: string; className?: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <motion.button
-      onClick={copy}
-      whileTap={{ scale: 0.88 }}
-      className={cn(
-        'flex items-center gap-1 px-1.5 py-1 rounded-lg transition-all duration-150',
-        'text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/60',
-        className
-      )}
-      title="Copy message"
+    <motion.button onClick={copy} whileTap={{ scale: 0.88 }}
+      className={cn('flex items-center gap-1 px-1.5 py-1 rounded-lg transition-all duration-150 text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/60', className)}
+      title="Copy"
     >
       {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
     </motion.button>
@@ -51,11 +92,7 @@ function CopyButton({ text, className }: { text: string; className?: string }) {
 
 function CodeBlock({ code, lang }: { code: string; lang?: string }) {
   const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const copy = () => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   return (
     <div className="my-3 rounded-xl border border-border bg-secondary/30 overflow-hidden">
       <div className="flex items-center justify-between px-3.5 py-2 border-b border-border">
@@ -72,14 +109,11 @@ function CodeBlock({ code, lang }: { code: string; lang?: string }) {
 
 function InlineHighlight({ children }: { children: React.ReactNode }) {
   return (
-    <span
-      className={cn(
-        'inline rounded px-[5px] py-[1.5px] mx-[1px] font-semibold text-foreground',
-        'bg-foreground/[0.08] border border-foreground/[0.12]',
-        'backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-      )}
-      style={{ WebkitBackdropFilter: 'blur(4px)' }}
-    >
+    <span className={cn(
+      'inline rounded px-[5px] py-[1.5px] mx-[1px] font-semibold text-foreground',
+      'bg-foreground/[0.08] border border-foreground/[0.12] backdrop-blur-sm',
+      'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+    )}>
       {children}
     </span>
   );
@@ -134,33 +168,20 @@ function TypewriterAssistant({ content, active }: { content: string; active: boo
   useEffect(() => { targetRef.current = content; }, [content]);
 
   useEffect(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     if (!active) {
       const remaining = targetRef.current.length - shownLenRef.current;
-      if (remaining <= 0) {
-        setShown(content);
-        shownLenRef.current = content.length;
-        return;
-      }
+      if (remaining <= 0) { setShown(content); shownLenRef.current = content.length; return; }
       intervalRef.current = setInterval(() => {
         const target = targetRef.current;
         const cur = shownLenRef.current;
-        if (cur >= target.length) {
-          clearInterval(intervalRef.current!);
-          intervalRef.current = null;
-          return;
-        }
+        if (cur >= target.length) { clearInterval(intervalRef.current!); intervalRef.current = null; return; }
         const next = Math.min(cur + 10, target.length);
         shownLenRef.current = next;
         setShown(target.slice(0, next));
       }, 12);
       return;
     }
-
     intervalRef.current = setInterval(() => {
       const target = targetRef.current;
       const cur = shownLenRef.current;
@@ -171,10 +192,7 @@ function TypewriterAssistant({ content, active }: { content: string; active: boo
       shownLenRef.current = next;
       setShown(target.slice(0, next));
     }, 18);
-
-    return () => {
-      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-    };
+    return () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
   }, [active]);
 
   useEffect(() => { return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; }, []);
@@ -224,23 +242,19 @@ function PulseDot({ delay }: { delay: number }) {
 export function VerbIndicator({ verb = 'thinking' }: { verb?: string }) {
   const config = VERB_CONFIG[verb] ?? VERB_CONFIG.thinking;
   const { Icon, label } = config;
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
+    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
       className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border bg-secondary/60 border-border/60"
     >
       <motion.div animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
         <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" strokeWidth={1.5} />
       </motion.div>
       <div className="flex items-center gap-[3px]">
-        <PulseDot delay={0} />
-        <PulseDot delay={0.2} />
-        <PulseDot delay={0.4} />
+        <PulseDot delay={0} /><PulseDot delay={0.2} /><PulseDot delay={0.4} />
       </div>
-      <motion.span key={verb} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }} className="text-[12px] font-medium text-muted-foreground/70">
+      <motion.span key={verb} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}
+        className="text-[12px] font-medium text-muted-foreground/70"
+      >
         {label}
       </motion.span>
     </motion.div>
@@ -270,13 +284,35 @@ function ChatImage({ url }: { url: string }) {
     );
   }
   return (
-    <img
-      src={url}
-      alt="Attached"
-      onError={() => setErrored(true)}
+    <img src={url} alt="Attached" onError={() => setErrored(true)}
       className="mt-2 max-w-[260px] max-h-[240px] rounded-xl border border-border/40 object-cover cursor-pointer"
       onClick={() => window.open(url, '_blank')}
     />
+  );
+}
+
+function FollowUpChips({ suggestions, onSelect }: { suggestions: string[]; onSelect: (s: string) => void }) {
+  if (!suggestions.length) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className="mt-3 flex flex-wrap gap-1.5"
+    >
+      {suggestions.map((s, i) => (
+        <motion.button
+          key={i}
+          whileTap={{ scale: 0.96 }}
+          whileHover={{ y: -1 }}
+          onClick={() => onSelect(s)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11.5px] text-muted-foreground hover:text-foreground border border-border/60 hover:border-foreground/20 bg-secondary/30 hover:bg-secondary/60 transition-all duration-150"
+        >
+          <ChevronRight className="h-2.5 w-2.5 shrink-0 opacity-50" />
+          {s}
+        </motion.button>
+      ))}
+    </motion.div>
   );
 }
 
@@ -284,11 +320,32 @@ interface Props {
   messages: Message[];
   isThinking?: boolean;
   verb?: string;
+  agentName?: string | null;
+  onRegenerate?: () => void;
+  onEditMessage?: (id: number | string) => void;
+  followUpSuggestions?: string[];
+  onFollowUp?: (suggestion: string) => void;
+  pinnedIds?: Set<string>;
+  searchQuery?: string;
 }
 
-export default function MessageList({ messages, isThinking, verb = 'thinking' }: Props) {
+export default function MessageList({
+  messages,
+  isThinking,
+  verb = 'thinking',
+  agentName,
+  onRegenerate,
+  onEditMessage,
+  followUpSuggestions = [],
+  onFollowUp,
+  pinnedIds,
+  searchQuery = '',
+}: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevCount = useRef(0);
+  const { set: bookmarked, toggle: toggleBookmark } = useLocalSet('edubridge:bookmarks');
+  const { set: pinned, toggle: togglePin } = useLocalSet('edubridge:pins');
+  const { map: reactions, set: setReaction } = useLocalMap('edubridge:reactions');
 
   useEffect(() => {
     if (messages.length !== prevCount.current || isThinking) {
@@ -299,27 +356,150 @@ export default function MessageList({ messages, isThinking, verb = 'thinking' }:
 
   const lastAssistantIdx = messages.reduce((last, m, i) => m.role === 'assistant' ? i : last, -1);
 
+  const effectivePinned = pinnedIds ?? pinned;
+
+  const pinnedMessages = messages.filter(m => effectivePinned.has(String(m.id)) && m.role === 'assistant');
+
+  const highlight = (text: string) => {
+    if (!searchQuery.trim()) return text;
+    return text;
+  };
+
+  const matchesSearch = (msg: Message) => {
+    if (!searchQuery.trim()) return true;
+    return msg.content.toLowerCase().includes(searchQuery.toLowerCase());
+  };
+
   return (
     <div className="flex-1 min-h-0 overflow-y-auto chat-ambient-bg">
       <div className="relative z-10 max-w-2xl mx-auto w-full px-5 md:px-8 py-8 space-y-1">
+
+        {/* Pinned messages strip */}
+        <AnimatePresence>
+          {pinnedMessages.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 space-y-2"
+            >
+              <div className="flex items-center gap-1.5">
+                <Pin className="h-3 w-3 text-amber-500/70" strokeWidth={1.5} />
+                <span className="text-[10px] font-medium text-amber-500/70 uppercase tracking-wider">Pinned</span>
+              </div>
+              {pinnedMessages.map(m => (
+                <p key={m.id} className="text-[12px] text-foreground/70 leading-relaxed line-clamp-2">{m.content}</p>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence initial={false}>
-          {messages.map((msg, idx) => {
-            const prevMsg = messages[idx - 1];
-            const showDivider = idx > 0 && prevMsg?.role === 'user' && msg.role === 'assistant';
-            const isStreamingMsg = isThinking && idx === lastAssistantIdx && msg.role === 'assistant';
+          {messages.filter(matchesSearch).map((msg, idx) => {
+            const originalIdx = messages.indexOf(msg);
+            const prevMsg = messages[originalIdx - 1];
+            const showDivider = originalIdx > 0 && prevMsg?.role === 'user' && msg.role === 'assistant';
+            const isStreamingMsg = isThinking && originalIdx === lastAssistantIdx && msg.role === 'assistant';
+            const isLastAssistant = originalIdx === lastAssistantIdx && msg.role === 'assistant';
+            const msgIdStr = String(msg.id);
+            const isBookmarked = bookmarked.has(msgIdStr);
+            const isPinned = effectivePinned.has(msgIdStr);
+            const reaction = reactions[msgIdStr];
 
             if (msg.role === 'assistant') {
               return (
                 <motion.div key={msg.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className="group">
                   {showDivider && <DateDivider date={msg.timestamp} />}
                   <div className="py-3 rounded-2xl px-1">
+                    <div className="flex items-start gap-2 mb-1.5">
+                      <AgentAvatar name={agentName} />
+                      <span className="text-[11px] text-muted-foreground/50 mt-1">{agentName ?? 'EduBridge'}</span>
+                      <span
+                        className="text-[10px] text-muted-foreground/30 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title={msg.timestamp.toLocaleString()}
+                      >
+                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
                     {msg.thinkMs !== undefined && (
                       <ActionBadge ms={msg.thinkMs} verb={msg.verb ?? 'thinking'} />
                     )}
                     <TypewriterAssistant content={msg.content} active={!!isStreamingMsg} />
+
+                    {isLastAssistant && !isStreamingMsg && followUpSuggestions.length > 0 && onFollowUp && (
+                      <FollowUpChips suggestions={followUpSuggestions} onSelect={onFollowUp} />
+                    )}
+
                     {!isStreamingMsg && (
-                      <div className="flex mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      <div className="flex items-center gap-0.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                         <CopyButton text={msg.content} />
+
+                        <motion.button
+                          whileTap={{ scale: 0.88 }}
+                          onClick={() => setReaction(msgIdStr, reaction === 'up' ? null : 'up')}
+                          className={cn(
+                            'p-1.5 rounded-lg transition-all duration-150',
+                            reaction === 'up'
+                              ? 'text-green-500 bg-green-500/10'
+                              : 'text-muted-foreground/40 hover:text-green-500 hover:bg-secondary/60'
+                          )}
+                          title="Helpful"
+                        >
+                          <ThumbsUp className="h-3 w-3" />
+                        </motion.button>
+
+                        <motion.button
+                          whileTap={{ scale: 0.88 }}
+                          onClick={() => setReaction(msgIdStr, reaction === 'down' ? null : 'down')}
+                          className={cn(
+                            'p-1.5 rounded-lg transition-all duration-150',
+                            reaction === 'down'
+                              ? 'text-red-400 bg-red-400/10'
+                              : 'text-muted-foreground/40 hover:text-red-400 hover:bg-secondary/60'
+                          )}
+                          title="Not helpful"
+                        >
+                          <ThumbsDown className="h-3 w-3" />
+                        </motion.button>
+
+                        <motion.button
+                          whileTap={{ scale: 0.88 }}
+                          onClick={() => toggleBookmark(msgIdStr)}
+                          className={cn(
+                            'p-1.5 rounded-lg transition-all duration-150',
+                            isBookmarked
+                              ? 'text-amber-400 bg-amber-400/10'
+                              : 'text-muted-foreground/40 hover:text-amber-400 hover:bg-secondary/60'
+                          )}
+                          title={isBookmarked ? 'Remove bookmark' : 'Bookmark'}
+                        >
+                          {isBookmarked ? <BookmarkCheck className="h-3 w-3" /> : <Bookmark className="h-3 w-3" />}
+                        </motion.button>
+
+                        <motion.button
+                          whileTap={{ scale: 0.88 }}
+                          onClick={() => togglePin(msgIdStr)}
+                          className={cn(
+                            'p-1.5 rounded-lg transition-all duration-150',
+                            isPinned
+                              ? 'text-blue-400 bg-blue-400/10'
+                              : 'text-muted-foreground/40 hover:text-blue-400 hover:bg-secondary/60'
+                          )}
+                          title={isPinned ? 'Unpin' : 'Pin to top'}
+                        >
+                          {isPinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                        </motion.button>
+
+                        {isLastAssistant && onRegenerate && (
+                          <motion.button
+                            whileTap={{ scale: 0.88 }}
+                            onClick={onRegenerate}
+                            className="flex items-center gap-1 px-1.5 py-1 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-secondary/60 transition-all duration-150"
+                            title="Regenerate response"
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                          </motion.button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -333,19 +513,29 @@ export default function MessageList({ messages, isThinking, verb = 'thinking' }:
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="group flex flex-col items-end py-2 gap-1.5"
+                className="group flex flex-col items-end py-2 gap-1"
               >
                 {msg.imageUrl && <ChatImage url={msg.imageUrl} />}
                 {msg.content && msg.content !== '[User sent an image]' && (
                   <div className="flex flex-col items-end gap-1">
-                    <div className={cn(
-                      'inline-block px-4 py-2.5 rounded-2xl text-[13px] text-foreground/85 leading-relaxed',
-                      'elevated-surface border-border/70',
-                      'max-w-[80%] shadow-elevation-md'
-                    )}>
-                      {msg.content}
+                    <div
+                      className={cn(
+                        'inline-block px-4 py-2.5 rounded-2xl text-[13px] text-foreground/85 leading-relaxed',
+                        'elevated-surface border-border/70 max-w-[80%] shadow-elevation-md',
+                        onEditMessage && 'cursor-pointer hover:border-foreground/20 transition-colors'
+                      )}
+                      onClick={() => onEditMessage?.(msg.id)}
+                      title={onEditMessage ? 'Click to edit' : undefined}
+                    >
+                      {searchQuery.trim()
+                        ? <HighlightedText text={msg.content} query={searchQuery} />
+                        : msg.content
+                      }
                     </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      <span className="text-[10px] text-muted-foreground/30 mr-1">
+                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                       <CopyButton text={msg.content} />
                     </div>
                   </div>
@@ -363,5 +553,20 @@ export default function MessageList({ messages, isThinking, verb = 'thinking' }:
         <div ref={bottomRef} />
       </div>
     </div>
+  );
+}
+
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  if (!query.trim()) return <>{text}</>;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part)
+          ? <mark key={i} className="bg-amber-400/30 text-foreground rounded px-0.5">{part}</mark>
+          : <span key={i}>{part}</span>
+      )}
+    </>
   );
 }

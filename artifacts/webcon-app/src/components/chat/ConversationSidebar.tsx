@@ -1,13 +1,46 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, X, Brain, Clock, Trash2, Pencil, Check } from 'lucide-react';
+import { Plus, Search, X, Brain, Clock, Trash2, Pencil, Check, Tag, BookmarkCheck, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
+
+const CONV_TAGS = ['📚 Study', '🧪 Science', '📝 Essay', '🔢 Math', '💻 Code', '🌍 History'];
+
+function useConvTags() {
+  const [tags, setTags] = useState<Record<string, string[]>>(() => {
+    try { return JSON.parse(localStorage.getItem('edubridge:conv-tags') ?? '{}'); } catch { return {}; }
+  });
+  const toggle = (convId: string, tag: string) => {
+    setTags(prev => {
+      const existing = prev[convId] ?? [];
+      const next = existing.includes(tag) ? existing.filter(t => t !== tag) : [...existing, tag];
+      const result = { ...prev, [convId]: next };
+      try { localStorage.setItem('edubridge:conv-tags', JSON.stringify(result)); } catch { /* noop */ }
+      return result;
+    });
+  };
+  return { tags, toggle };
+}
+
+function useConvBookmarks() {
+  const [bookmarked, setBookmarked] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('edubridge:conv-bookmarks') ?? '[]')); } catch { return new Set(); }
+  });
+  const toggle = (convId: string) => {
+    setBookmarked(prev => {
+      const next = new Set(prev);
+      if (next.has(convId)) next.delete(convId); else next.add(convId);
+      try { localStorage.setItem('edubridge:conv-bookmarks', JSON.stringify([...next])); } catch { /* noop */ }
+      return next;
+    });
+  };
+  return { bookmarked, toggle };
+}
 
 interface ApiConversation {
   id: number;
@@ -37,12 +70,20 @@ function ConvItem({
   onSelect,
   onDeleted,
   onRenamed,
+  tags,
+  onToggleTag,
+  isBookmarked,
+  onToggleBookmark,
 }: {
   conv: ApiConversation;
   isActive: boolean;
   onSelect: () => void;
   onDeleted: () => void;
   onRenamed: (title: string) => void;
+  tags: string[];
+  onToggleTag: (tag: string) => void;
+  isBookmarked: boolean;
+  onToggleBookmark: () => void;
 }) {
   const [pressed, setPressed] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -162,9 +203,17 @@ function ConvItem({
           {conv.agentName && (
             <p className="text-[10.5px] text-muted-foreground/60 truncate mt-0.5">{conv.agentName}</p>
           )}
-          <p className="text-[10px] text-muted-foreground/40 mt-0.5">
-            {formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: true })}
-          </p>
+          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+            {isBookmarked && (
+              <span className="text-[9px] text-amber-400/80">⭐</span>
+            )}
+            {tags.slice(0, 2).map(tag => (
+              <span key={tag} className="text-[9px] px-1 py-0.5 rounded-md bg-secondary/60 text-muted-foreground/60 border border-border/40 leading-none">{tag}</span>
+            ))}
+            <span className="text-[10px] text-muted-foreground/40 leading-none">
+              {formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: true })}
+            </span>
+          </div>
         </div>
       </motion.div>
 
@@ -175,32 +224,44 @@ function ConvItem({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.95 }}
             transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute right-1 top-1 z-10 flex items-center gap-1 bg-background border border-border rounded-lg px-1.5 py-1 shadow-elevation-md"
+            className="absolute right-1 top-1 z-10 bg-background border border-border rounded-xl shadow-elevation-lg overflow-hidden min-w-[180px]"
             onClick={e => e.stopPropagation()}
           >
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={startRename}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-            >
-              <Pencil className="h-3 w-3" /> Rename
-            </motion.button>
-            <div className="w-px h-3.5 bg-border" />
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={handleDelete}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-destructive hover:bg-destructive/10 transition-colors"
-            >
-              <Trash2 className="h-3 w-3" /> Delete
-            </motion.button>
-            <div className="w-px h-3.5 bg-border" />
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={e => { e.stopPropagation(); setPressed(false); }}
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-            >
-              <X className="h-3 w-3" />
-            </motion.button>
+            <div className="flex items-center gap-1 p-1.5 border-b border-border">
+              <motion.button whileTap={{ scale: 0.9 }} onClick={startRename}
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors">
+                <Pencil className="h-3 w-3" /> Rename
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); onToggleBookmark(); setPressed(false); }}
+                className={cn('flex items-center gap-1 px-2 py-1 rounded-md text-[11px] transition-colors', isBookmarked ? 'text-amber-400' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60')}>
+                {isBookmarked ? <BookmarkCheck className="h-3 w-3" /> : <Bookmark className="h-3 w-3" />}
+                {isBookmarked ? 'Saved' : 'Save'}
+              </motion.button>
+            </div>
+            <div className="px-2 py-1.5 border-b border-border">
+              <div className="flex items-center gap-1 mb-1">
+                <Tag className="h-2.5 w-2.5 text-muted-foreground/40" />
+                <span className="text-[10px] text-muted-foreground/50">Tags</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {CONV_TAGS.map(tag => (
+                  <button key={tag} onClick={(e) => { e.stopPropagation(); onToggleTag(tag); }}
+                    className={cn('text-[10px] px-1.5 py-0.5 rounded-md border transition-colors', tags.includes(tag) ? 'bg-secondary text-foreground border-foreground/20' : 'text-muted-foreground/60 border-border/40 hover:border-border hover:bg-secondary/50')}>
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-1 p-1.5">
+              <motion.button whileTap={{ scale: 0.9 }} onClick={handleDelete}
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-destructive hover:bg-destructive/10 transition-colors">
+                <Trash2 className="h-3 w-3" /> Delete
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.9 }} onClick={e => { e.stopPropagation(); setPressed(false); }}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors">
+                <X className="h-3 w-3" />
+              </motion.button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -214,6 +275,8 @@ export default function ConversationSidebar({ onClose }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const { tags: convTags, toggle: toggleTag } = useConvTags();
+  const { bookmarked, toggle: toggleBookmark } = useConvBookmarks();
 
   const { data: conversations = [], isPending } = useQuery({
     queryKey: ['conversations'],
@@ -290,7 +353,7 @@ export default function ConversationSidebar({ onClose }: Props) {
       </div>
 
       <div className="px-2 pb-1">
-        <p className="text-[10px] text-muted-foreground/40 px-1">Hold to rename or delete</p>
+        <p className="text-[10px] text-muted-foreground/40 px-1">Hold to rename, tag, or delete · ⌘K new chat</p>
       </div>
 
       <div className="flex-1 overflow-y-auto py-1 px-1.5">
@@ -319,6 +382,10 @@ export default function ConversationSidebar({ onClose }: Props) {
                     onSelect={() => handleSelect(conv.id)}
                     onDeleted={() => handleDeleted(conv.id)}
                     onRenamed={(title) => handleRenamed(conv.id, title)}
+                    tags={convTags[String(conv.id)] ?? []}
+                    onToggleTag={(tag) => toggleTag(String(conv.id), tag)}
+                    isBookmarked={bookmarked.has(String(conv.id))}
+                    onToggleBookmark={() => toggleBookmark(String(conv.id))}
                   />
                 ))}
               </div>
