@@ -89,6 +89,8 @@ export default function ChatPage() {
   });
 
   const abortRef = useRef<AbortController | null>(null);
+  // Track conversations we just created so loadConversation doesn't wipe the live stream
+  const justCreatedConvRef = useRef<number | null>(null);
   const agentIdFromQuery = searchParams.get('agent');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -148,6 +150,12 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (id && id !== 'new') {
+      // If we just created this conversation in handleSend, skip loading —
+      // the live stream is already populating messages in state.
+      if (justCreatedConvRef.current === parseInt(id)) {
+        justCreatedConvRef.current = null;
+        return;
+      }
       loadConversation(id);
     } else {
       setCurrentConv(null);
@@ -222,6 +230,9 @@ export default function ChatPage() {
         const conv: ApiConversation = await res.json();
         convId = conv.id;
         setCurrentConv(conv);
+        // Mark this conv as just-created BEFORE navigating so the id-change
+        // effect skips calling loadConversation and wiping the live stream.
+        justCreatedConvRef.current = conv.id;
         navigate(`/chat/${conv.id}`, { replace: true });
       }
 

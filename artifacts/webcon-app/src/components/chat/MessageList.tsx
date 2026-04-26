@@ -502,8 +502,8 @@ export default function MessageList({
                   <div className="flex flex-col items-end gap-1">
                     <div
                       className={cn(
-                        'inline-block px-4 py-2.5 rounded-2xl text-[13px] text-foreground/85 leading-relaxed',
-                        'elevated-surface border-border/70 max-w-[80%] shadow-elevation-md',
+                        'px-4 py-2.5 rounded-2xl text-[13px] text-foreground/85 leading-relaxed w-fit max-w-[80%]',
+                        'elevated-surface border-border/70 shadow-elevation-md',
                         onEditMessage && 'cursor-pointer hover:border-foreground/20 transition-colors'
                       )}
                       onClick={() => onEditMessage?.(msg.id)}
