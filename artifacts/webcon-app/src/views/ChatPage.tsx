@@ -3,15 +3,18 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   PanelLeft, Brain, ChevronDown, Search, X,
-  BookOpen, GraduationCap, FileText, Bookmark, BookmarkCheck
+  BookOpen, GraduationCap, FileText, Bookmark, BookmarkCheck,
+  Timer, Keyboard, Sparkles, History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AppHeader from '@/components/layout/AppHeader';
 import ConversationSidebar from '@/components/chat/ConversationSidebar';
 import MessageList, { type Message } from '@/components/chat/MessageList';
-import MessageInput from '@/components/chat/MessageInput';
+import MessageInput, { type ReplyContext } from '@/components/chat/MessageInput';
 import EmptyChat from '@/components/chat/EmptyChat';
 import AgentCreatorDialog from '@/components/AgentCreatorDialog';
+import PomodoroWidget from '@/components/chat/PomodoroWidget';
+import KeyboardShortcutsDialog from '@/components/chat/KeyboardShortcutsDialog';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -69,6 +72,13 @@ export default function ChatPage() {
   const [bookmarkedConvs, setBookmarkedConvs] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('edubridge:conv-bookmarks') ?? '[]')); } catch { return new Set(); }
   });
+  const [replyTo, setReplyTo] = useState<ReplyContext | null>(null);
+  const [pomodoroOpen, setPomodoroOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showRecap, setShowRecap] = useState(false);
+  const [recapText, setRecapText] = useState<string>('');
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   // Track conversations we just created so loadConversation doesn't wipe the live stream
@@ -93,7 +103,14 @@ export default function ChatPage() {
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key === 'k') { e.preventDefault(); navigate('/chat'); }
       if (mod && e.key === 'f') { e.preventDefault(); setSearchOpen(o => !o); setTimeout(() => searchInputRef.current?.focus(), 50); }
-      if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); setEditingMsgId(null); setSidebarOpen(false); }
+      if (mod && e.key === '/') { e.preventDefault(); setShortcutsOpen(o => !o); }
+      if (e.key === '?' && !mod && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault(); setShortcutsOpen(o => !o);
+      }
+      if (e.key === 'Escape') {
+        setSearchOpen(false); setSearchQuery(''); setEditingMsgId(null); setSidebarOpen(false);
+        setShortcutsOpen(false); setReplyTo(null);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -143,8 +160,43 @@ export default function ChatPage() {
       setCurrentConv(null);
       setMessages([]);
       setFollowUpSuggestions([]);
+      setShowRecap(false);
     }
+    setReplyTo(null);
   }, [id, loadConversation]);
+
+  // Smart recap on return: if user reopens a conv after >12h, show a banner
+  // with the last assistant reply as a "where we left off" reminder.
+  useEffect(() => {
+    if (!id || id === 'new' || messages.length === 0 || isLoadingConversation) return;
+    try {
+      const key = 'edubridge:last-visit';
+      const map = JSON.parse(localStorage.getItem(key) ?? '{}') as Record<string, number>;
+      const lastVisit = map[id];
+      const now = Date.now();
+      const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+      if (lastVisit && (now - lastVisit > 12 * 60 * 60 * 1000) && lastAssistant) {
+        const summary = lastAssistant.content.replace(/\s+/g, ' ').slice(0, 220);
+        setRecapText(summary);
+        setShowRecap(true);
+      }
+      map[id] = now;
+      localStorage.setItem(key, JSON.stringify(map));
+    } catch { /* noop */ }
+  }, [id, messages.length, isLoadingConversation]);
+
+  // Reading progress bar — tracks scroll within the messages area.
+  useEffect(() => {
+    const el = scrollAreaRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const max = el.scrollHeight - el.clientHeight;
+      setScrollProgress(max > 100 ? Math.min(1, Math.max(0, el.scrollTop / max)) : 0);
+    };
+    onScroll();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [messages.length, isLoadingConversation]);
 
   useEffect(() => {
     if (agentIdFromQuery) {
@@ -369,6 +421,29 @@ export default function ChatPage() {
     await handleSend('Please summarize everything we\'ve discussed in this conversation into a clear, concise study note. Save it to my workspace.');
   }, [isStreaming, messages, handleSend]);
 
+  const handleReply = useCallback((msg: Message) => {
+    setReplyTo({ id: msg.id, role: msg.role as 'user' | 'assistant', content: msg.content });
+  }, []);
+
+  const handleSimpler = useCallback(async (msg: Message) => {
+    if (isStreaming) return;
+    const snippet = msg.content.length > 240 ? msg.content.slice(0, 240) + '…' : msg.content;
+    await handleSend(`Re-explain this in simpler terms (no jargon, short sentences):\n\n> ${snippet.replace(/\n/g, '\n> ')}`);
+  }, [isStreaming, handleSend]);
+
+  const handleDeeper = useCallback(async (msg: Message) => {
+    if (isStreaming) return;
+    const snippet = msg.content.length > 240 ? msg.content.slice(0, 240) + '…' : msg.content;
+    await handleSend(`Go deeper on this — give more detail, examples, and where useful, an analogy:\n\n> ${snippet.replace(/\n/g, '\n> ')}`);
+  }, [isStreaming, handleSend]);
+
+  const handleContinueInNewChat = useCallback(() => {
+    const agentId = currentConv?.agentId ?? selectedAgentId ?? agents[0]?.id;
+    if (!agentId) return;
+    navigate(`/chat?agent=${agentId}`);
+    toast.success('Started a fresh chat with the same agent');
+  }, [currentConv, selectedAgentId, agents, navigate]);
+
   const toggleConvBookmark = (convId: number) => {
     setBookmarkedConvs(prev => {
       const next = new Set(prev);
@@ -498,11 +573,53 @@ export default function ChatPage() {
                 </Button>
               )}
 
+              {/* Continue in new chat */}
+              {currentConv && messages.length >= 4 && (
+                <Button
+                  variant="ghost" size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hidden sm:flex"
+                  onClick={handleContinueInNewChat}
+                  title="Continue in a new chat with the same agent"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                </Button>
+              )}
+
+              {/* Pomodoro */}
+              <Button
+                variant="ghost" size="icon"
+                className={cn('h-8 w-8', pomodoroOpen ? 'text-foreground bg-secondary' : 'text-muted-foreground hover:text-foreground')}
+                onClick={() => setPomodoroOpen(o => !o)}
+                title="Focus timer (Pomodoro)"
+              >
+                <Timer className="h-3.5 w-3.5" />
+              </Button>
+
+              {/* Keyboard shortcuts */}
+              <Button
+                variant="ghost" size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => setShortcutsOpen(true)}
+                title="Keyboard shortcuts (⌘/)"
+              >
+                <Keyboard className="h-3.5 w-3.5" />
+              </Button>
+
               {/* Study hub */}
               <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground gap-1.5 hidden sm:flex" onClick={() => navigate('/learning-hub')}>
                 <BookOpen className="h-3.5 w-3.5" /> Hubs
               </Button>
             </div>
+          </div>
+
+          {/* Reading progress bar */}
+          <div className="h-[2px] bg-transparent shrink-0">
+            <motion.div
+              className="h-full bg-foreground/40 origin-left"
+              animate={{ scaleX: scrollProgress }}
+              transition={{ duration: 0.08, ease: 'linear' }}
+              style={{ transformOrigin: 'left' }}
+            />
           </div>
 
           {/* In-chat search bar */}
@@ -610,6 +727,10 @@ export default function ChatPage() {
                   followUpSuggestions={followUpSuggestions}
                   onFollowUp={handleSend}
                   searchQuery={searchQuery}
+                  onReply={handleReply}
+                  onSimpler={handleSimpler}
+                  onDeeper={handleDeeper}
+                  scrollContainerRef={scrollAreaRef}
                 />
                 <div className="shrink-0 border-t border-border/70 bg-background/95 shadow-elevation-md">
                   <MessageInput
@@ -620,6 +741,8 @@ export default function ChatPage() {
                     selectedAgentId={currentConv?.agentId ?? selectedAgentId}
                     onAgentChange={agId => !currentConv && setSelectedAgentId(agId)}
                     quizMode={quizMode}
+                    replyTo={replyTo}
+                    onClearReply={() => setReplyTo(null)}
                   />
                 </div>
               </motion.div>
