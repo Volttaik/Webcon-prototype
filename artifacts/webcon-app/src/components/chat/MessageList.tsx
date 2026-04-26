@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Copy, Check, Globe, PenLine, FileText, BookOpen,
   FolderPlus, ImageOff, Database, ThumbsUp, ThumbsDown,
-  Bookmark, BookmarkCheck, Pin, PinOff, RotateCcw, ChevronRight, Box, Brain,
-  Reply, Lightbulb, ArrowDown, ShieldCheck
+  Bookmark, BookmarkCheck, Pin, PinOff, RotateCcw, ChevronRight, Box, Brain
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -310,40 +309,6 @@ interface Props {
   onFollowUp?: (suggestion: string) => void;
   pinnedIds?: Set<string>;
   searchQuery?: string;
-  onReply?: (msg: Message) => void;
-  onSimpler?: (msg: Message) => void;
-  onDeeper?: (msg: Message) => void;
-  onSpeak?: (msg: Message) => void;
-  speakingMsgId?: number | string | null;
-  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
-}
-
-function ConfidenceBadge({ verb, content }: { verb?: string; content: string }) {
-  // High confidence when the agent used tools (web search, schedule, plan, etc.)
-  // Medium when it just thought; Low for very short responses.
-  const usedTool = !!verb && verb !== 'thinking';
-  const isShort = content.trim().length < 80;
-  const level: 'high' | 'medium' | 'low' = usedTool ? 'high' : (isShort ? 'low' : 'medium');
-  const config = {
-    high:   { label: 'Sourced',    className: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' },
-    medium: { label: 'From memory', className: 'text-muted-foreground/60 bg-secondary/50 border-border/60' },
-    low:    { label: 'Brief',       className: 'text-amber-400 bg-amber-400/10 border-amber-400/20' },
-  }[level];
-  return (
-    <span
-      className={cn('inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border', config.className)}
-      title={
-        level === 'high'
-          ? 'Used tools or searched sources to answer'
-          : level === 'medium'
-            ? 'Answered from training and conversation context'
-            : 'Brief reply — consider asking for more detail'
-      }
-    >
-      <ShieldCheck className="h-2.5 w-2.5" strokeWidth={1.7} />
-      {config.label}
-    </span>
-  );
 }
 
 export default function MessageList({
@@ -357,10 +322,6 @@ export default function MessageList({
   onFollowUp,
   pinnedIds,
   searchQuery = '',
-  onReply,
-  onSimpler,
-  onDeeper,
-  scrollContainerRef,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevCount = useRef(0);
@@ -392,7 +353,7 @@ export default function MessageList({
   };
 
   return (
-    <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto chat-ambient-bg">
+    <div className="flex-1 min-h-0 overflow-y-auto chat-ambient-bg">
       <div className="relative z-10 max-w-2xl mx-auto w-full px-5 md:px-8 py-8 space-y-1">
 
         {/* Pinned messages strip */}
@@ -435,13 +396,8 @@ export default function MessageList({
                     <div className="flex items-start gap-2 mb-1.5">
                       <AgentAvatar />
                       <span className="text-[11px] text-muted-foreground/50 mt-1">{agentName ?? 'EduBridge'}</span>
-                      {!isStreamingMsg && (
-                        <div className="mt-0.5">
-                          <ConfidenceBadge verb={msg.verb} content={msg.content} />
-                        </div>
-                      )}
                       <span
-                        className="text-[10px] text-muted-foreground/30 mt-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
+                        className="text-[10px] text-muted-foreground/30 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
                         title={msg.timestamp.toLocaleString()}
                       >
                         {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -516,39 +472,6 @@ export default function MessageList({
                           {isPinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
                         </motion.button>
 
-                        {onReply && (
-                          <motion.button
-                            whileTap={{ scale: 0.88 }}
-                            onClick={() => onReply(msg)}
-                            className="flex items-center gap-1 px-1.5 py-1 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-secondary/60 transition-all duration-150"
-                            title="Reply to this message"
-                          >
-                            <Reply className="h-3 w-3" />
-                          </motion.button>
-                        )}
-
-                        {onSimpler && (
-                          <motion.button
-                            whileTap={{ scale: 0.88 }}
-                            onClick={() => onSimpler(msg)}
-                            className="flex items-center gap-1 px-1.5 py-1 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-secondary/60 transition-all duration-150"
-                            title="Explain simpler"
-                          >
-                            <Lightbulb className="h-3 w-3" />
-                          </motion.button>
-                        )}
-
-                        {onDeeper && (
-                          <motion.button
-                            whileTap={{ scale: 0.88 }}
-                            onClick={() => onDeeper(msg)}
-                            className="flex items-center gap-1 px-1.5 py-1 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-secondary/60 transition-all duration-150"
-                            title="Go deeper"
-                          >
-                            <ArrowDown className="h-3 w-3" />
-                          </motion.button>
-                        )}
-
                         {isLastAssistant && onRegenerate && (
                           <motion.button
                             whileTap={{ scale: 0.88 }}
@@ -596,16 +519,6 @@ export default function MessageList({
                         {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <CopyButton text={msg.content} />
-                      {onReply && (
-                        <motion.button
-                          whileTap={{ scale: 0.88 }}
-                          onClick={(e) => { e.stopPropagation(); onReply(msg); }}
-                          className="flex items-center gap-1 px-1.5 py-1 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-secondary/60 transition-all duration-150"
-                          title="Reply to this message"
-                        >
-                          <Reply className="h-3 w-3" />
-                        </motion.button>
-                      )}
                     </div>
                   </div>
                 )}

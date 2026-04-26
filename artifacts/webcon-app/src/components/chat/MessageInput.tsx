@@ -1,16 +1,9 @@
-import { useState, useRef, KeyboardEvent, useEffect, ClipboardEvent } from 'react';
+import { useState, useRef, KeyboardEvent, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUp, Square, Brain, ChevronDown, Globe, PenLine, FolderPlus, BookOpen, ImagePlus, X, Loader2, Mic, MicOff, Reply } from 'lucide-react';
+import { ArrowUp, Square, Brain, ChevronDown, Globe, PenLine, FolderPlus, BookOpen, ImagePlus, X, Loader2, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import SlashCommandsMenu, { SLASH_COMMANDS, filterCommands, type SlashCommand } from './SlashCommandsMenu';
-
-export interface ReplyContext {
-  id: number | string;
-  role: 'user' | 'assistant';
-  content: string;
-}
 
 interface Agent {
   id: number;
@@ -27,8 +20,6 @@ interface Props {
   selectedAgentId?: number | null;
   onAgentChange?: (agentId: number) => void;
   quizMode?: boolean;
-  replyTo?: ReplyContext | null;
-  onClearReply?: () => void;
 }
 
 type VerbHint = 'searching' | 'creating-file' | 'creating-project' | 'reading' | null;
@@ -120,85 +111,17 @@ function AgentSelector({ agents, selectedAgentId, onAgentChange, disabled }: {
   );
 }
 
-export default function MessageInput({ onSend, isStreaming, onStop, disabled, agents = [], selectedAgentId, onAgentChange, quizMode, replyTo, onClearReply }: Props) {
+export default function MessageInput({ onSend, isStreaming, onStop, disabled, agents = [], selectedAgentId, onAgentChange, quizMode }: Props) {
   const [value, setValue] = useState('');
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [slashIndex, setSlashIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const hint = detectHint(value);
   const hintConfig = hint ? VERB_HINTS.find(h => h.verb === hint) : null;
-
-  // Slash command menu opens when the input starts with "/" (no space yet)
-  const slashMatch = /^\/([\w-]*)$/.exec(value);
-  const slashOpen = !!slashMatch && !isStreaming && !disabled;
-  const slashQuery = slashMatch?.[1] ?? '';
-  const slashFiltered = slashOpen ? filterCommands(slashQuery) : [];
-
-  useEffect(() => { setSlashIndex(0); }, [slashQuery, slashOpen]);
-
-  const uploadImageFile = async (file: File) => {
-    if (file.size > 10 * 1024 * 1024) { toast.error('Image too large (max 10MB)'); return; }
-    setUploadingImage(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('bucket', 'chat-images');
-      formData.append('folder', 'messages');
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (!res.ok) {
-        const err = await res.json();
-        toast.error(err.error || 'Image upload failed');
-        return;
-      }
-      const data = await res.json();
-      setPendingImageUrl(data.url);
-    } catch {
-      toast.error('Image upload failed');
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
-  const handlePaste = async (e: ClipboardEvent<HTMLTextAreaElement>) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    for (const item of Array.from(items)) {
-      if (item.kind === 'file' && item.type.startsWith('image/')) {
-        e.preventDefault();
-        const file = item.getAsFile();
-        if (file) {
-          toast('Uploading pasted image…');
-          await uploadImageFile(file);
-        }
-        return;
-      }
-    }
-  };
-
-  const applySlashCommand = (cmd: SlashCommand) => {
-    if (cmd.autoSend) {
-      setValue('');
-      if (textareaRef.current) textareaRef.current.style.height = 'auto';
-      onSend(cmd.prompt, pendingImageUrl || undefined);
-      setPendingImageUrl(null);
-      return;
-    }
-    setValue(cmd.prompt);
-    requestAnimationFrame(() => {
-      const el = textareaRef.current;
-      if (el) {
-        el.style.height = 'auto';
-        el.style.height = Math.min(el.scrollHeight, 160) + 'px';
-        el.focus();
-        el.setSelectionRange(cmd.prompt.length, cmd.prompt.length);
-      }
-    });
-  };
 
   // Voice input setup
   useEffect(() => {
@@ -232,36 +155,13 @@ export default function MessageInput({ onSend, isStreaming, onStop, disabled, ag
   const handleSend = () => {
     if ((!value.trim() && !pendingImageUrl) || isStreaming) return;
     if (isListening) { recognitionRef.current?.stop(); setIsListening(false); }
-    let outgoing = value.trim();
-    if (replyTo) {
-      const quote = replyTo.content
-        .split('\n')
-        .slice(0, 4)
-        .map(l => `> ${l}`)
-        .join('\n');
-      const who = replyTo.role === 'assistant' ? 'agent' : 'me';
-      outgoing = `Replying to ${who}:\n${quote}\n\n${outgoing}`;
-      onClearReply?.();
-    }
-    onSend(outgoing, pendingImageUrl || undefined);
+    onSend(value.trim(), pendingImageUrl || undefined);
     setValue('');
     setPendingImageUrl(null);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Slash menu navigation takes priority
-    if (slashOpen && slashFiltered.length > 0) {
-      if (e.key === 'ArrowDown') { e.preventDefault(); setSlashIndex(i => (i + 1) % slashFiltered.length); return; }
-      if (e.key === 'ArrowUp')   { e.preventDefault(); setSlashIndex(i => (i - 1 + slashFiltered.length) % slashFiltered.length); return; }
-      if (e.key === 'Enter' || e.key === 'Tab') {
-        e.preventDefault();
-        applySlashCommand(slashFiltered[slashIndex]);
-        return;
-      }
-      if (e.key === 'Escape') { e.preventDefault(); setValue(''); return; }
-    }
-    if (e.key === 'Escape' && replyTo) { e.preventDefault(); onClearReply?.(); return; }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
@@ -275,53 +175,34 @@ export default function MessageInput({ onSend, isStreaming, onStop, disabled, ag
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await uploadImageFile(file);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (file.size > 10 * 1024 * 1024) { toast.error('Image too large (max 10MB)'); return; }
+
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'chat-images');
+      formData.append('folder', 'messages');
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || 'Image upload failed');
+        return;
+      }
+      const data = await res.json();
+      setPendingImageUrl(data.url);
+    } catch {
+      toast.error('Image upload failed');
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const canSend = (!!value.trim() || !!pendingImageUrl) && !isStreaming && !disabled;
 
   return (
-    <div className="px-4 md:px-8 py-4 max-w-2xl mx-auto w-full relative">
-      {/* Reply preview banner */}
-      <AnimatePresence>
-        {replyTo && (
-          <motion.div
-            initial={{ opacity: 0, y: 6, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: 'auto' }}
-            exit={{ opacity: 0, y: 6, height: 0 }}
-            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden mb-2"
-          >
-            <div className="flex items-start gap-2 rounded-xl border border-border bg-secondary/40 px-3 py-2">
-              <Reply className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" strokeWidth={1.5} />
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-0.5">
-                  Replying to {replyTo.role === 'assistant' ? 'agent' : 'your message'}
-                </p>
-                <p className="text-[12px] text-foreground/70 line-clamp-2 leading-relaxed">{replyTo.content}</p>
-              </div>
-              <button
-                onClick={() => onClearReply?.()}
-                className="text-muted-foreground/50 hover:text-foreground shrink-0"
-                title="Cancel reply (Esc)"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="relative">
-        {slashOpen && (
-          <SlashCommandsMenu
-            query={slashQuery}
-            selectedIndex={slashIndex}
-            onSelect={applySlashCommand}
-            onHover={setSlashIndex}
-          />
-        )}
+    <div className="px-4 md:px-8 py-4 max-w-2xl mx-auto w-full">
       <div className={cn(
         'rounded-2xl elevated-surface-strong transition-all duration-200 edge-glow',
         !isStreaming && !disabled && 'focus-within:border-foreground/25 focus-within:bg-card focus-within:glow-active focus-within:shadow-elevation-xl'
@@ -363,7 +244,6 @@ export default function MessageInput({ onSend, isStreaming, onStop, disabled, ag
           value={value}
           onChange={e => { setValue(e.target.value); handleInput(); }}
           onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
           placeholder={
             isListening
               ? 'Listening…'
@@ -455,7 +335,6 @@ export default function MessageInput({ onSend, isStreaming, onStop, disabled, ag
             )}
           </AnimatePresence>
         </div>
-      </div>
       </div>
 
       <p className="text-center text-[10px] text-muted-foreground/30 mt-2 tracking-wide">
