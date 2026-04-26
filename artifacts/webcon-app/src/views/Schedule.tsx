@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
  CalendarDays, Plus, Clock, Brain, ChevronLeft, ChevronRight,
@@ -154,7 +153,7 @@ export default function Schedule() {
  <main className="container mx-auto px-3 sm:px-6 pt-16 pb-8 max-w-6xl">
 
  {/* Hero */}
- <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+ <div className="mb-6">
  <div className="flex items-start justify-between gap-3 flex-wrap">
  <div>
  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary border border-border text-[11px] text-muted-foreground mb-2 shadow-elevation-sm">
@@ -173,7 +172,7 @@ export default function Schedule() {
  <Plus className="h-3.5 w-3.5" /> Add session
  </Button>
  </div>
- </motion.div>
+ </div>
 
  {/* Stat strip */}
  <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
@@ -183,7 +182,7 @@ export default function Schedule() {
  </div>
 
  {/* Week strip */}
- <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }} className="mb-5">
+ <div className="mb-5">
  <div className="bg-card border border-border rounded-2xl shadow-elevation-sm overflow-hidden">
  <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
  <p className="text-xs font-medium">{format(weekStart, 'MMMM yyyy')}</p>
@@ -227,7 +226,7 @@ export default function Schedule() {
  })}
  </div>
  </div>
- </motion.div>
+ </div>
 
  <div className="grid lg:grid-cols-[1fr_320px] gap-5">
  {/* Day sessions */}
@@ -328,7 +327,7 @@ export default function Schedule() {
  </div>
  </main>
 
- <AnimatePresence>
+ <>
  {dialogOpen && (
  <AddSessionDialog
  agents={agents}
@@ -340,7 +339,7 @@ export default function Schedule() {
  }}
  />
  )}
- </AnimatePresence>
+ </>
  </div>
  );
 }
@@ -372,10 +371,7 @@ function SessionRow({
  const typeLabel = SESSION_TYPES.find((t) => t.id === session.type)?.label ?? session.type;
 
  return (
- <motion.div
- initial={{ opacity: 0, y: 6 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ duration: 0.25, delay }}
+ <div
  className={cn(
  'group bg-card border border-border rounded-2xl p-3.5 shadow-elevation-sm hover:shadow-elevation-md transition-all flex items-start gap-3',
  SUBJECT_TINT(session.subject),
@@ -432,7 +428,7 @@ function SessionRow({
  >
  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
  </button>
- </motion.div>
+ </div>
  );
 }
 
@@ -485,14 +481,11 @@ function AddSessionDialog({
  };
 
  return (
- <motion.div
- initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+ <div
  className="fixed inset-0 z-50 bg-background/80 flex items-end sm:items-center justify-center p-0 sm:p-4"
  onClick={onClose}
  >
- <motion.div
- initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
- transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+ <div
  className="bg-background border border-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-elevation-xl overflow-hidden"
  onClick={(e) => e.stopPropagation()}
  >
@@ -577,7 +570,7 @@ function AddSessionDialog({
  Create session
  </Button>
  </div>
- </motion.div>
- </motion.div>
+ </div>
+ </div>
  );
 }

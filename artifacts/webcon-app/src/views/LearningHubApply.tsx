@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Calendar, MapPin, GraduationCap, FileText, Upload,
   BookOpen, ChevronRight, ChevronLeft, Loader2, AlertCircle, Check
@@ -204,9 +203,9 @@ export default function LearningHubApply() {
         </div>
 
         <div className="max-w-2xl mx-auto px-6 py-8">
-          <AnimatePresence mode="wait">
+          <>
             {step === 0 && (
-              <motion.div key="step0" {...fadeSlide} className="space-y-4">
+              <div key="step0" {...fadeSlide} className="space-y-4">
                 <h2 className="text-[13px] font-medium text-muted-foreground uppercase tracking-wider">Personal Information</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -236,11 +235,11 @@ export default function LearningHubApply() {
                     </select>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {step === 1 && (
-              <motion.div key="step1" {...fadeSlide} className="space-y-4">
+              <div key="step1" {...fadeSlide} className="space-y-4">
                 <h2 className="text-[13px] font-medium text-muted-foreground uppercase tracking-wider">Academic Information</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5 sm:col-span-2">
@@ -277,11 +276,11 @@ export default function LearningHubApply() {
                     </select>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {step === 2 && (
-              <motion.div key="step2" {...fadeSlide} className="space-y-5">
+              <div key="step2" {...fadeSlide} className="space-y-5">
                 <h2 className="text-[13px] font-medium text-muted-foreground uppercase tracking-wider">Document Uploads</h2>
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 flex gap-3">
                   <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
@@ -323,11 +322,11 @@ export default function LearningHubApply() {
                     </div>
                   </div>
                 ))}
-              </motion.div>
+              </div>
             )}
 
             {step === 3 && (
-              <motion.div key="step3" {...fadeSlide} className="space-y-4">
+              <div key="step3" {...fadeSlide} className="space-y-4">
                 <h2 className="text-[13px] font-medium text-muted-foreground uppercase tracking-wider">Hub Details</h2>
                 <div className="space-y-4">
                   <div className="space-y-1.5">
@@ -352,11 +351,11 @@ export default function LearningHubApply() {
                     </select>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {step === 4 && (
-              <motion.div key="step4" {...fadeSlide} className="space-y-5">
+              <div key="step4" {...fadeSlide} className="space-y-5">
                 <h2 className="text-[13px] font-medium text-muted-foreground uppercase tracking-wider">Review & Submit</h2>
 
                 <div className="border border-border rounded-xl divide-y divide-border text-sm">
@@ -398,9 +397,9 @@ export default function LearningHubApply() {
                     <span className="text-xs font-medium">I agree to all content authenticity rules</span>
                   </label>
                 </div>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </>
 
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
             <Button variant="outline" size="sm" onClick={prevStep} disabled={step === 0} className="gap-1.5">

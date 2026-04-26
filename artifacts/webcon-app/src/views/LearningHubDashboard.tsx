@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, FileText, Coins, Plus, Loader2, CheckCircle, AlertCircle,
   Users, Brain, TrendingUp, Trash2, User, MessageCircle, Send, BadgeCheck,
@@ -315,11 +314,11 @@ export default function LearningHubDashboard() {
           </div>
 
           <div className="py-5">
-            <AnimatePresence mode="wait">
+            <>
 
               {/* ── Profile Tab ── */}
               {activeTab === 'profile' && (
-                <motion.div key="profile" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="space-y-4">
+                <div key="profile" className="space-y-4">
                   <div className="border border-border rounded-xl p-4 bg-card space-y-1">
                     <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Hub Info</h3>
                     {[
@@ -347,12 +346,12 @@ export default function LearningHubDashboard() {
                       <li>• Our team reviews submissions for quality</li>
                     </ul>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* ── Documents Tab ── */}
               {activeTab === 'documents' && (
-                <motion.div key="documents" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="space-y-3">
+                <div key="documents" className="space-y-3">
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">{files.length} document{files.length !== 1 ? 's' : ''}</p>
                     <Button size="sm" onClick={() => setShowCreate(!showCreate)} className="gap-1 h-7 text-xs">
@@ -360,10 +359,9 @@ export default function LearningHubDashboard() {
                     </Button>
                   </div>
 
-                  <AnimatePresence>
+                  <>
                     {showCreate && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                      <div
                         className="border border-border rounded-xl overflow-hidden"
                       >
                         <div className="p-4 space-y-3 bg-card">
@@ -406,9 +404,9 @@ export default function LearningHubDashboard() {
                             </Button>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     )}
-                  </AnimatePresence>
+                  </>
 
                   {files.length === 0 ? (
                     <div className="border border-dashed border-border rounded-xl p-10 text-center">
@@ -419,7 +417,7 @@ export default function LearningHubDashboard() {
                   ) : (
                     <div className="space-y-2">
                       {files.map(file => (
-                        <motion.div key={file.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border border-border rounded-xl p-3.5 bg-card flex items-start gap-3">
+                        <div key={file.id} className="border border-border rounded-xl p-3.5 bg-card flex items-start gap-3">
                           <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" strokeWidth={1.5} />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{file.title}</p>
@@ -428,16 +426,16 @@ export default function LearningHubDashboard() {
                           <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full border shrink-0', file.qualityScore >= 7 ? 'border-green-500/30 text-green-600' : 'border-amber-500/30 text-amber-600')}>
                             {file.qualityScore >= 7 ? 'High' : 'Moderate'}
                           </span>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   )}
-                </motion.div>
+                </div>
               )}
 
               {/* ── Chat Tab ── */}
               {activeTab === 'chat' && (
-                <motion.div key="chat" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex flex-col gap-3">
+                <div key="chat" className="flex flex-col gap-3">
                   <div className="border border-border rounded-xl p-3 bg-card/50">
                     <div className="flex items-center gap-2 mb-1">
                       <Brain className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
@@ -503,12 +501,12 @@ export default function LearningHubDashboard() {
                       </button>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* ── Checkout Tab ── */}
               {activeTab === 'checkout' && (
-                <motion.div key="checkout" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="space-y-4">
+                <div key="checkout" className="space-y-4">
 
                   {/* Earnings summary */}
                   <div className="border border-border rounded-xl p-4 bg-card flex items-center gap-3">
@@ -639,10 +637,10 @@ export default function LearningHubDashboard() {
                       </div>
                     )}
                   </div>
-                </motion.div>
+                </div>
               )}
 
-            </AnimatePresence>
+            </>
           </div>
         </div>
       </main>

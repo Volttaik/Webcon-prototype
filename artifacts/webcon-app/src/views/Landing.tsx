@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useRef, useMemo, useState, useEffect } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { useInView } from 'framer-motion';
 import { ArrowRight, BookOpen, Brain, MessageCircle, Zap, Users, Star, Send, PenLine, CalendarCheck, Telescope, Repeat2, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -147,9 +147,9 @@ function AnimatedSection({ children, className = '' }: { children: React.ReactNo
  const ref = useRef(null);
  const inView = useInView(ref, { once: true, margin: '-80px' });
  return (
- <motion.div ref={ref} initial={{ opacity: 0, y: 24 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }} className={className}>
+ <div ref={ref} className={className}>
  {children}
- </motion.div>
+ </div>
  );
 }
 
@@ -159,12 +159,8 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
  const inView = useInView(ref, { once: true, margin: '-60px' });
  const { icon: Icon } = feature;
  return (
- <motion.div
+ <div
  ref={ref}
- initial={{ opacity: 0, y: 28 }}
- animate={inView ? { opacity: 1, y: 0 } : {}}
- transition={{ duration: 0.5, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
- whileHover={{ y: -3, transition: { duration: 0.18 } }}
  className="border border-border rounded-2xl p-6 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/25 transition-shadow cursor-default"
  >
  <div className="mb-4 w-9 h-9 rounded-xl bg-secondary border border-border flex items-center justify-center">
@@ -172,7 +168,7 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
  </div>
  <h3 className="text-sm font-medium mb-2">{feature.title}</h3>
  <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
- </motion.div>
+ </div>
  );
 }
 
@@ -197,17 +193,14 @@ function LiveDemoChat() {
  </div>
  <div className="p-4 space-y-3 min-h-[196px]">
  {demoMessages.map((msg, i) => (
- <motion.div
+ <div
  key={i}
- initial={{ opacity: 0 }}
- animate={inView ? { opacity: 1 } : {}}
- transition={{ duration: 0.4, delay: msg.delay, ease: 'easeOut' }}
  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
  >
  <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed border border-border ${msg.role === 'user' ? 'bg-secondary' : 'bg-muted'}`}>
  {msg.text}
  </div>
- </motion.div>
+ </div>
  ))}
  </div>
  <div className="border-t border-border px-4 py-3 flex items-center gap-2">
@@ -268,36 +261,24 @@ export default function Landing() {
  </div>
 
  <div className="relative z-10 max-w-3xl mx-auto">
- <motion.div
- initial={{ opacity: 0, scale: 0.95 }}
- animate={{ opacity: 1, scale: 1 }}
- transition={{ duration: 0.4, delay: 0.1 }}
+ <div
  className="inline-flex items-center gap-2 text-xs text-muted-foreground border border-border rounded-full px-3 py-1.5 mb-10 shadow-elevation-sm bg-card/80"
  >
  <span className="w-1.5 h-1.5 rounded-full bg-foreground/50 animate-pulse" />
  Your personal AI study companion
- </motion.div>
- <motion.h1
- initial={{ opacity: 0, y: 16 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ duration: 0.6, delay: 0.15 }}
+ </div>
+ <h1
  className="text-5xl md:text-[58px] font-semibold tracking-tight text-balance mb-6 leading-[1.08]"
  >
  Study smarter with<br />
  <span className="text-foreground/55">your personal AI agent</span>
- </motion.h1>
- <motion.p
- initial={{ opacity: 0, y: 12 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ duration: 0.5, delay: 0.25 }}
+ </h1>
+ <p
  className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto leading-relaxed"
  >
  Create course-specific AI agents that know your syllabus, remember every session, and help you truly understand — not just memorize.
- </motion.p>
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ duration: 0.4, delay: 0.35 }}
+ </p>
+ <div
  className="flex flex-col sm:flex-row items-center justify-center gap-3"
  >
  <Button size="lg" className="h-11 px-7 text-sm shadow-elevation-md" onClick={openRegister}>
@@ -306,7 +287,7 @@ export default function Landing() {
  <Button variant="outline" size="lg" className="h-11 px-7 text-sm shadow-elevation-sm bg-background/70" onClick={openLogin}>
  Sign in
  </Button>
- </motion.div>
+ </div>
  </div>
  </section>
 
@@ -325,13 +306,8 @@ export default function Landing() {
  { verb: 'Practice', icon: Repeat2, anim: 'icon-spin', desc: 'Drill with generated questions' },
  { verb: 'Reach', icon: Target, anim: 'icon-expand', desc: 'Hit your academic goals' },
  ].map(({ verb, icon: Icon, anim, desc }, i) => (
- <motion.div
+ <div
  key={verb}
- initial={{ opacity: 0, y: 20 }}
- whileInView={{ opacity: 1, y: 0 }}
- viewport={{ once: true }}
- transition={{ delay: i * 0.07, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
- whileHover={{ y: -4, transition: { duration: 0.2 } }}
  className="border border-border rounded-2xl p-4 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/20 transition-shadow cursor-default flex flex-col items-center text-center gap-3"
  >
  <div className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center">
@@ -341,7 +317,7 @@ export default function Landing() {
  <p className="text-sm font-semibold tracking-tight">{verb}</p>
  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{desc}</p>
  </div>
- </motion.div>
+ </div>
  ))}
  </div>
  </div>
@@ -366,11 +342,7 @@ export default function Landing() {
 
  {/* Text side */}
  <div className="flex-1 px-8 py-10 flex flex-col justify-center">
- <motion.div
- initial={{ opacity: 0, x: 16 }}
- whileInView={{ opacity: 1, x: 0 }}
- viewport={{ once: true }}
- transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+ <div
  >
  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3">The future of learning</p>
  <h2 className="text-3xl md:text-4xl font-semibold tracking-tight leading-[1.1] mb-4">
@@ -387,7 +359,7 @@ export default function Landing() {
  </span>
  ))}
  </div>
- </motion.div>
+ </div>
  </div>
  </div>
  </AnimatedSection>
@@ -428,10 +400,8 @@ export default function Landing() {
  { quote: 'My Calc agent walks through every step patiently. I finally understand derivatives instead of just memorizing rules.', name: 'Marcus T.', course: 'Calculus II' },
  { quote: 'I use my CS agent to debug code and understand algorithms at 2am when no one else is available.', name: 'Leila K.', course: 'Data Structures' },
  ].map((t, i) => (
- <motion.div
+ <div
  key={i}
- whileHover={{ y: -2 }}
- transition={{ duration: 0.2 }}
  className="border border-border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md transition-shadow"
  >
  <p className="text-sm text-muted-foreground leading-relaxed mb-4">"{t.quote}"</p>
@@ -442,7 +412,7 @@ export default function Landing() {
  <p className="text-[11px] text-muted-foreground">{t.course}</p>
  </div>
  </div>
- </motion.div>
+ </div>
  ))}
  </div>
  </div>

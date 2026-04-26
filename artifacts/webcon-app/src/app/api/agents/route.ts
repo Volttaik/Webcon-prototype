@@ -251,10 +251,13 @@ export async function POST(request: NextRequest) {
       const fullCreator = `${hub.creatorFirst ?? ""} ${hub.creatorLast ?? ""}`.trim();
       const creatorName = fullCreator || (hub.creatorEmail ?? "").split("@")[0] || "Creator";
 
-      // Strip any pre-existing "[by ...]" suffix the client may have added,
-      // then re-append the canonical one to keep the convention authoritative.
-      const baseName = String(name).replace(/\s*\[by [^\]]+\]\s*$/i, "").trim();
-      resolvedName = `${baseName} [by ${creatorName}]`;
+      // Strip any pre-existing "[by ...]" or " by ..." suffix the client may have
+      // added, then re-append the canonical one to keep the convention authoritative.
+      const baseName = String(name)
+        .replace(/\s*\[by [^\]]+\]\s*$/i, "")
+        .replace(/\s+by\s+[^[\]]+$/i, "")
+        .trim();
+      resolvedName = `${baseName} by ${creatorName}`;
     }
 
     // Calculate credit cost based on plan

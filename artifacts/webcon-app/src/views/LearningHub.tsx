@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
-  BookOpen, Brain, Search, Coins, Plus, Loader2, Globe, Lock, Users, Check
+  BookOpen, Brain, Search, Coins, Plus, Loader2, Globe, Lock, Users, Check, MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,6 +49,16 @@ async function fetchMySubscriptions(): Promise<number[]> {
   } catch { return []; }
 }
 
+interface HubAgentRef { id: number; learningHubId: number | null }
+async function fetchMyHubAgents(): Promise<HubAgentRef[]> {
+  try {
+    const res = await fetch('/api/agents');
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
 const DOMAIN_COLORS: Record<string, string> = {
   science: 'text-blue-500', engineering: 'text-purple-500', medicine: 'text-red-500',
   law: 'text-amber-500', business: 'text-green-500', education: 'text-cyan-500',
@@ -73,6 +82,17 @@ export default function LearningHub() {
     queryFn: fetchMySubscriptions,
   });
   const subscribedSet = new Set<number>(mySubscriptions);
+
+  const { data: myAgents = [] } = useQuery({
+    queryKey: ['agents'],
+    queryFn: fetchMyHubAgents,
+  });
+  const hubAgentMap = new Map<number, number>();
+  for (const a of myAgents) {
+    if (a.learningHubId && !hubAgentMap.has(a.learningHubId)) {
+      hubAgentMap.set(a.learningHubId, a.id);
+    }
+  }
 
   const allHubs = realHubs.filter(h =>
     h.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -131,7 +151,7 @@ export default function LearningHub() {
       <main className="pt-12">
         <div className="border-b border-border px-6 py-10">
           <div className="max-w-5xl mx-auto">
-            <motion.div {...fadeUp} transition={{ duration: 0.4 }}>
+            <div {...fadeUp}>
               <p className="text-[11px] text-muted-foreground/50 uppercase tracking-widest font-medium mb-1">Learning Hub</p>
               <h1 className="text-2xl font-semibold tracking-tight mb-2">Knowledge Hubs</h1>
               <p className="text-sm text-muted-foreground mb-6">Subscribe to specialized hubs and create powerful AI agents from expert knowledge.</p>
@@ -144,7 +164,7 @@ export default function LearningHub() {
                   <Coins className="h-3 w-3" /><span>{user?.creditBalance ?? 0} credits</span>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
 
@@ -203,11 +223,8 @@ export default function LearningHub() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {allHubs.map((hub, i) => (
-                  <motion.div
+                  <div
                     key={hub.id}
-                    initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                     className="border border-border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/20 transition-all"
                   >
                     <div className="flex items-start justify-between mb-3">
@@ -263,17 +280,28 @@ export default function LearningHub() {
                           Subscribe · 50 cr
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        className="h-7 text-[11px] flex-1 gap-1.5"
-                        onClick={() => handleCreateAgentFromHub(hub)}
-                        disabled={!subscribedSet.has(hub.id)}
-                        title={subscribedSet.has(hub.id) ? `Build an agent from "${hub.title}"` : 'Subscribe to unlock'}
-                      >
-                        <Brain className="h-3 w-3" /> Agent · {hub.agentCost ?? 700} cr
-                      </Button>
+                      {hubAgentMap.has(hub.id) ? (
+                        <Button
+                          size="sm"
+                          className="h-7 text-[11px] flex-1 gap-1.5"
+                          onClick={() => navigate(`/chat?agent=${hubAgentMap.get(hub.id)}`)}
+                          title="Open chat with your hub agent"
+                        >
+                          <MessageSquare className="h-3 w-3" /> Open Chat
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="h-7 text-[11px] flex-1 gap-1.5"
+                          onClick={() => handleCreateAgentFromHub(hub)}
+                          disabled={!subscribedSet.has(hub.id)}
+                          title={subscribedSet.has(hub.id) ? `Build an agent from "${hub.title}"` : 'Subscribe to unlock'}
+                        >
+                          <Brain className="h-3 w-3" /> Agent · {hub.agentCost ?? 700} cr
+                        </Button>
+                      )}
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             )}
@@ -284,7 +312,7 @@ export default function LearningHub() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { step: '01', title: 'Subscribe to a hub', desc: 'Pay 50 credits to unlock a hub\'s specialized knowledge for your agents.' },
-                { step: '02', title: 'Create a hub agent', desc: 'Saved as "Your name [by Creator]" — clearly attributed to the hub creator.' },
+                { step: '02', title: 'Create a hub agent', desc: 'Saved as "Your name by Creator" — clearly attributed to the hub creator.' },
                 { step: '03', title: 'Chat with depth', desc: 'Your agent reads from the hub database and gives expert, up-to-date answers.' },
               ].map(item => (
                 <div key={item.step} className="border border-border rounded-2xl p-5 bg-card">

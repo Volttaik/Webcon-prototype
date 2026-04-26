@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { Bell, BellRing, BellOff, Check, CheckCheck, Crown, Zap, X, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
@@ -180,13 +179,9 @@ export default function NotificationBell() {
         )}
       </button>
 
-      <AnimatePresence>
+      <>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+          <div
             className="absolute right-0 top-10 z-50 w-[340px] sm:w-[380px] max-w-[calc(100vw-1.5rem)] bg-background border border-border rounded-2xl shadow-elevation-lg overflow-hidden"
           >
             {/* Header */}
@@ -325,9 +320,9 @@ export default function NotificationBell() {
                 <X className="h-3 w-3" />
               </button>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
     </div>
   );
 }

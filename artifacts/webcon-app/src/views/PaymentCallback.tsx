@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check, X, Loader2, Sparkles, Zap, AlertTriangle, Crown, ArrowRight,
 } from 'lucide-react';
@@ -160,7 +159,7 @@ export default function PaymentCallback() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <AnimatePresence mode="wait">
+      <>
         {status === 'verifying' && <VerifyingCard key="verifying" />}
         {status === 'cancelled' && (
           <CancelledCard key="cancelled" onClose={handleClose} returnTo={returnTo} />
@@ -184,7 +183,7 @@ export default function PaymentCallback() {
             onClose={handleClose}
           />
         )}
-      </AnimatePresence>
+      </>
     </div>
   );
 }
@@ -195,15 +194,11 @@ export default function PaymentCallback() {
 
 function CardShell({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.94, y: 16 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96, y: 8 }}
-      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+    <div
       className="relative w-full max-w-sm bg-card border border-border rounded-3xl p-8 shadow-elevation-xl text-center"
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -244,14 +239,11 @@ function CreditsSuccessCard({
           <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center">
             <Check className="h-7 w-7 text-green-500" strokeWidth={2.5} />
           </div>
-          <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1, duration: 0.3 }}
+          <div
             className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center"
           >
             <Sparkles className="h-3 w-3 text-blue-500" />
-          </motion.div>
+          </div>
         </div>
       </div>
 
@@ -318,14 +310,11 @@ function PlanSuccessCard({
           <div className="w-16 h-16 rounded-full bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
             <Crown className="h-7 w-7 text-violet-400" strokeWidth={2} />
           </div>
-          <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1, duration: 0.3 }}
+          <div
             className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center"
           >
             <Sparkles className="h-3 w-3 text-blue-500" />
-          </motion.div>
+          </div>
         </div>
       </div>
 

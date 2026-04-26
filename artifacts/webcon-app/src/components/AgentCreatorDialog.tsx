@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, Brain, BookOpen, ChevronRight, Coins, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -105,20 +104,12 @@ export default function AgentCreatorDialog({ onClose, onCreate, firstAgentFree =
 
  return (
  <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
- <motion.div
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- transition={{ duration: 0.2 }}
+ <div
  onClick={onClose}
  className="absolute inset-0 bg-background/70"
  />
 
- <motion.div
- initial={{ opacity: 0, scale: 0.96, y: 12 }}
- animate={{ opacity: 1, scale: 1, y: 0 }}
- exit={{ opacity: 0, scale: 0.96, y: 8 }}
- transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+ <div
  className="relative w-full max-w-md bg-card border border-border rounded-2xl shadow-elevation-xl overflow-hidden"
  >
  <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border">
@@ -145,22 +136,19 @@ export default function AgentCreatorDialog({ onClose, onCreate, firstAgentFree =
  <div className="px-6 pt-4">
  <div className="flex gap-1.5">
  {[1, 2, 3, 4].map(s => (
- <motion.div key={s} className="h-1 flex-1 rounded-full overflow-hidden bg-secondary border border-border">
- <motion.div
+ <div key={s} className="h-1 flex-1 rounded-full overflow-hidden bg-secondary border border-border">
+ <div
  className="h-full bg-foreground rounded-full"
- initial={{ width: 0 }}
- animate={{ width: step >= s ? '100%' : '0%' }}
- transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
  />
- </motion.div>
+ </div>
  ))}
  </div>
  </div>
 
  <div className="px-6 py-6 min-h-[300px] max-h-[420px] overflow-y-auto">
- <AnimatePresence mode="wait">
+ <>
  {step === 1 && (
- <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
+ <div key="step1">
  <p className="text-sm font-medium mb-1">What subject is this agent for?</p>
  <p className="text-xs text-muted-foreground mb-5">Choose the course or topic your agent will specialize in.</p>
  <div className="grid grid-cols-3 gap-2 mb-4">
@@ -176,15 +164,15 @@ export default function AgentCreatorDialog({ onClose, onCreate, firstAgentFree =
  </button>
  </div>
  {subject === 'other' && (
- <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+ <div>
  <Input value={customSubject} onChange={e => setCustomSubject(e.target.value)} placeholder="e.g. Organic Chemistry Lab" className="h-9 text-sm" autoFocus />
- </motion.div>
+ </div>
  )}
- </motion.div>
+ </div>
  )}
 
  {step === 2 && (
- <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
+ <div key="step2">
  <p className="text-sm font-medium mb-1">Name your agent</p>
  <p className="text-xs text-muted-foreground mb-5">Give it a name and select your study level.</p>
  <div className="space-y-4">
@@ -206,11 +194,11 @@ export default function AgentCreatorDialog({ onClose, onCreate, firstAgentFree =
  </div>
  </div>
  </div>
- </motion.div>
+ </div>
  )}
 
  {step === 3 && (
- <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
+ <div key="step3">
  <p className="text-sm font-medium mb-1">Choose domain & personality</p>
  <p className="text-xs text-muted-foreground mb-4">Define how your agent thinks and behaves.</p>
  <div className="space-y-4">
@@ -242,11 +230,11 @@ export default function AgentCreatorDialog({ onClose, onCreate, firstAgentFree =
  </div>
  </div>
  </div>
- </motion.div>
+ </div>
  )}
 
  {step === 4 && (
- <motion.div key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
+ <div key="step4">
  <p className="text-sm font-medium mb-1">Personality description</p>
  <p className="text-xs text-muted-foreground mb-4">Describe your agent's personality. This becomes its soul — defining how it thinks, talks, and behaves uniquely.</p>
 
@@ -280,9 +268,9 @@ export default function AgentCreatorDialog({ onClose, onCreate, firstAgentFree =
  </p>
  </div>
  </div>
- </motion.div>
+ </div>
  )}
- </AnimatePresence>
+ </>
  </div>
 
  <div className="flex items-center justify-between px-6 pb-6 pt-0">
@@ -305,7 +293,7 @@ export default function AgentCreatorDialog({ onClose, onCreate, firstAgentFree =
  </Button>
  )}
  </div>
- </motion.div>
+ </div>
  </div>
  );
 }

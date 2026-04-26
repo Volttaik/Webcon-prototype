@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
  Settings, User, HelpCircle, LogOut, X,
  Brain, BookOpen, CalendarDays, BarChart2, LayoutDashboard,
@@ -131,13 +130,9 @@ function AgentsSubmenu({ onNavigate }: { onNavigate: (href: string) => void }) {
  <ChevronDown className={cn('h-3 w-3 shrink-0 transition-transform duration-200', open && 'rotate-180')} />
  </button>
 
- <AnimatePresence initial={false}>
+ <>
  {open && (
- <motion.div
- initial={{ height: 0, opacity: 0 }}
- animate={{ height: 'auto', opacity: 1 }}
- exit={{ height: 0, opacity: 0 }}
- transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+ <div
  className="overflow-hidden"
  >
  <div className="ml-3 mt-0.5 border-l border-border pl-3 space-y-0.5 py-1">
@@ -176,9 +171,9 @@ function AgentsSubmenu({ onNavigate }: { onNavigate: (href: string) => void }) {
  )}
  </div>
  </div>
- </motion.div>
+ </div>
  )}
- </AnimatePresence>
+ </>
  </div>
  );
 }
@@ -189,24 +184,16 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  const go = (href: string) => { navigate(href); onClose(); };
 
  return (
- <AnimatePresence>
+ <>
  {open && (
  <>
- <motion.div
+ <div
  key="bd"
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- transition={{ duration: 0.18 }}
  onClick={onClose}
  className="fixed inset-0 z-40 bg-background/60"
  />
- <motion.div
+ <div
  key="panel"
- initial={{ x: -272 }}
- animate={{ x: 0 }}
- exit={{ x: -272 }}
- transition={{ type: 'spring', stiffness: 380, damping: 38 }}
  className="fixed left-0 top-0 bottom-0 z-50 w-64 bg-background border-r border-border flex flex-col"
  style={{ boxShadow: '4px 0 20px rgba(0,0,0,0.10)', willChange: 'transform' }}
  >
@@ -270,10 +257,10 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  </nav>
 
  <SidebarUserFooter onNavigate={go} />
- </motion.div>
+ </div>
  </>
  )}
- </AnimatePresence>
+ </>
  );
 }
 
@@ -348,15 +335,11 @@ function UserDropdown({ open, onClose }: { open: boolean; onClose: () => void })
  : profile?.first_name || user?.email?.split('@')[0] || 'User';
 
  return (
- <AnimatePresence>
+ <>
  {open && (
  <>
  <div className="fixed inset-0 z-40" onClick={onClose} />
- <motion.div
- initial={{ opacity: 0, scale: 0.95, y: -6 }}
- animate={{ opacity: 1, scale: 1, y: 0 }}
- exit={{ opacity: 0, scale: 0.95, y: -6 }}
- transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+ <div
  className="absolute right-0 top-11 z-50 w-56 bg-background border border-border rounded-2xl overflow-hidden shadow-elevation-lg"
  >
  <div className="px-4 py-3 border-b border-border flex items-center gap-3">
@@ -393,10 +376,10 @@ function UserDropdown({ open, onClose }: { open: boolean; onClose: () => void })
  Sign Out
  </button>
  </div>
- </motion.div>
+ </div>
  </>
  )}
- </AnimatePresence>
+ </>
  );
 }
 

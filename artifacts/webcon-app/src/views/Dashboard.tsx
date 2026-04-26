@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Clock, MessageSquare, Brain,
   ArrowRight, TrendingUp, Flame, BookOpen, ChevronRight, Trash2,
@@ -49,12 +48,7 @@ function StatCard({ icon: Icon, label, value, sub, loading, shimmerDelay = '0s' 
 function AgentCard({ agent, index, onDelete }: { agent: Agent; index: number; onDelete: (id: number) => void }) {
   const navigate = useNavigate();
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ delay: index * 0.02, duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+    <div
       className="glow-border elevated-surface rounded-2xl p-5 hover:shadow-elevation-lg hover:border-foreground/20 transition-all cursor-pointer group relative hover:-translate-y-1"
       style={{ '--shimmer-delay': `${index * 0.8}s` } as React.CSSProperties}
       onClick={() => navigate(`/chat?agent=${agent.id}`)}
@@ -93,16 +87,14 @@ function AgentCard({ agent, index, onDelete }: { agent: Agent; index: number; on
           ))}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 
 /* ─── Empty agents ─── */
 function EmptyAgents({ onNew }: { onNew: () => void }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+    <div
       className="elevated-surface border-dashed rounded-2xl p-10 text-center shadow-elevation-md"
     >
       <div className="w-10 h-10 rounded-2xl bg-secondary border border-border flex items-center justify-center mx-auto mb-3">
@@ -115,7 +107,7 @@ function EmptyAgents({ onNew }: { onNew: () => void }) {
       <Button size="sm" className="h-8 text-xs gap-1.5 shadow-elevation-sm" onClick={onNew}>
         <Plus className="h-3.5 w-3.5" /> Create first agent
       </Button>
-    </motion.div>
+    </div>
   );
 }
 
@@ -200,20 +192,17 @@ export default function Dashboard() {
       <div className="ambient-orb ambient-orb-light w-80 h-80 top-24 left-1/2 -translate-x-1/2 opacity-70" />
       <div className="ambient-orb ambient-orb-dark w-44 h-44 top-44 left-1/2 translate-x-24 opacity-45" />
 
-      <AnimatePresence>
+      <>
         {showCreator && (
           <AgentCreatorDialog onClose={() => setShowCreator(false)} onCreate={handleCreate} />
         )}
-      </AnimatePresence>
+      </>
 
       <main className="pt-12 relative z-10">
         {/* Hero */}
         <div className="px-6 py-12">
           <div className="max-w-5xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            <div
               className="elevated-surface-strong rounded-[2rem] px-6 py-7 md:px-8 md:py-8 mb-4"
             >
               <p className="text-[11px] text-muted-foreground/50 uppercase tracking-widest font-medium mb-2">Dashboard</p>
@@ -255,7 +244,7 @@ export default function Dashboard() {
                   shimmerDelay="3.6s"
                 />
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
 
@@ -277,37 +266,29 @@ export default function Dashboard() {
               </Button>
             </div>
 
-            <AnimatePresence mode="wait" initial={false}>
+            <>
               {isLoading ? (
-                <motion.div
+                <div
                   key="skeleton"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
                 >
                   {[1, 2, 3, 4].map(i => <AgentSkeleton key={i} />)}
-                </motion.div>
+                </div>
               ) : agents.length === 0 ? (
                 <EmptyAgents onNew={() => setShowCreator(true)} />
               ) : (
-                <motion.div
+                <div
                   key="agents"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
                 >
-                  <AnimatePresence>
+                  <>
                     {agents.map((agent, i) => (
                       <AgentCard key={agent.id} agent={agent} index={i} onDelete={handleDelete} />
                     ))}
-                  </AnimatePresence>
-                </motion.div>
+                  </>
+                </div>
               )}
-            </AnimatePresence>
+            </>
           </section>
 
           {/* Recent conversations */}
@@ -326,14 +307,10 @@ export default function Dashboard() {
               </Button>
             </div>
 
-            <AnimatePresence mode="wait" initial={false}>
+            <>
             {isLoading ? (
-              <motion.div
+              <div
                 key="conv-skeleton"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
                   className="elevated-surface rounded-2xl overflow-hidden"
               >
                 {[1, 2, 3].map(i => (
@@ -345,33 +322,22 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
-              </motion.div>
+              </div>
             ) : conversations.length === 0 ? (
-              <motion.div
+              <div
                 key="conv-empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
                 className="elevated-surface border-dashed rounded-2xl p-8 text-center"
               >
                 <p className="text-[12px] text-muted-foreground">No conversations yet. Start chatting with an agent!</p>
-              </motion.div>
+              </div>
             ) : (
-              <motion.div
+              <div
                 key="conv-list"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
                 className="divide-y divide-border/50 elevated-surface rounded-2xl overflow-hidden"
               >
               {conversations.map((conv, i) => (
-                  <motion.button
+                  <button
                     key={conv.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.04, duration: 0.25 }}
                     onClick={() => navigate(`/chat/${conv.id}`)}
                     className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-secondary/45 transition-colors text-left group"
                   >
@@ -390,11 +356,11 @@ export default function Dashboard() {
                       </span>
                       <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
                     </div>
-                  </motion.button>
+                  </button>
                 ))}
-              </motion.div>
+              </div>
             )}
-            </AnimatePresence>
+            </>
           </section>
 
           {/* Quick start */}
@@ -403,11 +369,8 @@ export default function Dashboard() {
               <h2 className="text-[13px] font-medium mb-4">Start a new session</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {agents.slice(0, 4).map((agent, i) => (
-                  <motion.button
+                  <button
                     key={agent.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                     onClick={() => navigate(`/chat?agent=${agent.id}`)}
                     className="glow-border elevated-surface flex items-center gap-3 px-4 py-3 rounded-xl hover:border-foreground/20 hover:bg-secondary/30 transition-all text-left hover:-translate-y-0.5"
                     style={{ '--shimmer-delay': `${i * 1.1}s` } as React.CSSProperties}
@@ -420,7 +383,7 @@ export default function Dashboard() {
                       <p className="text-[11px] text-muted-foreground">{agent.subject}</p>
                     </div>
                     <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
-                  </motion.button>
+                  </button>
                 ))}
               </div>
             </section>

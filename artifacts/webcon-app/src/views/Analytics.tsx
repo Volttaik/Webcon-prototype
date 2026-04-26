@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   BarChart2, Brain, TrendingUp, Flame, Clock, MessageSquare,
   BookOpen, ArrowUpRight, Target,
@@ -128,11 +127,11 @@ export default function Analytics() {
       <main className="pt-12">
         <div className="border-b border-border px-6 py-10">
           <div className="max-w-5xl mx-auto">
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
+            <div>
               <p className="text-[11px] text-muted-foreground/50 uppercase tracking-widest font-medium mb-1">Analytics</p>
               <h1 className="text-2xl font-semibold tracking-tight mb-1">Your progress</h1>
               <p className="text-[13px] text-muted-foreground">Track how your studying is paying off over time.</p>
-            </motion.div>
+            </div>
           </div>
         </div>
 
@@ -232,11 +231,8 @@ export default function Analytics() {
             ) : (
               <div className="border border-border rounded-2xl bg-card shadow-elevation-sm overflow-hidden divide-y divide-border/50">
                 {subjectBreakdown.map((item, i) => (
-                  <motion.div
+                  <div
                     key={item.agentName}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.05, duration: 0.25 }}
                     className="flex items-center gap-5 px-5 py-4 hover:bg-secondary/30 transition-colors cursor-pointer"
                     onClick={() => navigate('/chat')}
                   >
@@ -254,16 +250,13 @@ export default function Analytics() {
                         </span>
                       </div>
                       <div className="h-1.5 rounded-full bg-secondary border border-border overflow-hidden">
-                        <motion.div
+                        <div
                           className="h-full rounded-full bg-foreground"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${item.progress}%` }}
-                          transition={{ duration: 0.6, delay: 0.1 + i * 0.05, ease: [0.22, 1, 0.36, 1] }}
                         />
                       </div>
                     </div>
                     <Brain className="h-3.5 w-3.5 text-muted-foreground shrink-0" strokeWidth={1.5} />
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             )}

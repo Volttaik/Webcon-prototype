@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { X, BookOpen, Coins, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +43,7 @@ export default function HubAgentCreatorDialog({ hub, onClose, onCreate }: Props)
   const creationCost = hub.agentCost ?? 700;
   const canAfford = creditBalance >= creationCost;
   const trimmedName = name.trim();
-  const previewName = trimmedName ? `${trimmedName} [by ${hub.creatorName}]` : '';
+  const previewName = trimmedName ? `${trimmedName} by ${hub.creatorName}` : '';
   const canSubmit = trimmedName.length > 0 && canAfford && !creating;
 
   const handleCreate = async () => {
@@ -87,20 +86,12 @@ export default function HubAgentCreatorDialog({ hub, onClose, onCreate }: Props)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
+      <div
         onClick={onClose}
         className="absolute inset-0 bg-background/70"
       />
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      <div
         className="relative w-full max-w-md bg-card border border-border rounded-2xl shadow-elevation-xl overflow-hidden"
       >
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border">
@@ -145,7 +136,7 @@ export default function HubAgentCreatorDialog({ hub, onClose, onCreate }: Props)
               maxLength={48}
             />
             <p className="text-[10.5px] text-muted-foreground">
-              Saved as: <span className="text-foreground font-medium">{previewName || `<name> [by ${hub.creatorName}]`}</span>
+              Saved as: <span className="text-foreground font-medium">{previewName || `<name> by ${hub.creatorName}`}</span>
             </p>
           </div>
 
@@ -205,7 +196,7 @@ export default function HubAgentCreatorDialog({ hub, onClose, onCreate }: Props)
             )}
           </Button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

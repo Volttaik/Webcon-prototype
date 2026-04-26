@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   FolderKanban, Plus, Calendar, Brain, MoreHorizontal,
   CheckCircle2, Circle, Clock, BookOpen, ArrowRight, Flame,
@@ -50,12 +49,7 @@ function ProjectCard({ project, onDelete, onToggleTask }: {
   const pr = PRIORITY_CONFIG[project.priority];
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    <div
       className="border border-border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/20 transition-all group"
     >
       {/* Header */}
@@ -95,11 +89,8 @@ function ProjectCard({ project, onDelete, onToggleTask }: {
           <span>{pct}%</span>
         </div>
         <div className="h-1.5 rounded-full bg-secondary border border-border overflow-hidden">
-          <motion.div
+          <div
             className="h-full rounded-full bg-foreground/60"
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           />
         </div>
       </div>
@@ -135,7 +126,7 @@ function ProjectCard({ project, onDelete, onToggleTask }: {
           <BookOpen className="h-3 w-3" strokeWidth={1.5} />
         </Button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -179,7 +170,7 @@ export default function Projects() {
         {/* Header */}
         <div className="border-b border-border px-6 py-10">
           <div className="max-w-5xl mx-auto">
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <div>
               <p className="text-[11px] text-muted-foreground/50 uppercase tracking-widest font-medium mb-1">Projects</p>
               <h1 className="text-2xl font-semibold tracking-tight mb-6">Your assignments</h1>
 
@@ -201,7 +192,7 @@ export default function Projects() {
                   <Plus className="h-3.5 w-3.5" /> New project
                 </Button>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
 
@@ -229,7 +220,7 @@ export default function Projects() {
 
           {/* Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <AnimatePresence>
+            <>
               {filtered.map(project => (
                 <ProjectCard
                   key={project.id}
@@ -238,24 +229,19 @@ export default function Projects() {
                   onToggleTask={ti => toggleTask(project.id, ti)}
                 />
               ))}
-            </AnimatePresence>
+            </>
             {filtered.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+              <div
                 className="col-span-full border border-dashed border-border/70 rounded-2xl p-10 text-center"
               >
                 <FolderKanban className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" strokeWidth={1} />
                 <p className="text-sm text-muted-foreground">No projects here</p>
-              </motion.div>
+              </div>
             )}
           </div>
 
           {/* Quick nav */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.4 }}
+          <div
             className="mt-10 border border-border rounded-2xl p-5 bg-card shadow-elevation-sm flex items-center gap-4"
           >
             <Brain className="h-5 w-5 text-muted-foreground shrink-0" strokeWidth={1.5} />
@@ -266,7 +252,7 @@ export default function Projects() {
             <Button size="sm" className="h-8 text-xs gap-1.5 shadow-elevation-sm shrink-0" onClick={() => window.location.href = '/chat'}>
               Open chat <ArrowRight className="h-3 w-3" />
             </Button>
-          </motion.div>
+          </div>
         </div>
       </main>
     </div>

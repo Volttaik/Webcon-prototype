@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Check, Brain, Menu, ChevronRight, Sun, Moon, Monitor, Loader2, Zap, Camera, ArrowUpRight, ArrowDownRight, Receipt, CreditCard, Sparkles, Send, Mail } from 'lucide-react';
+import { Trash2, Check, Brain, Menu, ChevronRight, Sun, Moon, Monitor, Loader2, Zap, Camera, ArrowUpRight, ArrowDownRight, Receipt, CreditCard, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -74,7 +73,7 @@ function ProfileSettings() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-8 max-w-lg">
+    <div className="space-y-8 max-w-lg">
       <Section title="Profile">
         <div className="flex items-center gap-4">
           <div className="relative group shrink-0">
@@ -157,7 +156,7 @@ function ProfileSettings() {
         {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : saved ? <Check className="h-3.5 w-3.5 mr-1.5" /> : null}
         {saving ? 'Saving…' : saved ? 'Saved' : 'Save changes'}
       </Button>
-    </motion.div>
+    </div>
   );
 }
 
@@ -175,7 +174,7 @@ function AgentsSettings() {
   });
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="max-w-lg space-y-6">
+    <div className="max-w-lg space-y-6">
       <Section title="Your agents" desc="Manage the AI agents you've created.">
         <div className="space-y-3">
           {isLoading && (
@@ -183,15 +182,10 @@ function AgentsSettings() {
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           )}
-          <AnimatePresence>
+          <>
             {agents.map((agent: Agent & { subscription?: { active: boolean; expiresAt: string; creditsCost: number } | null }) => (
-              <motion.div
+              <div
                 key={agent.id}
-                layout
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                transition={{ duration: 0.25 }}
                 className="border border-border rounded-2xl p-4 bg-card shadow-elevation-sm"
               >
                 <div className="flex items-start justify-between">
@@ -218,9 +212,9 @@ function AgentsSettings() {
                 <p className="text-[11px] text-muted-foreground mt-2">
                   {agent.level} · {agent.tone} · {agent.domain ?? 'education'}
                 </p>
-              </motion.div>
+              </div>
             ))}
-          </AnimatePresence>
+          </>
           {!isLoading && agents.length === 0 && (
             <div className="border border-border rounded-2xl p-8 text-center">
               <Brain className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" strokeWidth={1} />
@@ -230,7 +224,7 @@ function AgentsSettings() {
           )}
         </div>
       </Section>
-    </motion.div>
+    </div>
   );
 }
 
@@ -244,7 +238,7 @@ function AppearanceSettings() {
   ] as const;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="max-w-lg space-y-6">
+    <div className="max-w-lg space-y-6">
       <Section title="Theme" desc="Choose how EduBridge looks for you.">
         <div className="grid grid-cols-3 gap-3">
           {options.map(({ value, label, Icon }) => (
@@ -261,8 +255,7 @@ function AppearanceSettings() {
               <Icon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
               <span className="text-xs font-medium">{label}</span>
               {theme === value && (
-                <motion.div
-                  layoutId="theme-check"
+                <div
                   className="w-1.5 h-1.5 rounded-full bg-foreground"
                 />
               )}
@@ -277,189 +270,7 @@ function AppearanceSettings() {
               : 'Light mode active — clean, bright interface.'}
         </p>
       </Section>
-    </motion.div>
-  );
-}
-
-interface CreditTransfer {
-  id: number;
-  senderId: number;
-  recipientId: number;
-  recipientEmail: string;
-  amount: number;
-  note: string | null;
-  createdAt: string;
-}
-
-interface TransferSummary {
-  monthlyLimit: number;
-  monthlyUsed: number;
-  monthlyRemaining: number;
-  sent: CreditTransfer[];
-  received: CreditTransfer[];
-}
-
-function TransferCreditsCard() {
-  const queryClient = useQueryClient();
-  const { user, refreshProfile } = useAuth();
-  const [recipientEmail, setRecipientEmail] = useState('');
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
-
-  const { data: summary, isLoading } = useQuery<TransferSummary>({
-    queryKey: ['credit-transfers'],
-    queryFn: async () => {
-      const res = await fetch('/api/credits/transfer');
-      if (!res.ok) {
-        return { monthlyLimit: 500, monthlyUsed: 0, monthlyRemaining: 500, sent: [], received: [] };
-      }
-      return res.json();
-    },
-  });
-
-  const transferMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch('/api/credits/transfer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipientEmail: recipientEmail.trim(),
-          amount: Math.floor(Number(amount)),
-          note: note.trim() || undefined,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Transfer failed');
-      return data;
-    },
-    onSuccess: (data) => {
-      toast.success(`Sent ${data.transfer.amount} credits to ${data.transfer.recipientEmail}.`);
-      setAmount('');
-      setNote('');
-      setRecipientEmail('');
-      refreshProfile();
-      queryClient.invalidateQueries({ queryKey: ['credit-transfers'] });
-      queryClient.invalidateQueries({ queryKey: ['credit-transactions'] });
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
-  const limit = summary?.monthlyLimit ?? 500;
-  const used = summary?.monthlyUsed ?? 0;
-  const remaining = summary?.monthlyRemaining ?? limit;
-  const usedPct = Math.min(100, Math.round((used / limit) * 100));
-  const balance = user?.creditBalance ?? 0;
-  const numericAmount = Math.floor(Number(amount));
-  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail.trim());
-  const validAmount = Number.isFinite(numericAmount) && numericAmount > 0;
-  const canSubmit =
-    validEmail &&
-    validAmount &&
-    numericAmount <= remaining &&
-    numericAmount <= balance &&
-    !transferMutation.isPending;
-
-  const recent = (summary?.sent ?? []).slice(0, 6);
-
-  return (
-    <Section title="Transfer credits" desc={`Send credits to another EduBridge user by email. Up to ${limit} credits per month.`}>
-      <div className="border border-border rounded-2xl bg-card shadow-elevation-sm p-5 space-y-4">
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <p className="text-[11px] text-muted-foreground">This month</p>
-            <p className="text-[11px] font-medium tabular-nums">{used} / {limit}</p>
-          </div>
-          <div className="h-1.5 rounded-full bg-secondary border border-border overflow-hidden">
-            <div
-              className={cn('h-full transition-all', remaining === 0 ? 'bg-destructive' : 'bg-foreground')}
-              style={{ width: `${usedPct}%` }}
-            />
-          </div>
-          <p className="text-[10.5px] text-muted-foreground/70 mt-1.5">
-            {remaining > 0 ? `${remaining} credit(s) remaining this month` : 'Monthly limit reached — resets next month'}
-          </p>
-        </div>
-
-        <div className="space-y-3 pt-1">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Recipient email</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                value={recipientEmail}
-                onChange={e => setRecipientEmail(e.target.value)}
-                type="email"
-                placeholder="friend@gmail.com"
-                className="pl-9 h-9 text-sm"
-                autoComplete="email"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="space-y-1.5 col-span-1">
-              <Label className="text-xs">Amount</Label>
-              <Input
-                value={amount}
-                onChange={e => setAmount(e.target.value.replace(/[^0-9]/g, ''))}
-                inputMode="numeric"
-                placeholder="100"
-                className="h-9 text-sm"
-              />
-            </div>
-            <div className="space-y-1.5 col-span-2">
-              <Label className="text-xs">Note <span className="text-muted-foreground/70 font-normal">(optional)</span></Label>
-              <Input
-                value={note}
-                onChange={e => setNote(e.target.value)}
-                placeholder="Thanks for the notes!"
-                maxLength={120}
-                className="h-9 text-sm"
-              />
-            </div>
-          </div>
-          {validAmount && numericAmount > balance && (
-            <p className="text-[11px] text-destructive">You only have {balance} credits.</p>
-          )}
-          {validAmount && numericAmount > remaining && numericAmount <= balance && (
-            <p className="text-[11px] text-destructive">That exceeds your remaining monthly limit ({remaining}).</p>
-          )}
-          <Button
-            size="sm"
-            className="w-full h-9 text-xs gap-1.5"
-            onClick={() => transferMutation.mutate()}
-            disabled={!canSubmit}
-          >
-            {transferMutation.isPending ? (
-              <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Sending…</>
-            ) : (
-              <><Send className="h-3.5 w-3.5" /> Send {validAmount ? `${numericAmount} credit${numericAmount === 1 ? '' : 's'}` : 'credits'}</>
-            )}
-          </Button>
-        </div>
-
-        {isLoading ? null : recent.length > 0 && (
-          <div className="pt-3 border-t border-border">
-            <p className="text-[11px] text-muted-foreground mb-2">Recent transfers</p>
-            <div className="space-y-1.5">
-              {recent.map(t => (
-                <div key={t.id} className="flex items-center justify-between text-[11.5px]">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <ArrowUpRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <span className="truncate">{t.recipientEmail}</span>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-muted-foreground/70 text-[10.5px]">
-                      {formatDistanceToNow(new Date(t.createdAt), { addSuffix: true })}
-                    </span>
-                    <span className="font-medium tabular-nums">−{t.amount}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </Section>
+    </div>
   );
 }
 
@@ -516,7 +327,7 @@ function CreditsSettings() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="max-w-lg space-y-6">
+    <div className="max-w-lg space-y-6">
       <Section title="Credit balance" desc="Your credits let you create agents and chat with them.">
         <div className="border border-border rounded-2xl p-5 bg-card shadow-elevation-sm credit-glow">
           <div className="flex items-center gap-3 mb-4">
@@ -552,17 +363,13 @@ function CreditsSettings() {
         </div>
       </Section>
 
-      <TransferCreditsCard />
-
       <Section title="Buy credits" desc="Priced in Naira (₦). Credits never expire. Payments secured by Paystack.">
         <div className="space-y-2.5">
           {CREDIT_PACKAGES.map((pkg) => {
             const isLoading = loadingPkg === pkg.id;
             return (
-              <motion.button
+              <button
                 key={pkg.id}
-                whileHover={{ x: 2 }}
-                transition={{ duration: 0.12 }}
                 onClick={() => handleBuyCredits(pkg.id)}
                 disabled={isLoading}
                 className={cn(
@@ -591,7 +398,7 @@ function CreditsSettings() {
                     <CreditCard className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
                   )}
                 </div>
-              </motion.button>
+              </button>
             );
           })}
         </div>
@@ -657,7 +464,7 @@ function CreditsSettings() {
           )}
         </div>
       </Section>
-    </motion.div>
+    </div>
   );
 }
 
@@ -690,10 +497,8 @@ export default function Settings() {
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-2 mb-2">Settings</p>
             <div className="space-y-0.5">
               {NAV_ITEMS.map(item => (
-                <motion.button
+                <button
                   key={item.value}
-                  whileHover={{ x: 2 }}
-                  transition={{ duration: 0.12 }}
                   onClick={() => selectSection(item.value)}
                   className={cn(
                     'w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all',
@@ -707,7 +512,7 @@ export default function Settings() {
                     <p className="text-[11px] text-muted-foreground mt-0.5">{item.desc}</p>
                   </div>
                   {section === item.value && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-                </motion.button>
+                </button>
               ))}
             </div>
           </div>
@@ -716,10 +521,7 @@ export default function Settings() {
 
       <main className="pt-12">
         <div className="max-w-2xl mx-auto px-6 py-10">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+          <div
             className="flex items-center gap-3 mb-8"
           >
             <Button
@@ -734,22 +536,18 @@ export default function Settings() {
               <h1 className="text-xl font-semibold tracking-tight">{current.label}</h1>
               <p className="text-xs text-muted-foreground mt-0.5">{current.desc}</p>
             </div>
-          </motion.div>
+          </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
+          <>
+            <div
               key={section}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22 }}
             >
               {section === 'profile' && <ProfileSettings />}
               {section === 'agents' && <AgentsSettings />}
               {section === 'appearance' && <AppearanceSettings />}
               {section === 'credits' && <CreditsSettings />}
-            </motion.div>
-          </AnimatePresence>
+            </div>
+          </>
         </div>
       </main>
     </div>

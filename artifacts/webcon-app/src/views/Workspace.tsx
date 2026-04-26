@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
  Briefcase, Plus, Trash2, Pin, Search, BookOpen, Brain,
  FileText, StickyNote, Star, Clock, X, Download, FileDown,
@@ -80,22 +79,14 @@ function NoteModal({ note, onClose }: { note: Note; onClose: () => void }) {
  };
 
  return (
- <AnimatePresence>
- <motion.div
+ <>
+ <div
  key="modal-backdrop"
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- transition={{ duration: 0.18 }}
  onClick={onClose}
  className="fixed inset-0 z-50 bg-background/70"
  />
- <motion.div
+ <div
  key="modal-content"
- initial={{ opacity: 0, scale: 0.96, y: 12 }}
- animate={{ opacity: 1, scale: 1, y: 0 }}
- exit={{ opacity: 0, scale: 0.96, y: 12 }}
- transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
  className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
  >
  <div
@@ -149,8 +140,8 @@ function NoteModal({ note, onClose }: { note: Note; onClose: () => void }) {
  )}
  </div>
  </div>
- </motion.div>
- </AnimatePresence>
+ </div>
+ </>
  );
 }
 
@@ -163,12 +154,7 @@ function NoteCard({ note, onDelete, onTogglePin, onToggleStar, onClick }: {
  onClick: () => void;
 }) {
  return (
- <motion.div
- layout
- initial={{ opacity: 0, y: 12 }}
- animate={{ opacity: 1, y: 0 }}
- exit={{ opacity: 0, scale: 0.96 }}
- transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+ <div
  onClick={onClick}
  className={cn('border rounded-2xl p-4 shadow-elevation-sm hover:shadow-elevation-md transition-all group flex flex-col cursor-pointer', COLOR_MAP[note.color])}
  >
@@ -212,7 +198,7 @@ function NoteCard({ note, onDelete, onTogglePin, onToggleStar, onClick }: {
  {note.pinned && <Pin className="h-2.5 w-2.5 text-foreground/40" />}
  {note.starred && <Star className="h-2.5 w-2.5 text-foreground/40 fill-current" />}
  </div>
- </motion.div>
+ </div>
  );
 }
 
@@ -334,7 +320,7 @@ export default function Workspace() {
  <main className="pt-12">
  <div className="border-b border-border px-6 py-10">
  <div className="max-w-5xl mx-auto">
- <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+ <div>
  <p className="text-[11px] text-muted-foreground/50 uppercase tracking-widest font-medium mb-1">Workspace</p>
  <h1 className="text-2xl font-semibold tracking-tight mb-5">Your study space</h1>
 
@@ -383,19 +369,15 @@ export default function Workspace() {
  </div>
  )}
  </div>
- </motion.div>
+ </div>
  </div>
  </div>
 
  <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
 
- <AnimatePresence>
+ <>
  {showNew && (
- <motion.div
- initial={{ opacity: 0, height: 0 }}
- animate={{ opacity: 1, height: 'auto' }}
- exit={{ opacity: 0, height: 0 }}
- transition={{ duration: 0.22 }}
+ <div
  className="overflow-hidden"
  >
  <div className="border border-border rounded-2xl p-4 bg-card shadow-elevation-md">
@@ -421,9 +403,9 @@ export default function Workspace() {
  <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setShowNew(false); setNewSubject(''); }}>Cancel</Button>
  </div>
  </div>
- </motion.div>
+ </div>
  )}
- </AnimatePresence>
+ </>
 
  {isLoading && (
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -449,7 +431,7 @@ export default function Workspace() {
  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Pinned</p>
  </div>
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
- <AnimatePresence>
+ <>
  {pinned.map(n => (
  <NoteCard
  key={n.id} note={n}
@@ -459,7 +441,7 @@ export default function Workspace() {
  onClick={() => setOpenNote(n)}
  />
  ))}
- </AnimatePresence>
+ </>
  </div>
  </section>
  )}
@@ -470,7 +452,7 @@ export default function Workspace() {
  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-3">All notes</p>
  )}
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
- <AnimatePresence>
+ <>
  {rest.map(n => (
  <NoteCard
  key={n.id} note={n}
@@ -480,19 +462,19 @@ export default function Workspace() {
  onClick={() => setOpenNote(n)}
  />
  ))}
- </AnimatePresence>
+ </>
  </div>
  </section>
  )}
 
  {!isLoading && filtered.length === 0 && (
- <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border border-dashed border-border/70 rounded-2xl p-12 text-center">
+ <div className="border border-dashed border-border/70 rounded-2xl p-12 text-center">
  <Briefcase className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" strokeWidth={1} />
  <p className="text-sm text-muted-foreground">No notes yet</p>
  <Button variant="outline" size="sm" className="mt-4 h-8 text-xs shadow-elevation-sm" onClick={() => setShowNew(true)}>
  <Plus className="h-3 w-3 mr-1.5" /> Create one
  </Button>
- </motion.div>
+ </div>
  )}
  </div>
  </main>

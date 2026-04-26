@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageCircle, Brain, Plus, Loader2, Trash2,
   CheckCircle2, Copy, RefreshCw, ExternalLink,
@@ -195,17 +194,14 @@ export default function WhatsApp() {
               </div>
             ) : (
               <div className="space-y-2.5">
-                <AnimatePresence initial={false}>
+                <>
                   {agents.map((agent, i) => {
                     const activeCode = getCodeForAgent(agent.id);
                     const isGenerating = generatingFor === agent.id;
 
                     return (
-                      <motion.div
+                      <div
                         key={agent.id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.04, duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                         className="bg-card border border-border rounded-2xl px-5 py-4 shadow-elevation-sm flex items-center gap-4"
                       >
                         <div className="w-8 h-8 rounded-xl bg-secondary border border-border flex items-center justify-center shrink-0">
@@ -279,10 +275,10 @@ export default function WhatsApp() {
                             Generate Code
                           </Button>
                         )}
-                      </motion.div>
+                      </div>
                     );
                   })}
-                </AnimatePresence>
+                </>
               </div>
             )}
           </section>

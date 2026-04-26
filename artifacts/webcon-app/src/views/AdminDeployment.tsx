@@ -1,5 +1,4 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2, Clock, Database, ExternalLink, LockKeyhole, RefreshCw, ServerCog, ShieldCheck } from 'lucide-react';
 import AppHeader from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
@@ -113,7 +112,7 @@ export default function AdminDeployment() {
       <div className="min-h-screen bg-background text-foreground">
         <AppHeader />
         <main className="pt-24 px-4 pb-12 max-w-md mx-auto">
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+          <div>
             <Card className="bg-card/70">
               <CardHeader>
                 <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-secondary/50">
@@ -160,7 +159,7 @@ export default function AdminDeployment() {
                 <p className="mt-4 text-xs text-muted-foreground">Manual path: /admin/deployment</p>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </main>
       </div>
     );
@@ -170,7 +169,7 @@ export default function AdminDeployment() {
     <div className="min-h-screen bg-background text-foreground">
       <AppHeader />
       <main className="pt-20 px-4 pb-12 max-w-6xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+        <div>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-8">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/40 px-3 py-1 text-xs text-muted-foreground mb-4">
@@ -293,7 +292,7 @@ export default function AdminDeployment() {
               </Card>
             </div>
           </div>
-        </motion.div>
+        </div>
       </main>
     </div>
   );
