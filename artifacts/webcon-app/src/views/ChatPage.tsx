@@ -395,7 +395,7 @@ export default function ChatPage() {
     : messages;
 
   return (
-    <div className="min-h-screen app-ambient-bg flex flex-col">
+    <div className="app-ambient-bg">
       <AppHeader />
       <Toaster />
 
@@ -412,12 +412,13 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
-      <div className="flex flex-1 pt-12 overflow-hidden" style={{ height: 'calc(100vh - 48px)' }}>
+      {/* Fixed chat area — always occupies exactly the space below the app header */}
+      <div className="fixed inset-x-0 bottom-0 flex" style={{ top: '48px' }}>
         <AnimatePresence>
           {sidebarOpen && (
             <motion.div key="backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }} onClick={() => setSidebarOpen(false)}
-              className="absolute inset-0 z-20 bg-background/60" style={{ top: 48 }}
+              className="absolute inset-0 z-20 bg-background/60"
             />
           )}
         </AnimatePresence>
@@ -425,14 +426,14 @@ export default function ChatPage() {
           {sidebarOpen && (
             <motion.div key="sidebar" initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
               transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-              className="absolute left-0 top-12 bottom-0 z-30 flex"
+              className="absolute left-0 top-0 bottom-0 z-30 flex"
             >
               <ConversationSidebar onClose={() => setSidebarOpen(false)} />
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="flex flex-col flex-1 overflow-hidden w-full relative z-10">
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative z-10">
           {/* Toolbar */}
           <div className="h-11 border-b border-border/70 flex items-center justify-between px-3 shrink-0 bg-background/95 shadow-elevation-sm">
             <div className="flex items-center gap-2">
@@ -648,3 +649,4 @@ export default function ChatPage() {
     </div>
   );
 }
+

@@ -120,14 +120,12 @@ function InlineHighlight({ children }: { children: React.ReactNode }) {
       style={{
         display: 'inline',
         borderRadius: '5px',
-        padding: '1px 5px 2px',
+        padding: '1px 6px 2px',
         margin: '0 1px',
         fontWeight: 600,
-        background: 'rgba(255,255,255,0.07)',
-        border: '1px solid rgba(255,255,255,0.13)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.15)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
+        background: 'rgba(255,255,255,0.09)',
+        border: '1px solid rgba(255,255,255,0.16)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
       }}
     >
       {children}
@@ -179,9 +177,9 @@ function AssistantMessage({ content, streaming }: { content: string; streaming: 
   const clean = sanitizeContent(content);
   return (
     <motion.div
-      initial={{ opacity: 0, y: 2 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.75, ease: 'easeOut' }}
     >
       <AssistantContent content={clean} />
       {streaming && (

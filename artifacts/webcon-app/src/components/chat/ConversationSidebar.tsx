@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, X, Brain, Clock, Trash2, Pencil, Check, Tag, BookmarkCheck, Bookmark } from 'lucide-react';
+import { Plus, Search, X, Brain, Clock, Trash2, Pencil, Tag, BookmarkCheck, Bookmark, BookOpen, FlaskConical, FileText, Calculator, Code2, Landmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -9,7 +9,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 
-const CONV_TAGS = ['📚 Study', '🧪 Science', '📝 Essay', '🔢 Math', '💻 Code', '🌍 History'];
+const CONV_TAGS: { label: string; Icon: React.ElementType }[] = [
+  { label: 'Study', Icon: BookOpen },
+  { label: 'Science', Icon: FlaskConical },
+  { label: 'Essay', Icon: FileText },
+  { label: 'Math', Icon: Calculator },
+  { label: 'Code', Icon: Code2 },
+  { label: 'History', Icon: Landmark },
+];
 
 function useConvTags() {
   const [tags, setTags] = useState<Record<string, string[]>>(() => {
@@ -205,11 +212,18 @@ function ConvItem({
           )}
           <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             {isBookmarked && (
-              <span className="text-[9px] text-amber-400/80">⭐</span>
+              <BookmarkCheck className="h-2.5 w-2.5 text-amber-400/70 shrink-0" />
             )}
-            {tags.slice(0, 2).map(tag => (
-              <span key={tag} className="text-[9px] px-1 py-0.5 rounded-md bg-secondary/60 text-muted-foreground/60 border border-border/40 leading-none">{tag}</span>
-            ))}
+            {tags.slice(0, 2).map(label => {
+              const tagDef = CONV_TAGS.find(t => t.label === label);
+              if (!tagDef) return null;
+              const { Icon } = tagDef;
+              return (
+                <span key={label} className="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded-md bg-secondary/60 text-muted-foreground/60 border border-border/40 leading-none">
+                  <Icon className="h-2 w-2" strokeWidth={1.5} />{label}
+                </span>
+              );
+            })}
             <span className="text-[10px] text-muted-foreground/40 leading-none">
               {formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: true })}
             </span>
@@ -244,10 +258,10 @@ function ConvItem({
                 <span className="text-[10px] text-muted-foreground/50">Tags</span>
               </div>
               <div className="flex flex-wrap gap-1">
-                {CONV_TAGS.map(tag => (
-                  <button key={tag} onClick={(e) => { e.stopPropagation(); onToggleTag(tag); }}
-                    className={cn('text-[10px] px-1.5 py-0.5 rounded-md border transition-colors', tags.includes(tag) ? 'bg-secondary text-foreground border-foreground/20' : 'text-muted-foreground/60 border-border/40 hover:border-border hover:bg-secondary/50')}>
-                    {tag}
+                {CONV_TAGS.map(({ label, Icon }) => (
+                  <button key={label} onClick={(e) => { e.stopPropagation(); onToggleTag(label); }}
+                    className={cn('inline-flex items-center gap-1 text-[10px] px-1.5 py-1 rounded-md border transition-colors', tags.includes(label) ? 'bg-secondary text-foreground border-foreground/20' : 'text-muted-foreground/60 border-border/40 hover:border-border hover:bg-secondary/50')}>
+                    <Icon className="h-2.5 w-2.5" strokeWidth={1.5} />{label}
                   </button>
                 ))}
               </div>
