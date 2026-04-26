@@ -28,19 +28,28 @@ interface Note {
 
 const COLOR_MAP: Record<NoteColor, string> = {
  default: 'bg-card border-border',
- yellow: 'bg-card border-border',
- blue: 'bg-card border-border',
- green: 'bg-card border-border',
- pink: 'bg-card border-border',
+ yellow: 'bg-amber-500/[0.06] border-amber-500/25 dark:bg-amber-400/[0.05] dark:border-amber-400/25',
+ blue: 'bg-sky-500/[0.06] border-sky-500/25 dark:bg-sky-400/[0.05] dark:border-sky-400/25',
+ green: 'bg-emerald-500/[0.06] border-emerald-500/25 dark:bg-emerald-400/[0.05] dark:border-emerald-400/25',
+ pink: 'bg-rose-500/[0.06] border-rose-500/25 dark:bg-rose-400/[0.05] dark:border-rose-400/25',
 };
 
 const COLOR_ACCENT: Record<NoteColor, string> = {
  default: 'bg-secondary',
- yellow: 'bg-secondary',
- blue: 'bg-secondary',
- green: 'bg-secondary',
- pink: 'bg-secondary',
+ yellow: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
+ blue: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30',
+ green: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
+ pink: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30',
 };
+
+const COLOR_ORDER: NoteColor[] = ['yellow', 'blue', 'green', 'pink', 'default'];
+
+function colorForSubject(subject: string): NoteColor {
+  const key = (subject || 'General').toLowerCase();
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0;
+  return COLOR_ORDER[Math.abs(h) % COLOR_ORDER.length];
+}
 
 /* ─── Note full-view modal ─── */
 function NoteModal({ note, onClose }: { note: Note; onClose: () => void }) {
@@ -232,7 +241,7 @@ export default function Workspace() {
  subject: i.subject ?? 'General',
  pinned: i.pinned ?? false,
  starred: i.starred ?? false,
- color: 'default' as NoteColor,
+ color: colorForSubject(i.subject ?? 'General'),
  createdAt: new Date(i.createdAt),
  })));
  })
@@ -267,7 +276,7 @@ export default function Workspace() {
  title: item.title,
  content: item.content ?? '',
  subject: item.subject ?? 'General',
- pinned: false, starred: false, color: 'default',
+ pinned: false, starred: false, color: colorForSubject(item.subject ?? 'General'),
  createdAt: new Date(item.createdAt),
  }, ...prev]);
  setNewTitle('');

@@ -13,6 +13,7 @@ import MessageInput from '@/components/chat/MessageInput';
 import EmptyChat from '@/components/chat/EmptyChat';
 import AgentCreatorDialog from '@/components/AgentCreatorDialog';
 import AgentKnowledgeDialog from '@/components/AgentKnowledgeDialog';
+import AgentAvatar from '@/components/AgentAvatar';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -463,9 +464,13 @@ export default function ChatPage() {
               </Button>
               {currentConv ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-md bg-secondary border border-border flex items-center justify-center">
-                    <Brain className="h-3 w-3 text-muted-foreground" />
-                  </div>
+                  {currentAgent ? (
+                    <AgentAvatar id={currentAgent.id} name={currentAgent.name} subject={currentAgent.subject} size={22} />
+                  ) : (
+                    <div className="w-5 h-5 rounded-md bg-secondary border border-border flex items-center justify-center">
+                      <Brain className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  )}
                   <span className="text-sm font-medium truncate max-w-[140px] md:max-w-xs">{currentConv.title}</span>
                   {currentConv.agentName && (
                     <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground border border-border rounded-full px-2 py-0.5 bg-secondary/50">
@@ -475,9 +480,7 @@ export default function ChatPage() {
                 </div>
               ) : currentAgent ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-md bg-secondary border border-border flex items-center justify-center">
-                    <Brain className="h-3 w-3 text-muted-foreground" />
-                  </div>
+                  <AgentAvatar id={currentAgent.id} name={currentAgent.name} subject={currentAgent.subject} size={22} />
                   <span className="text-sm font-medium text-muted-foreground">New conversation with {currentAgent.name}</span>
                 </div>
               ) : (

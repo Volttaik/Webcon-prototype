@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
+import AgentAvatar from '@/components/AgentAvatar';
 
 const CONV_TAGS: { label: string; Icon: React.ElementType }[] = [
   { label: 'Study', Icon: BookOpen },
@@ -182,12 +183,16 @@ function ConvItem({
           pressed && 'ring-1 ring-border/60'
         )}
       >
-        <div className={cn(
-          'w-5 h-5 rounded-md border border-border flex items-center justify-center shrink-0 mt-0.5',
-          isActive ? 'bg-secondary' : 'bg-secondary/40'
-        )}>
-          <Brain className="h-2.5 w-2.5 text-muted-foreground" strokeWidth={1.5} />
-        </div>
+        {conv.agentId ? (
+          <AgentAvatar id={conv.agentId} name={conv.agentName ?? ''} size={20} className="mt-0.5 rounded-md" />
+        ) : (
+          <div className={cn(
+            'w-5 h-5 rounded-md border border-border flex items-center justify-center shrink-0 mt-0.5',
+            isActive ? 'bg-secondary' : 'bg-secondary/40'
+          )}>
+            <Brain className="h-2.5 w-2.5 text-muted-foreground" strokeWidth={1.5} />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           {renaming ? (
             <input

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import AppHeader from '@/components/layout/AppHeader';
 import AgentCreatorDialog from '@/components/AgentCreatorDialog';
 import AgentKnowledgeDialog from '@/components/AgentKnowledgeDialog';
+import AgentAvatar from '@/components/AgentAvatar';
 import PageTransition from '@/components/PageTransition';
 import { useAuth } from '@/lib/auth-context';
 import {
@@ -34,13 +35,13 @@ function StatCard({ icon: Icon, label, value, sub, loading, shimmerDelay = '0s' 
         <Icon className="h-3 w-3 text-muted-foreground" strokeWidth={1.5} />
       </div>
       <div>
-        <p className="text-[9.5px] text-muted-foreground/75 mb-0.5 leading-none">{label}</p>
+        <p className="text-[11px] text-muted-foreground/80 mb-1 leading-none">{label}</p>
         {loading ? (
           <div className="h-4 w-10 bg-muted animate-pulse rounded" />
         ) : (
           <p className="text-base font-semibold tracking-tight leading-none">{value}</p>
         )}
-        {sub && <p className="text-[9.5px] text-muted-foreground/65 mt-1 leading-none">{sub}</p>}
+        {sub && <p className="text-[11px] text-muted-foreground/70 mt-1.5 leading-none">{sub}</p>}
       </div>
     </div>
   );
@@ -56,9 +57,8 @@ function AgentCard({ agent, index, onDelete, onOpenKnowledge }: { agent: Agent; 
       onClick={() => navigate(`/chat?agent=${agent.id}`)}
     >
       <div className="flex items-start justify-between mb-4">
-        <div className="w-9 h-9 rounded-xl bg-secondary border border-border flex items-center justify-center shadow-elevation-sm">
-          <Brain className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-        </div>
+        <AgentAvatar id={agent.id} name={agent.name} subject={agent.subject} size={36} />
+        
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={e => { e.stopPropagation(); onOpenKnowledge(agent); }}
