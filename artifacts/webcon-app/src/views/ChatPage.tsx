@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  PanelLeft, Brain, ChevronDown, Search, X, Download,
+  PanelLeft, Brain, ChevronDown, Search, X,
   BookOpen, GraduationCap, FileText, Bookmark, BookmarkCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,24 +40,6 @@ interface ApiMessage {
 function verbFromString(v: string | null | undefined): string {
   if (!v) return 'thinking';
   return v;
-}
-
-function exportConversation(messages: Message[], title: string) {
-  const lines = [`# ${title}`, `*Exported ${new Date().toLocaleString()}*`, ''];
-  for (const m of messages) {
-    if (m.role === 'user') {
-      lines.push(`**You:** ${m.content}`, '');
-    } else if (m.role === 'assistant') {
-      lines.push(`**Agent:** ${m.content}`, '');
-    }
-  }
-  const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.md`;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 export default function ChatPage() {
@@ -513,18 +495,6 @@ export default function ChatPage() {
                   title={isConvBookmarked ? 'Remove bookmark' : 'Bookmark conversation'}
                 >
                   {isConvBookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
-                </Button>
-              )}
-
-              {/* Export */}
-              {messages.length > 0 && (
-                <Button
-                  variant="ghost" size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  onClick={() => exportConversation(messages, currentConv?.title ?? 'Conversation')}
-                  title="Export as Markdown"
-                >
-                  <Download className="h-3.5 w-3.5" />
                 </Button>
               )}
 

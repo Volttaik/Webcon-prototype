@@ -1,27 +1,23 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
+import type { ReactNode } from 'react';
 
-type PageTransitionProps = {
-  children: ReactNode;
-  className?: string;
+const variants = {
+  initial: { opacity: 0, y: 6 },
+  enter: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -4 },
 };
 
-export default function PageTransition({ children, className }: PageTransitionProps) {
-  const location = useLocation();
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.classList.remove('page-enter');
-    void el.offsetWidth;
-    el.classList.add('page-enter');
-  }, [location.pathname]);
-
+export default function PageTransition({ children }: { children: ReactNode }) {
   return (
-    <div ref={ref} className={cn('page-enter', className)}>
+    <motion.div
+      initial="initial"
+      animate="enter"
+      exit="exit"
+      variants={variants}
+      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+      style={{ willChange: 'opacity, transform' }}
+    >
       {children}
-    </div>
+    </motion.div>
   );
 }
