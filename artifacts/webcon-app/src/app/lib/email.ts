@@ -317,6 +317,54 @@ export async function sendPlanUpgradeEmail(
   });
 }
 
+export async function sendPasswordResetEmail(
+  to: string,
+  firstName: string,
+  token: string,
+  siteUrlArg: string
+): Promise<void> {
+  const resetUrl = `${siteUrlArg}/reset-password?token=${token}`;
+
+  const inner = `
+    <h1 style="color:#ffffff;font-size:24px;font-weight:700;margin:0 0 12px 0;letter-spacing:-0.5px;">
+      Reset your password
+    </h1>
+    <p style="color:#9ca3af;font-size:15px;line-height:1.6;margin:0 0 28px 0;">
+      Hi ${firstName}, we received a request to reset the password for your EduBridge account. Click the button below to choose a new password.
+    </p>
+
+    ${ctaButton(resetUrl, "Reset Password")}
+
+    <hr style="border:none;border-top:1px solid #26262c;margin:28px 0;" />
+
+    <p style="color:#5a5a62;font-size:13px;line-height:1.6;margin:0 0 8px 0;">
+      Button not working? Copy and paste this link into your browser:
+    </p>
+    <p style="margin:0 0 20px 0;">
+      <a href="${resetUrl}" style="color:#9ca3af;font-size:12px;word-break:break-all;text-decoration:underline;">${resetUrl}</a>
+    </p>
+
+    <p style="color:#5a5a62;font-size:12px;line-height:1.6;margin:0;">
+      This link expires in <strong style="color:#9ca3af;">1 hour</strong>. If you didn't request a password reset, you can safely ignore this email — your password will not change.
+    </p>
+  `;
+
+  await transporter.sendMail({
+    from: `"EduBridge" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: "Reset your EduBridge password",
+    html: shellHtml({
+      preheader: "Reset your EduBridge password. This link expires in 1 hour.",
+      badge: "Password reset",
+      badgeColor: "#60a5fa",
+      badgeBg: "#3b82f618",
+      badgeBorder: "#3b82f640",
+      title: "Reset your EduBridge password",
+      inner,
+    }),
+  });
+}
+
 export async function sendVerificationEmail(
   to: string,
   token: string,

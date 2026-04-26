@@ -20,6 +20,7 @@ import AuthCallback from '@/views/AuthCallback';
 import AdminDeployment from '@/views/AdminDeployment';
 import WhatsApp from '@/views/WhatsApp';
 import PaymentCallback from '@/views/PaymentCallback';
+import ResetPassword from '@/views/ResetPassword';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,6 +57,7 @@ function AppRoutes() {
       <Route path="/whatsapp" element={<ProtectedRoute><WhatsApp /></ProtectedRoute>} />
       <Route path="/admin/deployment" element={<AdminDeployment />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/payment/callback" element={<ProtectedRoute><PaymentCallback /></ProtectedRoute>} />
     </Routes>
   );
