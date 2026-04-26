@@ -9,6 +9,8 @@ import {
   ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import AppHeader from '@/components/layout/AppHeader';
+import PageTransition from '@/components/PageTransition';
+import { BrainLoader } from '@/components/ui/brain-loader';
 import { useAuth } from '@/lib/auth-context';
 import { fetchAnalytics, type AnalyticsData } from '@/lib/data-service';
 
@@ -122,6 +124,7 @@ export default function Analytics() {
   const hasChartData = weeklyData.some(d => d.messages > 0);
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-background">
       <AppHeader />
       <main className="pt-12">
@@ -158,7 +161,10 @@ export default function Analytics() {
                 </div>
               </div>
               {isLoading ? (
-                <div className="h-40 bg-muted/30 animate-pulse rounded-xl" />
+                <div className="h-40 flex flex-col items-center justify-center gap-2">
+                  <BrainLoader size="xs" />
+                  <p className="text-[11px] text-muted-foreground/60">Loading chart…</p>
+                </div>
               ) : !hasChartData ? (
                 <div className="h-40 flex items-center justify-center">
                   <p className="text-[12px] text-muted-foreground">No messages this week yet.</p>
@@ -188,7 +194,10 @@ export default function Analytics() {
                 </div>
               </div>
               {isLoading ? (
-                <div className="h-40 bg-muted/30 animate-pulse rounded-xl" />
+                <div className="h-40 flex flex-col items-center justify-center gap-2">
+                  <BrainLoader size="xs" />
+                  <p className="text-[11px] text-muted-foreground/60">Loading chart…</p>
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height={160}>
                   <LineChart data={monthlyData}>
@@ -265,5 +274,6 @@ export default function Analytics() {
         </div>
       </main>
     </div>
+    </PageTransition>
   );
 }

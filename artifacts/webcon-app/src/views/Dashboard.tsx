@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import AppHeader from '@/components/layout/AppHeader';
 import AgentCreatorDialog from '@/components/AgentCreatorDialog';
+import PageTransition from '@/components/PageTransition';
 import { useAuth } from '@/lib/auth-context';
 import {
   fetchAgents,
@@ -186,6 +187,7 @@ export default function Dashboard() {
   const firstName = profile?.first_name || user?.email?.split('@')[0] || 'there';
 
   return (
+    <PageTransition>
     <div className="min-h-screen app-ambient-bg">
       <AppHeader />
       <Toaster />
@@ -283,7 +285,13 @@ export default function Dashboard() {
                 >
                   <>
                     {agents.map((agent, i) => (
-                      <AgentCard key={agent.id} agent={agent} index={i} onDelete={handleDelete} />
+                      <div
+                        key={agent.id}
+                        className="stagger-child"
+                        style={{ ['--i' as never]: i } as React.CSSProperties}
+                      >
+                        <AgentCard agent={agent} index={i} onDelete={handleDelete} />
+                      </div>
                     ))}
                   </>
                 </div>
@@ -339,7 +347,8 @@ export default function Dashboard() {
                   <button
                     key={conv.id}
                     onClick={() => navigate(`/chat/${conv.id}`)}
-                    className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-secondary/45 transition-colors text-left group"
+                    style={{ ['--i' as never]: i } as React.CSSProperties}
+                    className="stagger-child w-full flex items-center gap-4 px-5 py-3.5 hover:bg-secondary/45 transition-colors text-left group"
                   >
                     <div className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0">
                       <BookOpen className="h-3 w-3 text-muted-foreground" strokeWidth={1.5} />
@@ -372,8 +381,8 @@ export default function Dashboard() {
                   <button
                     key={agent.id}
                     onClick={() => navigate(`/chat?agent=${agent.id}`)}
-                    className="glow-border elevated-surface flex items-center gap-3 px-4 py-3 rounded-xl hover:border-foreground/20 hover:bg-secondary/30 transition-all text-left hover:-translate-y-0.5"
-                    style={{ '--shimmer-delay': `${i * 1.1}s` } as React.CSSProperties}
+                    className="stagger-child card-lift glow-border elevated-surface flex items-center gap-3 px-4 py-3 rounded-xl hover:border-foreground/20 hover:bg-secondary/30 text-left"
+                    style={{ '--shimmer-delay': `${i * 1.1}s`, ['--i' as never]: i } as React.CSSProperties}
                   >
                     <div className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0">
                       <Brain className="h-3 w-3 text-muted-foreground" strokeWidth={1.5} />
@@ -391,5 +400,6 @@ export default function Dashboard() {
         </div>
       </main>
     </div>
+    </PageTransition>
   );
 }

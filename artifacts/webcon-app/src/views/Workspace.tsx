@@ -6,6 +6,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppHeader from '@/components/layout/AppHeader';
+import PageTransition from '@/components/PageTransition';
+import { BrainLoader } from '@/components/ui/brain-loader';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
@@ -309,6 +311,7 @@ export default function Workspace() {
  };
 
  return (
+ <PageTransition>
  <div className="min-h-screen bg-background">
  <AppHeader />
  <Toaster />
@@ -408,19 +411,9 @@ export default function Workspace() {
  </>
 
  {isLoading && (
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
- {[1, 2, 3, 4, 5, 6].map(i => (
- <div key={i} className="border border-border rounded-2xl p-4 bg-card animate-pulse">
- <div className="h-3 w-16 bg-muted rounded-full mb-3" />
- <div className="h-4 w-3/4 bg-muted rounded mb-2" />
- <div className="space-y-1.5 mb-4">
- <div className="h-2.5 bg-muted rounded w-full" />
- <div className="h-2.5 bg-muted rounded w-5/6" />
- <div className="h-2.5 bg-muted rounded w-4/6" />
- </div>
- <div className="h-2.5 w-20 bg-muted rounded" />
- </div>
- ))}
+ <div className="flex flex-col items-center justify-center py-16 gap-3">
+ <BrainLoader size="sm" />
+ <p className="text-xs text-muted-foreground/70">Loading your workspace…</p>
  </div>
  )}
 
@@ -479,5 +472,6 @@ export default function Workspace() {
  </div>
  </main>
  </div>
+ </PageTransition>
  );
 }

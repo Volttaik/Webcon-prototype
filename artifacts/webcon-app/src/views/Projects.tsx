@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import AppHeader from '@/components/layout/AppHeader';
+import PageTransition from '@/components/PageTransition';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
@@ -163,6 +164,7 @@ export default function Projects() {
   const high = projects.filter(p => p.priority === 'high').length;
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-background">
       <AppHeader />
       <Toaster />
@@ -256,5 +258,6 @@ export default function Projects() {
         </div>
       </main>
     </div>
+    </PageTransition>
   );
 }

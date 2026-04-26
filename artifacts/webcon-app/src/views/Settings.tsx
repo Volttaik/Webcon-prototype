@@ -8,6 +8,8 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import AppHeader from '@/components/layout/AppHeader';
+import PageTransition from '@/components/PageTransition';
+import { BrainLoader } from '@/components/ui/brain-loader';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
@@ -178,8 +180,9 @@ function AgentsSettings() {
       <Section title="Your agents" desc="Manage the AI agents you've created.">
         <div className="space-y-3">
           {isLoading && (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-8 gap-2">
+              <BrainLoader size="xs" />
+              <p className="text-[11px] text-muted-foreground/70">Loading agents…</p>
             </div>
           )}
           <>
@@ -407,8 +410,9 @@ function CreditsSettings() {
       <Section title="Transaction history" desc="Your most recent credit activity.">
         <div className="border border-border rounded-2xl bg-card shadow-elevation-sm overflow-hidden">
           {txnsLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-8 gap-2">
+              <BrainLoader size="xs" />
+              <p className="text-[11px] text-muted-foreground/70">Loading transactions…</p>
             </div>
           ) : transactions.length === 0 ? (
             <div className="px-5 py-8 text-center">
@@ -487,6 +491,7 @@ export default function Settings() {
   };
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-background">
       <AppHeader />
       <Toaster />
@@ -551,5 +556,6 @@ export default function Settings() {
         </div>
       </main>
     </div>
+    </PageTransition>
   );
 }

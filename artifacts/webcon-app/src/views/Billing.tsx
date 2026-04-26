@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import AppHeader from '@/components/layout/AppHeader';
+import PageTransition from '@/components/PageTransition';
 import { Toaster } from '@/components/ui/sonner';
 import {
   Crown, Zap, Star, Check, Loader2, CreditCard,
@@ -134,6 +135,7 @@ export function Billing() {
     : null;
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-background">
       <AppHeader />
       <Toaster />
@@ -310,6 +312,7 @@ export function Billing() {
         </div>
       </main>
     </div>
+    </PageTransition>
   );
 }
 

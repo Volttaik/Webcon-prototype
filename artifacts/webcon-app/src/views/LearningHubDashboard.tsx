@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppHeader from '@/components/layout/AppHeader';
+import PageTransition from '@/components/PageTransition';
+import { BrainLoader } from '@/components/ui/brain-loader';
 import { VerbIndicator } from '@/components/chat/MessageList';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
@@ -228,9 +230,12 @@ export default function LearningHubDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
+      <PageTransition>
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
+          <BrainLoader size="md" />
+          <p className="text-xs text-muted-foreground/70">Loading your hub…</p>
+        </div>
+      </PageTransition>
     );
   }
 
@@ -258,6 +263,7 @@ export default function LearningHubDashboard() {
   ];
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-background">
       <AppHeader />
       <Toaster />
@@ -645,5 +651,6 @@ export default function LearningHubDashboard() {
         </div>
       </main>
     </div>
+    </PageTransition>
   );
 }

@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppHeader from '@/components/layout/AppHeader';
+import PageTransition from '@/components/PageTransition';
+import { BrainLoader } from '@/components/ui/brain-loader';
 import { cn } from '@/lib/utils';
 import { format, addDays, startOfWeek, isSameDay, isToday, isPast } from 'date-fns';
 import { fetchAgents, type Agent } from '@/lib/data-service';
@@ -148,6 +150,7 @@ export default function Schedule() {
  const today = weekDates[selectedDay];
 
  return (
+ <PageTransition>
  <div className="min-h-screen bg-background relative">
  <AppHeader />
  <main className="container mx-auto px-3 sm:px-6 pt-16 pb-8 max-w-6xl">
@@ -241,8 +244,9 @@ export default function Schedule() {
  </div>
 
  {isLoading ? (
- <div className="flex justify-center py-12">
- <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+ <div className="flex flex-col items-center justify-center py-12 gap-3">
+ <BrainLoader size="sm" />
+ <p className="text-xs text-muted-foreground/70">Loading your schedule…</p>
  </div>
  ) : sessionsByDay[selectedDay]?.length === 0 ? (
  <div className="border border-dashed border-border rounded-2xl p-10 text-center">
@@ -341,6 +345,7 @@ export default function Schedule() {
  )}
  </>
  </div>
+ </PageTransition>
  );
 }
 

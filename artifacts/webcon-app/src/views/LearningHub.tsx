@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppHeader from '@/components/layout/AppHeader';
 import HubAgentCreatorDialog from '@/components/HubAgentCreatorDialog';
+import PageTransition from '@/components/PageTransition';
+import { BrainLoader } from '@/components/ui/brain-loader';
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -65,8 +67,6 @@ const DOMAIN_COLORS: Record<string, string> = {
   arts: 'text-pink-500', general: 'text-muted-foreground',
 };
 
-const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 } };
-
 export default function LearningHub() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -75,8 +75,8 @@ export default function LearningHub() {
   const [actingId, setActingId] = useState<number | null>(null);
   const [creatorHub, setCreatorHub] = useState<LearningHub | null>(null);
 
-  const { data: realHubs = [] } = useQuery({ queryKey: ['learning-hubs'], queryFn: fetchLearningHubs });
-  const { data: myHub } = useQuery({ queryKey: ['my-hub'], queryFn: fetchMyHub });
+  const { data: realHubs = [], isLoading: hubsLoading } = useQuery({ queryKey: ['learning-hubs'], queryFn: fetchLearningHubs });
+  const { data: myHub, isLoading: myHubLoading } = useQuery({ queryKey: ['my-hub'], queryFn: fetchMyHub });
   const { data: mySubscriptions = [] } = useQuery({
     queryKey: ['my-hub-subscriptions'],
     queryFn: fetchMySubscriptions,
@@ -145,13 +145,14 @@ export default function LearningHub() {
   };
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-background">
       <AppHeader />
       <Toaster />
       <main className="pt-12">
         <div className="border-b border-border px-6 py-10">
           <div className="max-w-5xl mx-auto">
-            <div {...fadeUp}>
+            <div className="animate-fade-slide-up">
               <p className="text-[11px] text-muted-foreground/50 uppercase tracking-widest font-medium mb-1">Learning Hub</p>
               <h1 className="text-2xl font-semibold tracking-tight mb-2">Knowledge Hubs</h1>
               <p className="text-sm text-muted-foreground mb-6">Subscribe to specialized hubs and create powerful AI agents from expert knowledge.</p>
@@ -169,7 +170,13 @@ export default function LearningHub() {
         </div>
 
         <div className="max-w-5xl mx-auto px-6 py-10 space-y-10">
-          {myHub ? (
+          {myHubLoading ? (
+            <section>
+              <div className="border border-border rounded-2xl p-6 flex items-center justify-center min-h-[88px]">
+                <BrainLoader size="xs" />
+              </div>
+            </section>
+          ) : myHub ? (
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-[13px] font-medium">Your Hub</h2>
@@ -214,7 +221,12 @@ export default function LearningHub() {
               </div>
             </div>
 
-            {allHubs.length === 0 ? (
+            {hubsLoading ? (
+              <div className="border border-border rounded-2xl p-12 flex flex-col items-center justify-center gap-3">
+                <BrainLoader size="sm" />
+                <p className="text-xs text-muted-foreground/70">Loading knowledge hubs…</p>
+              </div>
+            ) : allHubs.length === 0 ? (
               <div className="border border-border rounded-2xl p-12 text-center">
                 <BookOpen className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" strokeWidth={1} />
                 <p className="text-sm text-muted-foreground">No hubs found</p>
@@ -225,7 +237,8 @@ export default function LearningHub() {
                 {allHubs.map((hub, i) => (
                   <div
                     key={hub.id}
-                    className="border border-border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/20 transition-all"
+                    style={{ ['--i' as never]: i } as React.CSSProperties}
+                    className="stagger-child card-lift border border-border rounded-2xl p-5 bg-card shadow-elevation-sm hover:shadow-elevation-md hover:border-foreground/20"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-9 h-9 rounded-xl bg-secondary border border-border flex items-center justify-center">
@@ -343,5 +356,6 @@ export default function LearningHub() {
         />
       )}
     </div>
+    </PageTransition>
   );
 }
