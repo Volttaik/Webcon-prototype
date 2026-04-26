@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   PanelLeft, Brain, ChevronDown, Search, X, Download,
-  BookOpen, GraduationCap, FileText, Bookmark, BookmarkCheck
+  BookOpen, GraduationCap, FileText, Bookmark, BookmarkCheck, Library
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AppHeader from '@/components/layout/AppHeader';
@@ -12,6 +12,7 @@ import MessageList, { type Message } from '@/components/chat/MessageList';
 import MessageInput from '@/components/chat/MessageInput';
 import EmptyChat from '@/components/chat/EmptyChat';
 import AgentCreatorDialog from '@/components/AgentCreatorDialog';
+import AgentKnowledgeDialog from '@/components/AgentKnowledgeDialog';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -75,6 +76,7 @@ export default function ChatPage() {
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
   const [showFirstAgentCreator, setShowFirstAgentCreator] = useState(false);
   const [dismissedFirstAgentCreator, setDismissedFirstAgentCreator] = useState(false);
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
 
   // New feature state
   const [searchQuery, setSearchQuery] = useState('');
@@ -423,6 +425,14 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
+      {knowledgeOpen && currentAgent && (
+        <AgentKnowledgeDialog
+          agentId={currentAgent.id}
+          agentName={currentAgent.name}
+          onClose={() => setKnowledgeOpen(false)}
+        />
+      )}
+
       {/* Fixed chat area — always occupies exactly the space below the app header */}
       <div className="fixed inset-x-0 bottom-0 flex" style={{ top: '48px' }}>
         <AnimatePresence>
@@ -525,6 +535,18 @@ export default function ChatPage() {
                   title="Export as Markdown"
                 >
                   <Download className="h-3.5 w-3.5" />
+                </Button>
+              )}
+
+              {/* Agent knowledge */}
+              {currentAgent && (
+                <Button
+                  variant="ghost" size="sm"
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5 hidden sm:flex"
+                  onClick={() => setKnowledgeOpen(true)}
+                  title="Add notes, syllabus, or PDFs this agent should know"
+                >
+                  <Library className="h-3.5 w-3.5" /> Knowledge
                 </Button>
               )}
 

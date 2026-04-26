@@ -45,7 +45,19 @@ export const insertAgentSchema = createInsertSchema(agentsTable).omit({
   updatedAt: true,
 });
 
+export const agentFilesTable = pgTable("agent_files", {
+  id: serial("id").primaryKey(),
+  agentId: integer("agent_id").notNull().references(() => agentsTable.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  fileType: text("file_type").notNull().default("text"),
+  wordCount: integer("word_count").notNull().default(0),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
 export type Agent = typeof agentsTable.$inferSelect;
 export type InsertAgent = z.infer<typeof insertAgentSchema>;
 export type AgentMemory = typeof agentMemoryTable.$inferSelect;
 export type AgentSubscription = typeof agentSubscriptionsTable.$inferSelect;
+export type AgentFile = typeof agentFilesTable.$inferSelect;

@@ -11,6 +11,7 @@ import {
   projectsTable,
   projectTasksTable,
   agentMemoryTable,
+  agentFilesTable,
   hubFilesTable,
   scheduleSessionsTable,
 } from "@workspace/db";
@@ -85,6 +86,7 @@ function buildSystemPrompt(
   } | null,
   memory: string,
   hubContext: string,
+  agentFilesContext: string,
   todayIso: string,
   hasImage: boolean
 ): string {
@@ -105,6 +107,9 @@ function buildSystemPrompt(
     : "";
   const hubBlock = hubContext
     ? `\n\n## Knowledge base (cite when relevant)\nYou have access to the following course materials. Quote and reference them when answering:\n\n${hubContext}`
+    : "";
+  const agentFilesBlock = agentFilesContext
+    ? `\n\n## Personal study materials uploaded by the student to this agent\nThese are the student's own course documents (syllabus, lecture notes, textbook chapters). Treat them as the authoritative source for this course. Cite the document title in your answer when you use them. If a question can be answered from these materials, prefer them over generic knowledge.\n\n${agentFilesContext}`
     : "";
 
   const principles = `\n\n## How you respond
@@ -134,7 +139,7 @@ The student has attached an image. Analyze it carefully:
 
 Never use a tool unless it directly serves the student's request.`;
 
-  return `${base}${soulBlock}${memoryBlock}${hubBlock}${principles}${visionBlock}${toolGuidance}`;
+  return `${base}${soulBlock}${memoryBlock}${hubBlock}${agentFilesBlock}${principles}${visionBlock}${toolGuidance}`;
 }
 
 const TOOLS: Groq.Chat.ChatCompletionTool[] = [
@@ -423,6 +428,29 @@ export async function POST(
       }
     }
 
+    let agentFilesContext = "";
+    if (agent) {
+      const agentFiles = await db
+        .select()
+        .from(agentFilesTable)
+        .where(eq(agentFilesTable.agentId, agent.id))
+        .orderBy(agentFilesTable.createdAt);
+      if (agentFiles.length > 0) {
+        // Soft cap total chars to keep prompt size sane (~50k chars ≈ 12-15k tokens)
+        const MAX_TOTAL = 50_000;
+        let used = 0;
+        const chunks: string[] = [];
+        for (const f of agentFiles) {
+          const remaining = MAX_TOTAL - used;
+          if (remaining <= 200) break;
+          const body = f.content.length > remaining ? f.content.slice(0, remaining) + "\n…[truncated]" : f.content;
+          chunks.push(`### ${f.title}\n${body}`);
+          used += body.length + f.title.length + 8;
+        }
+        agentFilesContext = chunks.join("\n\n---\n\n");
+      }
+    }
+
     const memoryRows = agent
       ? await db
           .select()
@@ -483,7 +511,9 @@ export async function POST(
       ? "looking"
       : agent?.learningHubId && hubContext
         ? "reading-hub"
-        : detectVerbFromMessage(content, hasImage);
+        : agentFilesContext
+          ? "reading-notes"
+          : detectVerbFromMessage(content, hasImage);
 
     const systemPrompt = buildSystemPrompt(
       agent
@@ -500,6 +530,7 @@ export async function POST(
         : null,
       memoryContext,
       hubContext,
+      agentFilesContext,
       todayIso,
       hasImage
     );
