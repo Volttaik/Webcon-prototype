@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Check, Brain, Menu, ChevronRight, Sun, Moon, Monitor, Loader2, Zap, Camera, ArrowUpRight, ArrowDownRight, Receipt, CreditCard, Sparkles } from 'lucide-react';
+import { Trash2, Check, Brain, Menu, ChevronRight, Sun, Moon, Monitor, Loader2, Zap, Camera, ArrowUpRight, ArrowDownRight, Receipt, CreditCard, Sparkles, Send, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -281,6 +281,188 @@ function AppearanceSettings() {
   );
 }
 
+interface CreditTransfer {
+  id: number;
+  senderId: number;
+  recipientId: number;
+  recipientEmail: string;
+  amount: number;
+  note: string | null;
+  createdAt: string;
+}
+
+interface TransferSummary {
+  monthlyLimit: number;
+  monthlyUsed: number;
+  monthlyRemaining: number;
+  sent: CreditTransfer[];
+  received: CreditTransfer[];
+}
+
+function TransferCreditsCard() {
+  const queryClient = useQueryClient();
+  const { user, refreshProfile } = useAuth();
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
+
+  const { data: summary, isLoading } = useQuery<TransferSummary>({
+    queryKey: ['credit-transfers'],
+    queryFn: async () => {
+      const res = await fetch('/api/credits/transfer');
+      if (!res.ok) {
+        return { monthlyLimit: 500, monthlyUsed: 0, monthlyRemaining: 500, sent: [], received: [] };
+      }
+      return res.json();
+    },
+  });
+
+  const transferMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/credits/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientEmail: recipientEmail.trim(),
+          amount: Math.floor(Number(amount)),
+          note: note.trim() || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Transfer failed');
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Sent ${data.transfer.amount} credits to ${data.transfer.recipientEmail}.`);
+      setAmount('');
+      setNote('');
+      setRecipientEmail('');
+      refreshProfile();
+      queryClient.invalidateQueries({ queryKey: ['credit-transfers'] });
+      queryClient.invalidateQueries({ queryKey: ['credit-transactions'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const limit = summary?.monthlyLimit ?? 500;
+  const used = summary?.monthlyUsed ?? 0;
+  const remaining = summary?.monthlyRemaining ?? limit;
+  const usedPct = Math.min(100, Math.round((used / limit) * 100));
+  const balance = user?.creditBalance ?? 0;
+  const numericAmount = Math.floor(Number(amount));
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail.trim());
+  const validAmount = Number.isFinite(numericAmount) && numericAmount > 0;
+  const canSubmit =
+    validEmail &&
+    validAmount &&
+    numericAmount <= remaining &&
+    numericAmount <= balance &&
+    !transferMutation.isPending;
+
+  const recent = (summary?.sent ?? []).slice(0, 6);
+
+  return (
+    <Section title="Transfer credits" desc={`Send credits to another EduBridge user by email. Up to ${limit} credits per month.`}>
+      <div className="border border-border rounded-2xl bg-card shadow-elevation-sm p-5 space-y-4">
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[11px] text-muted-foreground">This month</p>
+            <p className="text-[11px] font-medium tabular-nums">{used} / {limit}</p>
+          </div>
+          <div className="h-1.5 rounded-full bg-secondary border border-border overflow-hidden">
+            <div
+              className={cn('h-full transition-all', remaining === 0 ? 'bg-destructive' : 'bg-foreground')}
+              style={{ width: `${usedPct}%` }}
+            />
+          </div>
+          <p className="text-[10.5px] text-muted-foreground/70 mt-1.5">
+            {remaining > 0 ? `${remaining} credit(s) remaining this month` : 'Monthly limit reached — resets next month'}
+          </p>
+        </div>
+
+        <div className="space-y-3 pt-1">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Recipient email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={recipientEmail}
+                onChange={e => setRecipientEmail(e.target.value)}
+                type="email"
+                placeholder="friend@gmail.com"
+                className="pl-9 h-9 text-sm"
+                autoComplete="email"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-1.5 col-span-1">
+              <Label className="text-xs">Amount</Label>
+              <Input
+                value={amount}
+                onChange={e => setAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                inputMode="numeric"
+                placeholder="100"
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5 col-span-2">
+              <Label className="text-xs">Note <span className="text-muted-foreground/70 font-normal">(optional)</span></Label>
+              <Input
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                placeholder="Thanks for the notes!"
+                maxLength={120}
+                className="h-9 text-sm"
+              />
+            </div>
+          </div>
+          {validAmount && numericAmount > balance && (
+            <p className="text-[11px] text-destructive">You only have {balance} credits.</p>
+          )}
+          {validAmount && numericAmount > remaining && numericAmount <= balance && (
+            <p className="text-[11px] text-destructive">That exceeds your remaining monthly limit ({remaining}).</p>
+          )}
+          <Button
+            size="sm"
+            className="w-full h-9 text-xs gap-1.5"
+            onClick={() => transferMutation.mutate()}
+            disabled={!canSubmit}
+          >
+            {transferMutation.isPending ? (
+              <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Sending…</>
+            ) : (
+              <><Send className="h-3.5 w-3.5" /> Send {validAmount ? `${numericAmount} credit${numericAmount === 1 ? '' : 's'}` : 'credits'}</>
+            )}
+          </Button>
+        </div>
+
+        {isLoading ? null : recent.length > 0 && (
+          <div className="pt-3 border-t border-border">
+            <p className="text-[11px] text-muted-foreground mb-2">Recent transfers</p>
+            <div className="space-y-1.5">
+              {recent.map(t => (
+                <div key={t.id} className="flex items-center justify-between text-[11.5px]">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <ArrowUpRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className="truncate">{t.recipientEmail}</span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-muted-foreground/70 text-[10.5px]">
+                      {formatDistanceToNow(new Date(t.createdAt), { addSuffix: true })}
+                    </span>
+                    <span className="font-medium tabular-nums">−{t.amount}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </Section>
+  );
+}
+
 interface CreditTxn {
   id: number;
   amount: number;
@@ -369,6 +551,8 @@ function CreditsSettings() {
           </div>
         </div>
       </Section>
+
+      <TransferCreditsCard />
 
       <Section title="Buy credits" desc="Priced in Naira (₦). Credits never expire. Payments secured by Paystack.">
         <div className="space-y-2.5">

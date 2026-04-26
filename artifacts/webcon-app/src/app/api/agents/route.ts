@@ -6,6 +6,8 @@ import {
   creditBalancesTable,
   creditTransactionsTable,
   agentSubscriptionsTable,
+  hubSubscriptionsTable,
+  learningHubsTable,
   usersTable,
 } from "@workspace/db";
 import { eq, and, count, sql } from "drizzle-orm";
@@ -207,6 +209,54 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // For hub agents, require an active subscription and resolve the creator name.
+    let resolvedName: string = name;
+    if (learningHubId) {
+      const [hub] = await db
+        .select({
+          hub: learningHubsTable,
+          creatorFirst: usersTable.firstName,
+          creatorLast: usersTable.lastName,
+          creatorEmail: usersTable.email,
+        })
+        .from(learningHubsTable)
+        .leftJoin(usersTable, eq(usersTable.id, learningHubsTable.creatorId))
+        .where(eq(learningHubsTable.id, parseInt(String(learningHubId))))
+        .limit(1);
+
+      if (!hub) {
+        return NextResponse.json({ error: "Learning hub not found" }, { status: 404 });
+      }
+
+      // The hub creator can build agents from their own hub for free without subscribing.
+      const isOwnHub = hub.hub.creatorId === session.userId;
+      if (!isOwnHub) {
+        const [sub] = await db
+          .select()
+          .from(hubSubscriptionsTable)
+          .where(and(
+            eq(hubSubscriptionsTable.userId, session.userId),
+            eq(hubSubscriptionsTable.hubId, hub.hub.id),
+            eq(hubSubscriptionsTable.active, true),
+          ))
+          .limit(1);
+        if (!sub) {
+          return NextResponse.json({
+            error: "Subscribe to this hub before creating an agent from it.",
+            subscriptionRequired: true,
+          }, { status: 403 });
+        }
+      }
+
+      const fullCreator = `${hub.creatorFirst ?? ""} ${hub.creatorLast ?? ""}`.trim();
+      const creatorName = fullCreator || (hub.creatorEmail ?? "").split("@")[0] || "Creator";
+
+      // Strip any pre-existing "[by ...]" suffix the client may have added,
+      // then re-append the canonical one to keep the convention authoritative.
+      const baseName = String(name).replace(/\s*\[by [^\]]+\]\s*$/i, "").trim();
+      resolvedName = `${baseName} [by ${creatorName}]`;
+    }
+
     // Calculate credit cost based on plan
     let creditCost: number;
     if (isCreator || (!learningHubId && existingAgentCount === 0)) {
@@ -241,19 +291,20 @@ export async function POST(request: NextRequest) {
       await db.insert(creditTransactionsTable).values({
         userId: session.userId,
         amount: -creditCost,
-        type: "agent_creation",
-        description: `Created agent: ${name}`,
+        type: learningHubId ? "hub_agent_creation" : "agent_creation",
+        description: `Created agent: ${resolvedName}`,
       });
     }
 
     const soulMd = generateSoulMd(personalityDescription, tone, domain);
-    const generatedPrompt = buildSystemPrompt(name, subject, level, tone, domain, soulMd, systemPrompt);
+    const generatedPrompt = buildSystemPrompt(resolvedName, subject, level, tone, domain, soulMd, systemPrompt);
 
     const [agent] = await db
       .insert(agentsTable)
       .values({
         userId: session.userId,
-        name, subject, level, tone, domain,
+        name: resolvedName,
+        subject, level, tone, domain,
         personalityDescription, soulMd,
         systemPrompt: generatedPrompt,
         learningHubId: learningHubId || null,

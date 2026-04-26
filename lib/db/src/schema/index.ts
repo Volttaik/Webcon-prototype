@@ -4,6 +4,7 @@ export * from "./agents";
 export * from "./conversations";
 export * from "./messages";
 export * from "./credits";
+export * from "./credit_transfers";
 export * from "./workspace";
 export * from "./schedule";
 export * from "./projects";

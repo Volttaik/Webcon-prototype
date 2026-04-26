@@ -65,6 +65,17 @@ export async function register() {
           CONSTRAINT push_subscriptions_endpoint_key UNIQUE (endpoint)
         )`,
         `CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)`,
+        `CREATE TABLE IF NOT EXISTS credit_transfers (
+          id SERIAL PRIMARY KEY,
+          sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          recipient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          recipient_email TEXT NOT NULL,
+          amount INTEGER NOT NULL,
+          note TEXT,
+          created_at TEXT NOT NULL DEFAULT NOW()::TEXT
+        )`,
+        `CREATE INDEX IF NOT EXISTS idx_credit_transfers_sender_created ON credit_transfers(sender_id, created_at DESC)`,
+        `CREATE INDEX IF NOT EXISTS idx_credit_transfers_recipient_created ON credit_transfers(recipient_id, created_at DESC)`,
       ];
 
       let ok = 0;

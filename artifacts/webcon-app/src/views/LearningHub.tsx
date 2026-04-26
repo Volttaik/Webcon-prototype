@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppHeader from '@/components/layout/AppHeader';
+import HubAgentCreatorDialog from '@/components/HubAgentCreatorDialog';
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -24,6 +25,7 @@ interface LearningHub {
   fileCount: number;
   subscriberCount: number;
   status: string;
+  creatorName: string;
   createdAt: string;
 }
 
@@ -62,9 +64,15 @@ export default function LearningHub() {
   const { user, refreshProfile } = useAuth();
   const [search, setSearch] = useState('');
   const [actingId, setActingId] = useState<number | null>(null);
+  const [creatorHub, setCreatorHub] = useState<LearningHub | null>(null);
 
   const { data: realHubs = [] } = useQuery({ queryKey: ['learning-hubs'], queryFn: fetchLearningHubs });
   const { data: myHub } = useQuery({ queryKey: ['my-hub'], queryFn: fetchMyHub });
+  const { data: mySubscriptions = [] } = useQuery({
+    queryKey: ['my-hub-subscriptions'],
+    queryFn: fetchMySubscriptions,
+  });
+  const subscribedSet = new Set<number>(mySubscriptions);
 
   const allHubs = realHubs.filter(h =>
     h.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -89,13 +97,22 @@ export default function LearningHub() {
       refreshProfile();
       queryClient.invalidateQueries({ queryKey: ['credits'] });
       queryClient.invalidateQueries({ queryKey: ['learning-hubs'] });
-      toast.success(`Subscribed! ${data.creditsCharged} credits deducted.`);
+      queryClient.invalidateQueries({ queryKey: ['my-hub-subscriptions'] });
+      toast.success(
+        data.freeAccess
+          ? 'Subscribed with your Creator plan — no credits charged.'
+          : `Subscribed! ${data.creditsCharged} credits deducted.`,
+      );
     },
     onError: (err: Error) => toast.error(err.message),
   });
 
   const handleCreateAgentFromHub = (hub: LearningHub) => {
-    navigate(`/dashboard?hub=${hub.id}&hubCost=${hub.agentCost}`);
+    if (!subscribedSet.has(hub.id)) {
+      toast.error('Subscribe to this hub before creating an agent from it.');
+      return;
+    }
+    setCreatorHub(hub);
   };
 
   const handleSubscribe = async (hub: LearningHub) => {
@@ -173,7 +190,7 @@ export default function LearningHub() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="text-[13px] font-medium">Available Hubs</h2>
-                <p className="text-[12px] text-muted-foreground mt-0.5">Subscribe for 50 credits · Create an agent for 200 credits</p>
+                <p className="text-[12px] text-muted-foreground mt-0.5">Subscribe for 50 credits · Then build a hub agent named after the creator</p>
               </div>
             </div>
 
@@ -227,21 +244,33 @@ export default function LearningHub() {
                     </div>
 
                     <div className="flex items-center gap-2 pt-3 border-t border-border">
-                      <Button
-                        size="sm" variant="outline"
-                        className="h-7 text-[11px] flex-1 gap-1.5"
-                        onClick={() => handleSubscribe(hub)}
-                        disabled={actingId === hub.id}
-                      >
-                        {actingId === hub.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Coins className="h-3 w-3" />}
-                        Subscribe · 50 cr
-                      </Button>
+                      {subscribedSet.has(hub.id) ? (
+                        <Button
+                          size="sm" variant="outline"
+                          className="h-7 text-[11px] flex-1 gap-1.5 border-green-500/40 bg-green-500/5 text-green-600 hover:bg-green-500/10 cursor-default"
+                          disabled
+                        >
+                          <Check className="h-3 w-3" /> Subscribed
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm" variant="outline"
+                          className="h-7 text-[11px] flex-1 gap-1.5"
+                          onClick={() => handleSubscribe(hub)}
+                          disabled={actingId === hub.id}
+                        >
+                          {actingId === hub.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Coins className="h-3 w-3" />}
+                          Subscribe · 50 cr
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         className="h-7 text-[11px] flex-1 gap-1.5"
                         onClick={() => handleCreateAgentFromHub(hub)}
+                        disabled={!subscribedSet.has(hub.id)}
+                        title={subscribedSet.has(hub.id) ? `Build an agent from "${hub.title}"` : 'Subscribe to unlock'}
                       >
-                        <Brain className="h-3 w-3" /> Agent · 200 cr
+                        <Brain className="h-3 w-3" /> Agent · {hub.agentCost ?? 700} cr
                       </Button>
                     </div>
                   </motion.div>
@@ -255,7 +284,7 @@ export default function LearningHub() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { step: '01', title: 'Subscribe to a hub', desc: 'Pay 50 credits to unlock a hub\'s specialized knowledge for your agents.' },
-                { step: '02', title: 'Create a hub agent', desc: 'Build an AI agent powered by the hub\'s content for 200 credits.' },
+                { step: '02', title: 'Create a hub agent', desc: 'Saved as "Your name [by Creator]" — clearly attributed to the hub creator.' },
                 { step: '03', title: 'Chat with depth', desc: 'Your agent reads from the hub database and gives expert, up-to-date answers.' },
               ].map(item => (
                 <div key={item.step} className="border border-border rounded-2xl p-5 bg-card">
@@ -268,6 +297,23 @@ export default function LearningHub() {
           </section>
         </div>
       </main>
+
+      {creatorHub && (
+        <HubAgentCreatorDialog
+          hub={{
+            id: creatorHub.id,
+            title: creatorHub.title,
+            domain: creatorHub.domain,
+            agentCost: creatorHub.agentCost,
+            creatorName: creatorHub.creatorName,
+          }}
+          onClose={() => setCreatorHub(null)}
+          onCreate={(agent) => {
+            queryClient.invalidateQueries({ queryKey: ['agents'] });
+            navigate(agent.id ? `/chat?agent=${agent.id}` : '/dashboard');
+          }}
+        />
+      )}
     </div>
   );
 }
