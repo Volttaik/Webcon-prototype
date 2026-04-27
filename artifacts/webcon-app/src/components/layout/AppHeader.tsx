@@ -203,9 +203,6 @@ function MyAgentsPanel({ onNavigate }: { onNavigate: (href: string) => void }) {
  );
  }
 
- const visible = agents.slice(0, 8);
- const more = agents.length - visible.length;
-
  return (
  <div>
  <div className="flex items-center justify-between px-2 mb-1.5">
@@ -217,13 +214,16 @@ function MyAgentsPanel({ onNavigate }: { onNavigate: (href: string) => void }) {
  See all
  </button>
  </div>
- <div className="grid grid-cols-4 gap-2 px-1">
- {visible.map(a => (
+ <div
+ className="flex gap-2 px-1 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+ style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+ >
+ {agents.map(a => (
  <button
  key={a.id}
  onClick={() => onNavigate(`/chat?agent=${a.id}`)}
  title={`${a.name} · ${a.subject}`}
- className="flex flex-col items-center gap-1 p-1.5 rounded-xl hover:bg-secondary/60 transition-colors group"
+ className="shrink-0 flex flex-col items-center gap-1 p-1.5 rounded-xl hover:bg-secondary/60 transition-colors group w-14"
  >
  <AgentAvatar id={a.id} name={a.name} subject={a.subject} avatarUrl={a.avatarUrl} size={36} />
  <span className="text-[10px] text-muted-foreground/80 truncate w-full text-center group-hover:text-foreground">
@@ -231,15 +231,6 @@ function MyAgentsPanel({ onNavigate }: { onNavigate: (href: string) => void }) {
  </span>
  </button>
  ))}
- {more > 0 && (
- <button
- onClick={() => onNavigate('/dashboard')}
- className="flex flex-col items-center justify-center gap-1 p-1.5 rounded-xl border border-dashed border-border hover:bg-secondary/60 hover:border-foreground/25 transition-colors"
- >
- <span className="text-[11px] font-medium text-muted-foreground">+{more}</span>
- <span className="text-[9px] text-muted-foreground/60">more</span>
- </button>
- )}
  </div>
  </div>
  );
@@ -249,6 +240,13 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  const navigate = useNavigate();
  const { user } = useAuth();
  const go = (href: string) => { navigate(href); onClose(); };
+
+ useEffect(() => {
+ if (!open) return;
+ const prev = document.body.style.overflow;
+ document.body.style.overflow = 'hidden';
+ return () => { document.body.style.overflow = prev; };
+ }, [open]);
 
  return (
  <>
@@ -261,7 +259,7 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  />
  <div
  key="panel"
- className="fixed left-0 top-0 z-50 w-64 max-h-screen bg-background border-r border-b border-border rounded-br-2xl flex flex-col overflow-hidden"
+ className="fixed left-0 top-0 z-50 w-64 bg-background border-r border-b border-border rounded-br-2xl flex flex-col"
  style={{ boxShadow: '4px 4px 24px rgba(0,0,0,0.18)', willChange: 'transform' }}
  >
  <div className="h-12 flex items-center justify-between px-4 border-b border-border shrink-0">
@@ -274,7 +272,7 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  </Button>
  </div>
 
- <div className="min-h-0 overflow-y-auto flex flex-col">
+ <div className="flex flex-col">
  <div className="px-3 pt-3 pb-2">
  <button
  onClick={() => go('/dashboard')}
