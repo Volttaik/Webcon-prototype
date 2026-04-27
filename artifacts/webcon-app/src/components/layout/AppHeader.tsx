@@ -261,8 +261,8 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  />
  <div
  key="panel"
- className="fixed left-0 top-0 bottom-0 z-50 w-64 bg-background border-r border-border flex flex-col"
- style={{ boxShadow: '4px 0 20px rgba(0,0,0,0.10)', willChange: 'transform' }}
+ className="fixed left-0 top-0 z-50 w-64 max-h-screen bg-background border-r border-b border-border rounded-br-2xl flex flex-col overflow-hidden"
+ style={{ boxShadow: '4px 4px 24px rgba(0,0,0,0.18)', willChange: 'transform' }}
  >
  <div className="h-12 flex items-center justify-between px-4 border-b border-border shrink-0">
  <button onClick={() => go('/')} className="flex items-center gap-2 hover:opacity-60 transition-opacity">
@@ -274,7 +274,7 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  </Button>
  </div>
 
- <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+ <div className="min-h-0 overflow-y-auto flex flex-col">
  <div className="px-3 pt-3 pb-2">
  <button
  onClick={() => go('/dashboard')}
