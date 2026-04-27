@@ -216,8 +216,8 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  </div>
 
  <div
- className="flex-1 min-h-0 overflow-y-auto flex flex-col [&::-webkit-scrollbar]:hidden"
- style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+ className="flex-1 min-h-0 overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden"
+ style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
  >
  <div className="px-3 pt-3 pb-2">
  <button
@@ -267,8 +267,8 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  </div>
  </div>
  </nav>
- <SidebarUserFooter onNavigate={go} />
  </div>
+ <SidebarUserFooter onNavigate={go} />
  </div>
  </>
  )}
