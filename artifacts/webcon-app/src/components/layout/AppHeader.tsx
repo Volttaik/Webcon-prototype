@@ -1,19 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
  Settings, User, HelpCircle, LogOut, X,
  Brain, BookOpen, CalendarDays, BarChart2, LayoutDashboard,
  Plus, ChevronDown, MessageSquare, Clock, Zap,
  FolderKanban, Briefcase, CreditCard, MessageCircle,
+ Pencil, Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
 import NotificationBell from '@/components/NotificationBell';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
-import { fetchConversations, fetchAgents, type Conversation, type Agent } from '@/lib/data-service';
+import { fetchConversations, fetchAgents, deleteAgent, type Conversation, type Agent } from '@/lib/data-service';
 import AgentAvatar from '@/components/AgentAvatar';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 const STUDY_ITEMS = [
  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -182,11 +184,72 @@ function AgentsSubmenu({ onNavigate }: { onNavigate: (href: string) => void }) {
 function MyAgentsPanel({ onNavigate }: { onNavigate: (href: string) => void }) {
  const { user } = useAuth();
  const [agents, setAgents] = useState<Agent[]>([]);
+ const [actionAgent, setActionAgent] = useState<Agent | null>(null);
+ const [renaming, setRenaming] = useState<Agent | null>(null);
+ const [renameValue, setRenameValue] = useState('');
+ const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+ const longPressTriggeredRef = useRef(false);
 
  useEffect(() => {
  if (!user?.id) return;
  fetchAgents(user.id).then(setAgents).catch(() => {});
  }, [user?.id]);
+
+ const startPress = (a: Agent) => {
+ longPressTriggeredRef.current = false;
+ pressTimerRef.current = setTimeout(() => {
+ longPressTriggeredRef.current = true;
+ setActionAgent(a);
+ if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+ try { navigator.vibrate(30); } catch {}
+ }
+ }, 450);
+ };
+ const cancelPress = () => {
+ if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+ pressTimerRef.current = null;
+ };
+ const handleClick = (a: Agent) => {
+ if (longPressTriggeredRef.current) {
+ longPressTriggeredRef.current = false;
+ return;
+ }
+ onNavigate(`/chat?agent=${a.id}`);
+ };
+
+ const handleRename = async () => {
+ if (!renaming) return;
+ const newName = renameValue.trim();
+ if (!newName || newName === renaming.name) { setRenaming(null); return; }
+ try {
+ const res = await fetch(`/api/agents/${renaming.id}`, {
+ method: 'PATCH',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ name: newName }),
+ });
+ if (!res.ok) throw new Error('Could not rename');
+ setAgents(prev => prev.map(x => x.id === renaming.id ? { ...x, name: newName } : x));
+ toast.success('Agent renamed');
+ } catch (e) {
+ toast.error((e as Error).message || 'Rename failed');
+ } finally {
+ setRenaming(null);
+ }
+ };
+
+ const handleDelete = async () => {
+ if (!actionAgent) return;
+ const a = actionAgent;
+ setActionAgent(null);
+ try {
+ const ok = await deleteAgent(a.id);
+ if (!ok) throw new Error('Delete failed');
+ setAgents(prev => prev.filter(x => x.id !== a.id));
+ toast.success(`${a.name} deleted`);
+ } catch (e) {
+ toast.error((e as Error).message || 'Could not delete');
+ }
+ };
 
  if (agents.length === 0) {
  return (
@@ -215,13 +278,21 @@ function MyAgentsPanel({ onNavigate }: { onNavigate: (href: string) => void }) {
  </button>
  </div>
  <div
- className="flex gap-2 px-1 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+ className="flex gap-2 px-1 overflow-x-auto [&::-webkit-scrollbar]:hidden select-none"
  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
  >
  {agents.map(a => (
  <button
  key={a.id}
- onClick={() => onNavigate(`/chat?agent=${a.id}`)}
+ onClick={() => handleClick(a)}
+ onTouchStart={() => startPress(a)}
+ onTouchEnd={cancelPress}
+ onTouchMove={cancelPress}
+ onTouchCancel={cancelPress}
+ onMouseDown={() => startPress(a)}
+ onMouseUp={cancelPress}
+ onMouseLeave={cancelPress}
+ onContextMenu={(e) => { e.preventDefault(); setActionAgent(a); }}
  title={`${a.name} · ${a.subject}`}
  className="shrink-0 flex flex-col items-center gap-1 p-1.5 rounded-xl hover:bg-secondary/60 transition-colors group w-14"
  >
@@ -232,6 +303,68 @@ function MyAgentsPanel({ onNavigate }: { onNavigate: (href: string) => void }) {
  </button>
  ))}
  </div>
+
+ {actionAgent && (
+ <div className="fixed inset-0 z-[60] flex items-end justify-center" onClick={() => setActionAgent(null)}>
+ <div className="absolute inset-0 bg-background/70" />
+ <div
+ className="relative w-full max-w-sm m-3 rounded-2xl bg-background border border-border shadow-elevation-lg overflow-hidden"
+ onClick={(e) => e.stopPropagation()}
+ >
+ <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+ <AgentAvatar id={actionAgent.id} name={actionAgent.name} subject={actionAgent.subject} avatarUrl={actionAgent.avatarUrl} size={32} />
+ <div className="min-w-0">
+ <p className="text-sm font-semibold truncate">{actionAgent.name}</p>
+ <p className="text-[11px] text-muted-foreground truncate">{actionAgent.subject}</p>
+ </div>
+ </div>
+ <button
+ onClick={() => { setRenameValue(actionAgent.name); setRenaming(actionAgent); setActionAgent(null); }}
+ className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary/60 transition-colors text-left"
+ >
+ <Pencil className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+ Rename
+ </button>
+ <button
+ onClick={handleDelete}
+ className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors text-left border-t border-border"
+ >
+ <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+ Delete agent
+ </button>
+ <button
+ onClick={() => setActionAgent(null)}
+ className="w-full px-4 py-3 text-sm text-muted-foreground hover:bg-secondary/60 transition-colors text-center border-t border-border"
+ >
+ Cancel
+ </button>
+ </div>
+ </div>
+ )}
+
+ {renaming && (
+ <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={() => setRenaming(null)}>
+ <div className="absolute inset-0 bg-background/70" />
+ <div
+ className="relative w-full max-w-sm rounded-2xl bg-background border border-border shadow-elevation-lg p-5"
+ onClick={(e) => e.stopPropagation()}
+ >
+ <p className="text-sm font-semibold mb-3">Rename agent</p>
+ <input
+ autoFocus
+ value={renameValue}
+ onChange={(e) => setRenameValue(e.target.value)}
+ onKeyDown={(e) => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') setRenaming(null); }}
+ className="w-full px-3 py-2 rounded-xl bg-secondary/50 border border-border text-sm text-foreground focus:outline-none focus:border-foreground/30"
+ placeholder="Agent name"
+ />
+ <div className="flex justify-end gap-2 mt-4">
+ <button onClick={() => setRenaming(null)} className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
+ <button onClick={handleRename} className="px-3 py-1.5 text-sm bg-foreground text-background rounded-lg hover:opacity-80">Save</button>
+ </div>
+ </div>
+ </div>
+ )}
  </div>
  );
 }
@@ -259,8 +392,8 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  />
  <div
  key="panel"
- className="fixed left-0 top-0 z-50 w-64 bg-background border-r border-b border-border rounded-br-2xl flex flex-col"
- style={{ boxShadow: '4px 4px 24px rgba(0,0,0,0.18)', willChange: 'transform' }}
+ className="fixed left-0 top-0 bottom-0 z-50 w-64 bg-background border-r border-border flex flex-col"
+ style={{ boxShadow: '4px 0 24px rgba(0,0,0,0.18)', willChange: 'transform' }}
  >
  <div className="h-12 flex items-center justify-between px-4 border-b border-border shrink-0">
  <button onClick={() => go('/')} className="flex items-center gap-2 hover:opacity-60 transition-opacity">
@@ -272,7 +405,10 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  </Button>
  </div>
 
- <div className="flex flex-col">
+ <div
+ className="flex-1 min-h-0 overflow-y-auto flex flex-col [&::-webkit-scrollbar]:hidden"
+ style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+ >
  <div className="px-3 pt-3 pb-2">
  <button
  onClick={() => go('/dashboard')}
