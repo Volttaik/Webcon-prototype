@@ -274,7 +274,8 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  </Button>
  </div>
 
- <div className="px-3 pt-3 pb-2 shrink-0">
+ <div className="flex-1 min-h-0 overflow-y-auto">
+ <div className="px-3 pt-3 pb-2">
  <button
  onClick={() => go('/dashboard')}
  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground/25 hover:bg-secondary/40 transition-all text-[13px]"
@@ -284,7 +285,7 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  </button>
  </div>
 
- <nav className="flex-1 overflow-y-auto px-3 py-1 space-y-4">
+ <nav className="px-3 py-1 pb-3 space-y-4">
  <div>
  <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-widest px-2 mb-1.5">Study</p>
  <div className="space-y-0.5">
@@ -324,6 +325,7 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
 
  <MyAgentsPanel onNavigate={go} />
  </nav>
+ </div>
 
  <SidebarUserFooter onNavigate={go} />
  </div>

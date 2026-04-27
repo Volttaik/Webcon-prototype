@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme';
+import { motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchAgents, deleteAgent, type Agent } from '@/lib/data-service';
 
@@ -240,30 +241,45 @@ function AppearanceSettings() {
     { value: 'system', label: 'System', Icon: Monitor },
   ] as const;
 
+  const activeIndex = Math.max(0, options.findIndex(o => o.value === theme));
+
   return (
     <div className="max-w-lg space-y-6">
       <Section title="Theme" desc="Choose how EduBridge looks for you.">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="relative grid grid-cols-3 gap-2 p-1.5 rounded-2xl border border-border bg-secondary/40">
+          <motion.div
+            layout
+            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+            className="absolute top-1.5 bottom-1.5 rounded-xl bg-background border border-border shadow-elevation-sm"
+            style={{
+              width: `calc((100% - 0.75rem) / 3)`,
+              left: `calc(0.375rem + (100% - 0.75rem) / 3 * ${activeIndex})`,
+            }}
+          />
           {options.map(({ value, label, Icon }) => (
             <button
               key={value}
               onClick={() => setTheme(value)}
               className={cn(
-                'flex flex-col items-center gap-2.5 p-4 rounded-2xl border transition-all',
-                theme === value
-                  ? 'border-foreground bg-secondary shadow-elevation-sm'
-                  : 'border-border hover:border-foreground/20 hover:bg-secondary/40'
+                'relative z-10 flex flex-col items-center gap-2 px-2 py-3 rounded-xl transition-colors',
+                theme === value ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Icon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+              <Icon className="h-4 w-4" strokeWidth={1.5} />
               <span className="text-xs font-medium">{label}</span>
-              {theme === value && (
-                <div
-                  className="w-1.5 h-1.5 rounded-full bg-foreground"
-                />
-              )}
+              <span className="block w-1.5 h-1.5" />
             </button>
           ))}
+          {/* Animated dot that slides between the active option */}
+          <motion.span
+            aria-hidden
+            className="pointer-events-none absolute bottom-3 z-20 block w-1.5 h-1.5 rounded-full bg-foreground"
+            initial={false}
+            animate={{
+              left: `calc(0.375rem + (100% - 0.75rem) / 3 * ${activeIndex} + (100% - 0.75rem) / 6 - 0.1875rem)`,
+            }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+          />
         </div>
         <p className="text-xs text-muted-foreground">
           {theme === 'dark'

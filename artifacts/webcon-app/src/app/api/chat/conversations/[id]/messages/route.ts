@@ -130,14 +130,18 @@ The student has attached an image. Analyze it carefully:
 - Solve or explain step-by-step`
     : "";
 
-  const toolGuidance = `\n\n## Tools you can use (use them when actually helpful, not just because the user mentions them)
+  const toolGuidance = `\n\n## Tools (use sparingly — default is just conversation)
 - **web_search** — for current events, recent papers, things you may not know, fact-checking.
-- **schedule_session** — when the student wants to plan, book, or schedule a study session, exam prep, etc. Use the date/time the student gives you (relative to today: ${todayIso}).
-- **create_document** — when the student asks you to write, save, or create a note, summary, study guide, essay, plan, or report.
-- **create_project** — when the student asks for a multi-step project, research plan, or assignment breakdown.
-- **plan_schedule** — for a written study plan document (NOT a single calendar session — use schedule_session for that).
+- **schedule_session** — only when the student EXPLICITLY asks to book/schedule a calendar session ("schedule X for tomorrow at 4pm"). Use the date/time relative to today: ${todayIso}.
+- **create_document** — only when the student EXPLICITLY asks you to "save", "write", "create", or "make" a note, summary, study guide, essay, plan, or report.
+- **create_project** — only when the student EXPLICITLY asks for a multi-step project to be saved/created.
+- **plan_schedule** — only when the student EXPLICITLY asks for a written study plan document (NOT a single calendar session — use schedule_session for that).
 
-Never use a tool unless it directly serves the student's request.`;
+## Critical rules
+- Default behaviour is plain conversation. Just answer.
+- Do NOT silently create documents, projects, or sessions because a topic involves planning or notes. Only act when the student directly asks you to save/create/schedule something.
+- Greetings, follow-up questions, explanations, summaries shown inline — none of these need a tool. If you're unsure, don't call the tool.
+- Calling a tool when not asked is worse than not calling one.`;
 
   return `${base}${soulBlock}${memoryBlock}${hubBlock}${agentFilesBlock}${principles}${visionBlock}${toolGuidance}`;
 }
