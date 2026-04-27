@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, Clock, MessageSquare, Brain,
@@ -48,7 +48,14 @@ function StatCard({ icon: Icon, label, value, sub, loading, shimmerDelay = '0s' 
 }
 
 /* ─── Agent card ─── */
-function AgentCard({ agent, index, onDelete, onOpenKnowledge }: { agent: Agent; index: number; onDelete: (id: number) => void; onOpenKnowledge: (a: Agent) => void }) {
+function AgentCard({ agent, index, onDelete, onOpenKnowledge, onPickAvatar, uploading }: {
+  agent: Agent;
+  index: number;
+  onDelete: (id: number) => void;
+  onOpenKnowledge: (a: Agent) => void;
+  onPickAvatar: (a: Agent) => void;
+  uploading: boolean;
+}) {
   const navigate = useNavigate();
   return (
     <div
@@ -57,7 +64,16 @@ function AgentCard({ agent, index, onDelete, onOpenKnowledge }: { agent: Agent; 
       onClick={() => navigate(`/chat?agent=${agent.id}`)}
     >
       <div className="flex items-start justify-between mb-4">
-        <AgentAvatar id={agent.id} name={agent.name} subject={agent.subject} size={36} />
+        <AgentAvatar
+          id={agent.id}
+          name={agent.name}
+          subject={agent.subject}
+          avatarUrl={agent.avatarUrl}
+          size={40}
+          onClick={(e) => { e.stopPropagation(); onPickAvatar(agent); }}
+          title={uploading ? 'Uploading…' : (agent.avatarUrl ? 'Change profile picture' : 'Set a profile picture')}
+          className={uploading ? 'opacity-60 animate-pulse' : ''}
+        />
         
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
@@ -196,6 +212,52 @@ export default function Dashboard() {
     }
   };
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [pendingAvatarAgent, setPendingAvatarAgent] = useState<Agent | null>(null);
+  const [uploadingAgentId, setUploadingAgentId] = useState<number | null>(null);
+
+  const handlePickAvatar = (a: Agent) => {
+    setPendingAvatarAgent(a);
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !pendingAvatarAgent) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please choose an image file'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5 MB'); return; }
+
+    const agent = pendingAvatarAgent;
+    setPendingAvatarAgent(null);
+    setUploadingAgentId(agent.id);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('bucket', 'chat-images');
+      fd.append('folder', `agent-avatars/${agent.id}`);
+      const up = await fetch('/api/upload', { method: 'POST', body: fd });
+      if (!up.ok) {
+        const j = await up.json().catch(() => ({}));
+        throw new Error(j.error || 'Upload failed');
+      }
+      const { url } = await up.json();
+
+      const res = await fetch(`/api/agents/${agent.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarUrl: url }),
+      });
+      if (!res.ok) throw new Error('Could not save avatar');
+      setAgents(prev => prev.map(a => a.id === agent.id ? { ...a, avatarUrl: url } : a));
+      toast.success('Profile picture updated');
+    } catch (err) {
+      toast.error((err as Error).message || 'Could not update avatar');
+    } finally {
+      setUploadingAgentId(null);
+    }
+  };
+
   const firstName = profile?.first_name || user?.email?.split('@')[0] || 'there';
 
   return (
@@ -203,6 +265,13 @@ export default function Dashboard() {
     <div className="min-h-screen app-ambient-bg">
       <AppHeader />
       <Toaster />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        onChange={handleAvatarFile}
+      />
       <div className="ambient-orb ambient-orb-light w-80 h-80 top-24 left-1/2 -translate-x-1/2 opacity-70" />
       <div className="ambient-orb ambient-orb-dark w-44 h-44 top-44 left-1/2 translate-x-24 opacity-45" />
 
@@ -309,7 +378,14 @@ export default function Dashboard() {
                         className="stagger-child"
                         style={{ ['--i' as never]: i } as React.CSSProperties}
                       >
-                        <AgentCard agent={agent} index={i} onDelete={handleDelete} onOpenKnowledge={setKnowledgeAgent} />
+                        <AgentCard
+                          agent={agent}
+                          index={i}
+                          onDelete={handleDelete}
+                          onOpenKnowledge={setKnowledgeAgent}
+                          onPickAvatar={handlePickAvatar}
+                          uploading={uploadingAgentId === agent.id}
+                        />
                       </div>
                     ))}
                   </>

@@ -11,7 +11,8 @@ import { Logo } from '@/components/Logo';
 import NotificationBell from '@/components/NotificationBell';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
-import { fetchConversations, type Conversation } from '@/lib/data-service';
+import { fetchConversations, fetchAgents, type Conversation, type Agent } from '@/lib/data-service';
+import AgentAvatar from '@/components/AgentAvatar';
 import { formatDistanceToNow } from 'date-fns';
 
 const STUDY_ITEMS = [
@@ -178,6 +179,72 @@ function AgentsSubmenu({ onNavigate }: { onNavigate: (href: string) => void }) {
  );
 }
 
+function MyAgentsPanel({ onNavigate }: { onNavigate: (href: string) => void }) {
+ const { user } = useAuth();
+ const [agents, setAgents] = useState<Agent[]>([]);
+
+ useEffect(() => {
+ if (!user?.id) return;
+ fetchAgents(user.id).then(setAgents).catch(() => {});
+ }, [user?.id]);
+
+ if (agents.length === 0) {
+ return (
+ <div>
+ <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-widest px-2 mb-1.5">My Agents</p>
+ <button
+ onClick={() => onNavigate('/dashboard')}
+ className="w-full flex items-center gap-2 px-3 py-3 rounded-xl border border-dashed border-border text-[12px] text-muted-foreground hover:text-foreground hover:border-foreground/25 hover:bg-secondary/40 transition-all"
+ >
+ <Plus className="h-3 w-3" />
+ Create your first agent
+ </button>
+ </div>
+ );
+ }
+
+ const visible = agents.slice(0, 8);
+ const more = agents.length - visible.length;
+
+ return (
+ <div>
+ <div className="flex items-center justify-between px-2 mb-1.5">
+ <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-widest">My Agents</p>
+ <button
+ onClick={() => onNavigate('/dashboard')}
+ className="text-[10px] text-muted-foreground/60 hover:text-foreground transition-colors"
+ >
+ See all
+ </button>
+ </div>
+ <div className="grid grid-cols-4 gap-2 px-1">
+ {visible.map(a => (
+ <button
+ key={a.id}
+ onClick={() => onNavigate(`/chat?agent=${a.id}`)}
+ title={`${a.name} · ${a.subject}`}
+ className="flex flex-col items-center gap-1 p-1.5 rounded-xl hover:bg-secondary/60 transition-colors group"
+ >
+ <AgentAvatar id={a.id} name={a.name} subject={a.subject} avatarUrl={a.avatarUrl} size={36} />
+ <span className="text-[10px] text-muted-foreground/80 truncate w-full text-center group-hover:text-foreground">
+ {a.name}
+ </span>
+ </button>
+ ))}
+ {more > 0 && (
+ <button
+ onClick={() => onNavigate('/dashboard')}
+ className="flex flex-col items-center justify-center gap-1 p-1.5 rounded-xl border border-dashed border-border hover:bg-secondary/60 hover:border-foreground/25 transition-colors"
+ >
+ <span className="text-[11px] font-medium text-muted-foreground">+{more}</span>
+ <span className="text-[9px] text-muted-foreground/60">more</span>
+ </button>
+ )}
+ </div>
+ </div>
+ );
+}
+
 function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  const navigate = useNavigate();
  const { user } = useAuth();
@@ -254,6 +321,8 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  ))}
  </div>
  </div>
+
+ <MyAgentsPanel onNavigate={go} />
  </nav>
 
  <SidebarUserFooter onNavigate={go} />

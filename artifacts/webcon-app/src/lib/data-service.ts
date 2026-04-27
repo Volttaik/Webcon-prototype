@@ -9,6 +9,7 @@ export interface Agent {
   personalityDescription?: string | null;
   soulMd?: string | null;
   systemPrompt: string | null;
+  avatarUrl?: string | null;
   learningHubId?: number | null;
   conversationCount?: number;
   subscription?: {

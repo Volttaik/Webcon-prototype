@@ -465,7 +465,7 @@ export default function ChatPage() {
               {currentConv ? (
                 <div className="flex items-center gap-2">
                   {currentAgent ? (
-                    <AgentAvatar id={currentAgent.id} name={currentAgent.name} subject={currentAgent.subject} size={22} />
+                    <AgentAvatar id={currentAgent.id} name={currentAgent.name} subject={currentAgent.subject} avatarUrl={currentAgent.avatarUrl} size={22} />
                   ) : (
                     <div className="w-5 h-5 rounded-md bg-secondary border border-border flex items-center justify-center">
                       <Brain className="h-3 w-3 text-muted-foreground" />
@@ -480,7 +480,7 @@ export default function ChatPage() {
                 </div>
               ) : currentAgent ? (
                 <div className="flex items-center gap-2">
-                  <AgentAvatar id={currentAgent.id} name={currentAgent.name} subject={currentAgent.subject} size={22} />
+                  <AgentAvatar id={currentAgent.id} name={currentAgent.name} subject={currentAgent.subject} avatarUrl={currentAgent.avatarUrl} size={22} />
                   <span className="text-sm font-medium text-muted-foreground">New conversation with {currentAgent.name}</span>
                 </div>
               ) : (

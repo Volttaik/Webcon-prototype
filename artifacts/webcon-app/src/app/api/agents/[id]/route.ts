@@ -44,12 +44,13 @@ export async function PATCH(
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
-    const { name, subject, level, tone, systemPrompt } = await request.json();
+    const { name, subject, level, tone, systemPrompt, avatarUrl } = await request.json();
     const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
     if (name !== undefined) updates.name = name;
     if (subject !== undefined) updates.subject = subject;
     if (level !== undefined) updates.level = level;
     if (tone !== undefined) updates.tone = tone;
+    if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
     if (systemPrompt !== undefined) {
       updates.systemPrompt = systemPrompt;
     } else if (subject || level || tone) {

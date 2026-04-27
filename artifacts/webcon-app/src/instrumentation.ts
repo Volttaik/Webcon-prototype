@@ -77,6 +77,7 @@ export async function register() {
         )`,
         `CREATE INDEX IF NOT EXISTS idx_agent_files_agent ON agent_files(agent_id, created_at DESC)`,
         `CREATE INDEX IF NOT EXISTS idx_agent_files_user ON agent_files(user_id)`,
+        `ALTER TABLE agents ADD COLUMN IF NOT EXISTS avatar_url TEXT`,
       ];
 
       let ok = 0;

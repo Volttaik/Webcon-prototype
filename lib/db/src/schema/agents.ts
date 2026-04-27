@@ -14,6 +14,7 @@ export const agentsTable = pgTable("agents", {
   personalityDescription: text("personality_description"),
   soulMd: text("soul_md"),
   systemPrompt: text("system_prompt"),
+  avatarUrl: text("avatar_url"),
   learningHubId: integer("learning_hub_id"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdateFn(() => new Date().toISOString()),
