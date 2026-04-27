@@ -274,7 +274,7 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
  </Button>
  </div>
 
- <div className="flex-1 min-h-0 overflow-y-auto">
+ <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
  <div className="px-3 pt-3 pb-2">
  <button
  onClick={() => go('/dashboard')}
@@ -325,9 +325,8 @@ function SidePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
 
  <MyAgentsPanel onNavigate={go} />
  </nav>
- </div>
-
  <SidebarUserFooter onNavigate={go} />
+ </div>
  </div>
  </>
  )}

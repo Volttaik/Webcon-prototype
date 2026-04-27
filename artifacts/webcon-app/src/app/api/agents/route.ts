@@ -150,6 +150,7 @@ export async function GET() {
           personalityDescription: a.personalityDescription,
           soulMd: a.soulMd,
           systemPrompt: a.systemPrompt,
+          avatarUrl: a.avatarUrl,
           learningHubId: a.learningHubId,
           conversationCount: Number(countMap.get(a.id) ?? 0),
           subscription: sub
