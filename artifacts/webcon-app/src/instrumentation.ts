@@ -65,6 +65,18 @@ export async function register() {
           CONSTRAINT push_subscriptions_endpoint_key UNIQUE (endpoint)
         )`,
         `CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)`,
+        `CREATE TABLE IF NOT EXISTS agent_files (
+          id SERIAL PRIMARY KEY,
+          agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          file_type TEXT NOT NULL DEFAULT 'text',
+          word_count INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT NOW()::TEXT
+        )`,
+        `CREATE INDEX IF NOT EXISTS idx_agent_files_agent ON agent_files(agent_id, created_at DESC)`,
+        `CREATE INDEX IF NOT EXISTS idx_agent_files_user ON agent_files(user_id)`,
       ];
 
       let ok = 0;
