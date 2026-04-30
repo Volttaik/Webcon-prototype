@@ -36,7 +36,7 @@ export async function GET() {
         .limit(1);
     }
 
-    const initMessage = `Hello! I want to connect my EduBridge account.\n\nMy activation code: ${link.initCode}`;
+    const initMessage = `Hello! I want to connect my Fimihub account.\n\nMy activation code: ${link.initCode}`;
     return NextResponse.json({
       connected: link.connected,
       initCode: link.initCode,

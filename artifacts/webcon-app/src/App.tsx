@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/lib/theme';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import SplashScreen from '@/components/SplashScreen';
+import InstallAppPrompt from '@/components/InstallAppPrompt';
 import Landing from '@/views/Landing';
 import Dashboard from '@/views/Dashboard';
 import ChatPage from '@/views/ChatPage';
@@ -77,6 +78,7 @@ export default function App() {
           {mounted ? (
             <BrowserRouter>
               <AppRoutes />
+              <InstallAppPrompt />
             </BrowserRouter>
           ) : (
             <SplashScreen />

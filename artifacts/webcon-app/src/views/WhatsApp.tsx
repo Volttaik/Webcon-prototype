@@ -129,7 +129,7 @@ export default function WhatsApp() {
                 <MessageCircle className="h-5 w-5 text-green-500" strokeWidth={1.5} />
               </div>
               <div>
-                <p className="text-[13px] font-medium">EduBridge on WhatsApp</p>
+                <p className="text-[13px] font-medium">Fimihub on WhatsApp</p>
                 <p className="text-[12px] text-muted-foreground">+{WHATSAPP_NUMBER}</p>
               </div>
             </div>
@@ -152,7 +152,7 @@ export default function WhatsApp() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { step: '1', title: 'Generate a code', desc: 'Pick an agent below and generate a 12‑character activation code.' },
-                { step: '2', title: 'Send the command', desc: 'Message the EduBridge number: /int YOURCODE12' },
+                { step: '2', title: 'Send the command', desc: 'Message the Fimihub number: /int YOURCODE12' },
                 { step: '3', title: 'Start chatting', desc: 'Your agent is now active. Every message goes straight to it.' },
               ].map(item => (
                 <div key={item.step} className="bg-card border border-border rounded-2xl p-4 shadow-elevation-sm">

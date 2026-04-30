@@ -206,7 +206,7 @@ export default function AuthModal({ initialTab = 'login', onClose }: AuthModalPr
       {view === 'login' ? 'Welcome back' : 'Create your account'}
      </h2>
      <p className="text-sm text-muted-foreground mt-1">
-      {view === 'login' ? "Sign in to your EduBridge account" : "Start learning with AI agents today"}
+      {view === 'login' ? "Sign in to your Fimihub account" : "Start learning with AI agents today"}
      </p>
     </div>
 

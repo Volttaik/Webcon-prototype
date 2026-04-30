@@ -141,7 +141,7 @@ function ProfileSettings() {
         </div>
       </Section>
       <Separator />
-      <Section title="Notifications" desc="Control when and how EduBridge contacts you.">
+      <Section title="Notifications" desc="Control when and how Fimihub contacts you.">
         <div className="space-y-4">
           {[
             { label: 'Study reminders', desc: 'Get reminders to check in with your agents' },
@@ -245,7 +245,7 @@ function AppearanceSettings() {
 
   return (
     <div className="max-w-lg space-y-6">
-      <Section title="Theme" desc="Choose how EduBridge looks for you.">
+      <Section title="Theme" desc="Choose how Fimihub looks for you.">
         <div className="relative grid grid-cols-3 gap-2 p-1.5 rounded-2xl border border-border bg-secondary/40">
           <motion.div
             layout

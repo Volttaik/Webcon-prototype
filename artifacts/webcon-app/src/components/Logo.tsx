@@ -8,7 +8,7 @@ interface LogoProps {
 }
 
 /**
- * EduBridge brand mark — uses the lucide `Box` cube icon.
+ * Fimihub brand mark — uses the lucide `Box` cube icon.
  * Bumped stroke width gives it a confident, premium look while keeping
  * perfect alignment with the rest of the lucide icon set.
  * Inherits color via `currentColor`.

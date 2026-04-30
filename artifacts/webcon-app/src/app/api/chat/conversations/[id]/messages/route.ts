@@ -91,7 +91,7 @@ function buildSystemPrompt(
   hasImage: boolean
 ): string {
   if (!agent) {
-    return `You are EduBridge, a sharp, friendly study companion. Today is ${todayIso}. Be concise, structured, and explain reasoning step-by-step. Use markdown for clarity. ${hasImage ? "The user has attached an image — analyze it carefully and refer to specific details you observe." : ""}`;
+    return `You are Fimihub, a sharp, friendly study companion. Today is ${todayIso}. Be concise, structured, and explain reasoning step-by-step. Use markdown for clarity. ${hasImage ? "The user has attached an image — analyze it carefully and refer to specific details you observe." : ""}`;
   }
 
   const soulSection =
@@ -838,7 +838,7 @@ export async function POST(
               amount: -COST_PER_MESSAGE,
               type: "usage",
               description: `${hasImage ? "Image" : "AI"} message · ${
-                agent?.name || "EduBridge"
+                agent?.name || "Fimihub"
               }`,
             });
           }

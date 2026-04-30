@@ -1,15 +1,21 @@
-# EduBridge App - Replit Workspace
+# Fimihub App - Replit Workspace
 
 ## Overview
 
-EduBridge (formerly WebCon) — an AI-powered learning platform that pairs students with course-specific AI study agents. Migrated from Vercel/Turso to run in Replit development. Targets Vercel/Replit production deployment with Postgres.
+Fimihub — a marketplace where students and business owners buy, sell and chat in one place. Originally an AI study companion (EduBridge / WebCon); the database schema, AI agent features and routing are kept intact under the hood while the brand and landing positioning are now marketplace-focused.
 
 ## Brand
 
-- **Name**: EduBridge — bridging students with personalized AI agents
-- **Logo**: Custom bridge mark (`src/components/Logo.tsx`) — minimal stroke arch + deck + pillars, uses `currentColor`
+- **Name**: Fimihub — the marketplace for students and business owners
+- **Tagline**: Buy. Sell. Chat. All in one place.
+- **Logo**: Cube mark (`src/components/Logo.tsx`) using lucide `Box`, inherits `currentColor`
 - **Theme**: Dark by default, warm monochrome palette
-- **Note**: The pnpm workspace package name is still `@workspace/webcon-app` for backwards compatibility with the workflow filter — the brand was rebranded at the UI/copy level.
+- **Note**: The pnpm workspace package name is still `@workspace/webcon-app` for backwards compatibility with the workflow filter — the brand was rebranded at the UI/copy level. The DB schema is unchanged.
+
+## PWA / Install
+
+- `src/components/InstallAppPrompt.tsx` — a centered install dialog that appears immediately on entry (unless dismissed within the last 24h). Captures `beforeinstallprompt` and falls back to iOS instructions on Safari. Mounted inside `App.tsx` so it shows on every route.
+- `SplashScreen` is a clean spinner (lucide `Loader2`) with no app icon.
 
 ## Chat Features (implemented)
 
@@ -86,10 +92,11 @@ EduBridge (formerly WebCon) — an AI-powered learning platform that pairs stude
 
 1. Workflow `Start application` runs the Next.js app on port 5000 bound to `0.0.0.0`.
 2. `viewport.themeColor` moved from `metadata` to `viewport` export (Next 15 conformance).
-3. Service worker cache renamed to `edubridge-v1` so the rebrand invalidates old caches.
-4. Manifest rebranded to EduBridge.
+3. Service worker cache renamed to `fimihub-v2` so the rebrand invalidates old caches.
+4. Manifest rebranded to Fimihub.
 5. Groq clients are constructed inside request handlers, only after `GROQ_API_KEY` is read — missing secrets do not crash startup.
 6. Theme provider is browser-guarded for SSR safety.
+7. Database is the Replit-managed Postgres (`DATABASE_URL`); schema pushed via `pnpm --filter @workspace/db run push` on first run.
 
 ## Environment Variables
 

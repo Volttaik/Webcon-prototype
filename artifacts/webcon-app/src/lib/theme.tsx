@@ -16,7 +16,7 @@ const ThemeContext = createContext<ThemeContextType>({
   toggleTheme: () => {},
 });
 
-const THEME_STORAGE_KEY = 'edubridge-theme';
+const THEME_STORAGE_KEY = 'fimihub-theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {

@@ -11,12 +11,12 @@ const transporter = nodemailer.createTransport({
   greetingTimeout: 8000,
 });
 
-const SUPPORT_EMAIL = "support@edubridge.app";
+const SUPPORT_EMAIL = "support@fimihub.app";
 
 function siteUrl(): string {
   return (
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-    "https://edubridge.app"
+    "https://fimihub.app"
   );
 }
 
@@ -49,7 +49,7 @@ function shellHtml(opts: {
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                 <tr>
                   <td align="left" style="vertical-align:middle;">
-                    <span style="display:inline-block;background:#ffffff10;border:1px solid #ffffff18;border-radius:10px;padding:8px 16px;color:#ffffff;font-size:15px;font-weight:700;letter-spacing:-0.3px;">EduBridge</span>
+                    <span style="display:inline-block;background:#ffffff10;border:1px solid #ffffff18;border-radius:10px;padding:8px 16px;color:#ffffff;font-size:15px;font-weight:700;letter-spacing:-0.3px;">Fimihub</span>
                   </td>
                   <td align="right" style="vertical-align:middle;">
                     <span style="display:inline-block;background:${opts.badgeBg};border:1px solid ${opts.badgeBorder};border-radius:999px;padding:5px 12px;color:${opts.badgeColor};font-size:11px;font-weight:600;letter-spacing:0.4px;text-transform:uppercase;">${opts.badge}</span>
@@ -71,7 +71,7 @@ function shellHtml(opts: {
                 Need help? Reply to this email or contact <a href="mailto:${SUPPORT_EMAIL}" style="color:#9ca3af;text-decoration:underline;">${SUPPORT_EMAIL}</a>.
               </p>
               <p style="color:#3f3f46;font-size:11px;line-height:1.6;margin:0;">
-                &copy; ${year} EduBridge &mdash; AI-powered learning platform
+                &copy; ${year} Fimihub &mdash; AI-powered learning platform
               </p>
             </td>
           </tr>
@@ -192,7 +192,7 @@ export async function sendCreditsPurchaseEmail(
   `;
 
   await transporter.sendMail({
-    from: `"EduBridge" <${process.env.GMAIL_USER}>`,
+    from: `"Fimihub" <${process.env.GMAIL_USER}>`,
     to,
     subject: `Receipt: ${credits.toLocaleString()} credits added (${packageName})`,
     html: shellHtml({
@@ -201,7 +201,7 @@ export async function sendCreditsPurchaseEmail(
       badgeColor: "#22c55e",
       badgeBg: "#16a34a18",
       badgeBorder: "#16a34a40",
-      title: "Credits added — EduBridge",
+      title: "Credits added — Fimihub",
       inner,
     }),
   });
@@ -302,16 +302,16 @@ export async function sendPlanUpgradeEmail(
   `;
 
   await transporter.sendMail({
-    from: `"EduBridge" <${process.env.GMAIL_USER}>`,
+    from: `"Fimihub" <${process.env.GMAIL_USER}>`,
     to,
-    subject: `Welcome to ${planName} — your EduBridge subscription is active`,
+    subject: `Welcome to ${planName} — your Fimihub subscription is active`,
     html: shellHtml({
       preheader: `${planName} is now active until ${renewDate}. Here's everything that's unlocked.`,
       badge: "Plan upgraded",
       badgeColor: "#a78bfa",
       badgeBg: "#7c3aed18",
       badgeBorder: "#7c3aed40",
-      title: "Welcome to your new plan — EduBridge",
+      title: "Welcome to your new plan — Fimihub",
       inner,
     }),
   });
@@ -330,7 +330,7 @@ export async function sendPasswordResetEmail(
       Reset your password
     </h1>
     <p style="color:#9ca3af;font-size:15px;line-height:1.6;margin:0 0 28px 0;">
-      Hi ${firstName}, we received a request to reset the password for your EduBridge account. Click the button below to choose a new password.
+      Hi ${firstName}, we received a request to reset the password for your Fimihub account. Click the button below to choose a new password.
     </p>
 
     ${ctaButton(resetUrl, "Reset Password")}
@@ -350,16 +350,16 @@ export async function sendPasswordResetEmail(
   `;
 
   await transporter.sendMail({
-    from: `"EduBridge" <${process.env.GMAIL_USER}>`,
+    from: `"Fimihub" <${process.env.GMAIL_USER}>`,
     to,
-    subject: "Reset your EduBridge password",
+    subject: "Reset your Fimihub password",
     html: shellHtml({
-      preheader: "Reset your EduBridge password. This link expires in 1 hour.",
+      preheader: "Reset your Fimihub password. This link expires in 1 hour.",
       badge: "Password reset",
       badgeColor: "#60a5fa",
       badgeBg: "#3b82f618",
       badgeBorder: "#3b82f640",
-      title: "Reset your EduBridge password",
+      title: "Reset your Fimihub password",
       inner,
     }),
   });
@@ -377,7 +377,7 @@ export async function sendVerificationEmail(
       Confirm your email address
     </h1>
     <p style="color:#9ca3af;font-size:15px;line-height:1.6;margin:0 0 28px 0;">
-      Thanks for signing up for EduBridge! Click the button below to verify your email and activate your account. You'll get <strong style="color:#ffffff;">50 free credits</strong> to get started.
+      Thanks for signing up for Fimihub! Click the button below to verify your email and activate your account. You'll get <strong style="color:#ffffff;">50 free credits</strong> to get started.
     </p>
 
     ${ctaButton(verifyUrl, "Verify Email Address")}
@@ -392,21 +392,21 @@ export async function sendVerificationEmail(
     </p>
 
     <p style="color:#5a5a62;font-size:12px;line-height:1.6;margin:24px 0 0 0;">
-      This link expires in <strong style="color:#9ca3af;">24 hours</strong>. If you didn't create an EduBridge account, you can safely ignore this email.
+      This link expires in <strong style="color:#9ca3af;">24 hours</strong>. If you didn't create an Fimihub account, you can safely ignore this email.
     </p>
   `;
 
   await transporter.sendMail({
-    from: `"EduBridge" <${process.env.GMAIL_USER}>`,
+    from: `"Fimihub" <${process.env.GMAIL_USER}>`,
     to,
-    subject: "Verify your EduBridge account",
+    subject: "Verify your Fimihub account",
     html: shellHtml({
       preheader: "Verify your email and claim 50 free credits.",
       badge: "Action required",
       badgeColor: "#fbbf24",
       badgeBg: "#f59e0b18",
       badgeBorder: "#f59e0b40",
-      title: "Verify your EduBridge account",
+      title: "Verify your Fimihub account",
       inner,
     }),
   });
