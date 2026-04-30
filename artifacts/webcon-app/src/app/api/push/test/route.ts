@@ -10,7 +10,7 @@ export async function POST() {
     }
 
     const result = await sendPushToUser(session.userId, {
-      title: "Fimihub notifications are on",
+      title: "EduBridge notifications are on",
       body: "You'll get alerts here for credits, plan updates, and important activity.",
       url: "/",
       tag: "welcome",

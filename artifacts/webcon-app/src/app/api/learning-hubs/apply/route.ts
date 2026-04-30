@@ -47,7 +47,7 @@ async function sendHubAccessEmail(
   const dashboardLink = `${siteUrl}/learning-hub/dashboard?token=${accessToken}&hub=${hubId}`;
 
   await transporter.sendMail({
-    from: `"Fimihub Learning" <${process.env.GMAIL_USER}>`,
+    from: `"EduBridge Learning" <${process.env.GMAIL_USER}>`,
     to: email,
     subject: "Your Learning Hub is ready — Access your dashboard",
     html: `

@@ -88,7 +88,7 @@ export default function ChatPage() {
   const [editingMsgId, setEditingMsgId] = useState<number | string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [bookmarkedConvs, setBookmarkedConvs] = useState<Set<string>>(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('fimihub:conv-bookmarks') ?? '[]')); } catch { return new Set(); }
+    try { return new Set(JSON.parse(localStorage.getItem('edubridge:conv-bookmarks') ?? '[]')); } catch { return new Set(); }
   });
 
   const abortRef = useRef<AbortController | null>(null);
@@ -395,7 +395,7 @@ export default function ChatPage() {
       const next = new Set(prev);
       const key = String(convId);
       if (next.has(key)) next.delete(key); else next.add(key);
-      try { localStorage.setItem('fimihub:conv-bookmarks', JSON.stringify([...next])); } catch { /* noop */ }
+      try { localStorage.setItem('edubridge:conv-bookmarks', JSON.stringify([...next])); } catch { /* noop */ }
       return next;
     });
   };

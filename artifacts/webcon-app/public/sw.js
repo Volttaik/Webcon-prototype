@@ -1,4 +1,4 @@
-const CACHE_NAME = "fimihub-v2";
+const CACHE_NAME = "edubridge-v2";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -20,7 +20,7 @@ self.addEventListener("fetch", (event) => {
 
 self.addEventListener("push", (event) => {
   let payload = {
-    title: "Fimihub",
+    title: "EduBridge",
     body: "You have a new notification.",
     icon: "/icon-192.png",
     badge: "/icon-192.png",

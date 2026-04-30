@@ -38,7 +38,7 @@ function unauthorized() {
     {
       status: 401,
       headers: {
-        "WWW-Authenticate": 'Basic realm="Fimihub Admin", charset="UTF-8"',
+        "WWW-Authenticate": 'Basic realm="EduBridge Admin", charset="UTF-8"',
         "Cache-Control": "no-store",
       },
     }

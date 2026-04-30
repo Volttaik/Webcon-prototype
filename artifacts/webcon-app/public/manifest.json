@@ -1,7 +1,7 @@
 {
-  "name": "Fimihub",
-  "short_name": "Fimihub",
-  "description": "Fimihub — the marketplace where students and business owners buy, sell and chat in one place.",
+  "name": "EduBridge",
+  "short_name": "EduBridge",
+  "description": "EduBridge — the marketplace where students and business owners buy, sell and chat in one place.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

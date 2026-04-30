@@ -1,12 +1,12 @@
-# Fimihub App - Replit Workspace
+# EduBridge App - Replit Workspace
 
 ## Overview
 
-Fimihub — a marketplace where students and business owners buy, sell and chat in one place. Originally an AI study companion (EduBridge / WebCon); the database schema, AI agent features and routing are kept intact under the hood while the brand and landing positioning are now marketplace-focused.
+EduBridge — a marketplace where students and business owners buy, sell and chat in one place. Originally an AI study companion (EduBridge / WebCon); the database schema, AI agent features and routing are kept intact under the hood while the brand and landing positioning are now marketplace-focused.
 
 ## Brand
 
-- **Name**: Fimihub — the marketplace for students and business owners
+- **Name**: EduBridge — the marketplace for students and business owners
 - **Tagline**: Buy. Sell. Chat. All in one place.
 - **Logo**: Cube mark (`src/components/Logo.tsx`) using lucide `Box`, inherits `currentColor`
 - **Theme**: Dark by default, warm monochrome palette
@@ -92,8 +92,8 @@ Fimihub — a marketplace where students and business owners buy, sell and chat 
 
 1. Workflow `Start application` runs the Next.js app on port 5000 bound to `0.0.0.0`.
 2. `viewport.themeColor` moved from `metadata` to `viewport` export (Next 15 conformance).
-3. Service worker cache renamed to `fimihub-v2` so the rebrand invalidates old caches.
-4. Manifest rebranded to Fimihub.
+3. Service worker cache renamed to `edubridge-v2` so the rebrand invalidates old caches.
+4. Manifest rebranded to EduBridge.
 5. Groq clients are constructed inside request handlers, only after `GROQ_API_KEY` is read — missing secrets do not crash startup.
 6. Theme provider is browser-guarded for SSR safety.
 7. Database is the Replit-managed Postgres (`DATABASE_URL`); schema pushed via `pnpm --filter @workspace/db run push` on first run.

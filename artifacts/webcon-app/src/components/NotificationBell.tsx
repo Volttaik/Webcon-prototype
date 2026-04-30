@@ -215,7 +215,7 @@ export default function NotificationBell() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[12.5px] font-medium leading-tight">Get instant updates on your phone</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                      Install Fimihub to your home screen, then turn on push to hear about credits, plans, and activity.
+                      Install EduBridge to your home screen, then turn on push to hear about credits, plans, and activity.
                     </p>
                     <button
                       onClick={togglePush}
@@ -234,7 +234,7 @@ export default function NotificationBell() {
                 <div className="flex items-start gap-2.5">
                   <BellOff className="h-3.5 w-3.5 text-amber-400 mt-0.5 shrink-0" />
                   <p className="text-[11.5px] text-muted-foreground leading-snug">
-                    Push is blocked for this site. Open browser settings → Site settings → Notifications to allow Fimihub.
+                    Push is blocked for this site. Open browser settings → Site settings → Notifications to allow EduBridge.
                   </p>
                 </div>
               </div>

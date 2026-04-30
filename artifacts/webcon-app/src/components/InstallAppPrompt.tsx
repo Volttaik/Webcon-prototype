@@ -7,7 +7,7 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
-const DISMISS_KEY = 'fimihub:install-dismissed-at';
+const DISMISS_KEY = 'edubridge:install-dismissed-at';
 const DISMISS_HOURS = 24;
 
 function isStandalone() {
@@ -103,7 +103,7 @@ export default function InstallAppPrompt() {
           </div>
           <div>
             <p id="install-app-title" className="text-base font-semibold tracking-tight">
-              Install Fimihub
+              Install EduBridge
             </p>
             <p className="text-xs text-muted-foreground">
               Faster, smoother and works offline.
@@ -112,7 +112,7 @@ export default function InstallAppPrompt() {
         </div>
 
         <p className="text-sm text-muted-foreground leading-relaxed mb-5">
-          Add Fimihub to your home screen to get instant access to the marketplace, chats and orders — without opening a browser.
+          Add EduBridge to your home screen to get instant access to the marketplace, chats and orders — without opening a browser.
         </p>
 
         {ios ? (

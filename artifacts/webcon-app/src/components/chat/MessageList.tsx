@@ -325,9 +325,9 @@ export default function MessageList({
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevCount = useRef(0);
-  const { set: bookmarked, toggle: toggleBookmark } = useLocalSet('fimihub:bookmarks');
-  const { set: pinned, toggle: togglePin } = useLocalSet('fimihub:pins');
-  const { map: reactions, set: setReaction } = useLocalMap('fimihub:reactions');
+  const { set: bookmarked, toggle: toggleBookmark } = useLocalSet('edubridge:bookmarks');
+  const { set: pinned, toggle: togglePin } = useLocalSet('edubridge:pins');
+  const { map: reactions, set: setReaction } = useLocalMap('edubridge:reactions');
 
   useEffect(() => {
     if (messages.length !== prevCount.current || isThinking) {
@@ -395,7 +395,7 @@ export default function MessageList({
                   <div className="py-3 rounded-2xl px-1">
                     <div className="flex items-start gap-2 mb-1.5">
                       <AgentAvatar />
-                      <span className="text-[11px] text-muted-foreground/50 mt-1">{agentName ?? 'Fimihub'}</span>
+                      <span className="text-[11px] text-muted-foreground/50 mt-1">{agentName ?? 'EduBridge'}</span>
                       <span
                         className="text-[10px] text-muted-foreground/30 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
                         title={msg.timestamp.toLocaleString()}

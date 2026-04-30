@@ -58,7 +58,7 @@ const features = [
 const demoMessages = [
   { role: 'user', text: 'Hi, is the laptop still available?', delay: 0.3 },
   { role: 'assistant', text: 'Yes! Available now — ₦185,000. I can deliver to your campus today.', delay: 1.2 },
-  { role: 'user', text: 'Great. Sending payment via Fimihub now.', delay: 2.4 },
+  { role: 'user', text: 'Great. Sending payment via EduBridge now.', delay: 2.4 },
   { role: 'assistant', text: 'Payment received ✓ Packing it up — see you in 2 hours.', delay: 3.3 },
 ];
 
@@ -298,7 +298,7 @@ export default function Landing() {
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
               <Logo className="h-4 w-4" />
-              <span className="text-sm font-semibold tracking-tight">Fimihub</span>
+              <span className="text-sm font-semibold tracking-tight">EduBridge</span>
             </div>
             <nav className="hidden md:flex items-center gap-6">
               {['How it works', 'For sellers', 'Pricing'].map(item => (
@@ -332,11 +332,11 @@ export default function Landing() {
             <span className="text-foreground/55">All in one place.</span>
           </h1>
           <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto leading-relaxed">
-            Fimihub brings students and business owners together — a faster, safer, smarter way to trade than any chat app or marketplace you’ve used before.
+            EduBridge brings students and business owners together — a faster, safer, smarter way to trade than any chat app or marketplace you’ve used before.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" className="h-11 px-7 text-sm shadow-elevation-md" onClick={openRegister}>
-              Join Fimihub <ArrowRight className="ml-2 h-4 w-4" />
+              Join EduBridge <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button variant="outline" size="lg" className="h-11 px-7 text-sm shadow-elevation-sm bg-background/70" onClick={openLogin}>
               Sign in
@@ -349,7 +349,7 @@ export default function Landing() {
       <section className="px-6 pb-8">
         <div className="max-w-5xl mx-auto">
           <AnimatedSection className="mb-6 text-center">
-            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest">What you can do on Fimihub</p>
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest">What you can do on EduBridge</p>
           </AnimatedSection>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
@@ -385,7 +385,7 @@ export default function Landing() {
               <div className="relative md:w-2/5 min-h-[280px] bg-secondary flex items-end justify-center overflow-hidden">
                 <img
                   src="https://images.fillout.com/orgid-650815/flowpublicid-p2yrnhhcua/widgetid-default/oGdmwEieJr27DCHqPvXeQF/pasted-image-1775910610841.jpg"
-                  alt="Students and business owners on Fimihub"
+                  alt="Students and business owners on EduBridge"
                   className="w-full h-full object-cover object-top"
                   style={{ maxHeight: 380 }}
                 />
@@ -399,7 +399,7 @@ export default function Landing() {
                   <span className="text-foreground/50">Business owners earn more.</span>
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-7 max-w-sm">
-                  Fimihub is where the people who need things and the people who sell them actually meet — without the noise of group chats, the chaos of random posts, or the fees of bigger marketplaces.
+                  EduBridge is where the people who need things and the people who sell them actually meet — without the noise of group chats, the chaos of random posts, or the fees of bigger marketplaces.
                 </p>
                 <div className="flex flex-wrap gap-3">
                   {['Verified sellers', 'Built-in chat', 'Faster checkout'].map(tag => (
@@ -446,9 +446,9 @@ export default function Landing() {
             <p className="text-center text-xs text-muted-foreground font-medium uppercase tracking-wider mb-10">What our community says</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
-                { quote: 'I used to chase sellers across group chats. On Fimihub I find, chat, and pay in one place — done in minutes.', name: 'Priya S.', course: 'Student' },
+                { quote: 'I used to chase sellers across group chats. On EduBridge I find, chat, and pay in one place — done in minutes.', name: 'Priya S.', course: 'Student' },
                 { quote: 'My sales doubled the first month. Real buyers, real chats, no random spam — and the payouts are fast.', name: 'Marcus T.', course: 'Business owner' },
-                { quote: 'Buying my textbooks and a fan for my hostel on the same app? Yes please. Fimihub just gets it.', name: 'Leila K.', course: 'Student' },
+                { quote: 'Buying my textbooks and a fan for my hostel on the same app? Yes please. EduBridge just gets it.', name: 'Leila K.', course: 'Student' },
               ].map((t, i) => (
                 <div
                   key={i}
@@ -478,7 +478,7 @@ export default function Landing() {
       <section className="border-t border-border py-24 px-6 text-center">
         <AnimatedSection>
           <div className="max-w-xl mx-auto">
-            <h2 className="text-3xl font-semibold tracking-tight mb-4">Your next deal is on Fimihub</h2>
+            <h2 className="text-3xl font-semibold tracking-tight mb-4">Your next deal is on EduBridge</h2>
             <p className="text-muted-foreground mb-8 text-sm leading-relaxed">Join free in under a minute. No credit card needed to start buying or selling.</p>
             <Button size="lg" className="h-11 px-8 text-sm shadow-elevation-md" onClick={openRegister}>
               Create your free account <ArrowRight className="ml-2 h-4 w-4" />
@@ -492,14 +492,14 @@ export default function Landing() {
         <div className="container mx-auto max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Logo className="h-3.5 w-3.5" />
-            <span className="text-sm font-semibold">Fimihub</span>
+            <span className="text-sm font-semibold">EduBridge</span>
           </div>
           <div className="flex items-center gap-6">
             {['Privacy', 'Terms', 'Sellers', 'Contact'].map(item => (
               <button key={item} className="text-xs text-muted-foreground hover:text-foreground transition-colors">{item}</button>
             ))}
           </div>
-          <span className="text-xs text-muted-foreground">© 2026 Fimihub</span>
+          <span className="text-xs text-muted-foreground">© 2026 EduBridge</span>
         </div>
       </footer>
     </div>

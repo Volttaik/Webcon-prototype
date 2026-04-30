@@ -21,14 +21,14 @@ const CONV_TAGS: { label: string; Icon: React.ElementType }[] = [
 
 function useConvTags() {
   const [tags, setTags] = useState<Record<string, string[]>>(() => {
-    try { return JSON.parse(localStorage.getItem('fimihub:conv-tags') ?? '{}'); } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem('edubridge:conv-tags') ?? '{}'); } catch { return {}; }
   });
   const toggle = (convId: string, tag: string) => {
     setTags(prev => {
       const existing = prev[convId] ?? [];
       const next = existing.includes(tag) ? existing.filter(t => t !== tag) : [...existing, tag];
       const result = { ...prev, [convId]: next };
-      try { localStorage.setItem('fimihub:conv-tags', JSON.stringify(result)); } catch { /* noop */ }
+      try { localStorage.setItem('edubridge:conv-tags', JSON.stringify(result)); } catch { /* noop */ }
       return result;
     });
   };
@@ -37,13 +37,13 @@ function useConvTags() {
 
 function useConvBookmarks() {
   const [bookmarked, setBookmarked] = useState<Set<string>>(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('fimihub:conv-bookmarks') ?? '[]')); } catch { return new Set(); }
+    try { return new Set(JSON.parse(localStorage.getItem('edubridge:conv-bookmarks') ?? '[]')); } catch { return new Set(); }
   });
   const toggle = (convId: string) => {
     setBookmarked(prev => {
       const next = new Set(prev);
       if (next.has(convId)) next.delete(convId); else next.add(convId);
-      try { localStorage.setItem('fimihub:conv-bookmarks', JSON.stringify([...next])); } catch { /* noop */ }
+      try { localStorage.setItem('edubridge:conv-bookmarks', JSON.stringify([...next])); } catch { /* noop */ }
       return next;
     });
   };

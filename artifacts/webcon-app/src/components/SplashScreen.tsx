@@ -5,7 +5,7 @@ export default function SplashScreen() {
     <div
       role="status"
       aria-live="polite"
-      aria-label="Loading Fimihub"
+      aria-label="Loading EduBridge"
       className="min-h-screen bg-background flex items-center justify-center"
     >
       <Loader2

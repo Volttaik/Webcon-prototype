@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "../index.css";
 
 export const metadata: Metadata = {
-  title: "Fimihub — Marketplace for students and business owners",
-  description: "Fimihub is the marketplace where students and business owners buy, sell, chat and grow — all in one place.",
+  title: "EduBridge — Marketplace for students and business owners",
+  description: "EduBridge is the marketplace where students and business owners buy, sell, chat and grow — all in one place.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Fimihub",
+    title: "EduBridge",
   },
 };
 
@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 const themeInitScript = `
 (function() {
   try {
-    var stored = localStorage.getItem('fimihub-theme') || localStorage.getItem('webcon-theme');
+    var stored = localStorage.getItem('edubridge-theme') || localStorage.getItem('webcon-theme');
     var theme = stored || 'dark';
     var resolved = theme;
     if (theme === 'system') {
