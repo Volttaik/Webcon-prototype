@@ -7,13 +7,11 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
-const DISMISS_KEY = 'edubridge:install-dismissed-at';
-const DISMISS_HOURS = 24;
+const SESSION_DISMISS_KEY = 'edubridge:install-dismissed-session';
 
 function isStandalone() {
   if (typeof window === 'undefined') return false;
   if (window.matchMedia?.('(display-mode: standalone)').matches) return true;
-  // iOS Safari
   return Boolean((window.navigator as unknown as { standalone?: boolean }).standalone);
 }
 
@@ -38,24 +36,38 @@ export default function InstallAppPrompt() {
     };
     window.addEventListener('beforeinstallprompt', handler);
 
-    // Show immediately on entry unless recently dismissed
-    let dismissedAt = 0;
+    const installedHandler = () => {
+      setOpen(false);
+      setDeferred(null);
+    };
+    window.addEventListener('appinstalled', installedHandler);
+
+    const standaloneMq = window.matchMedia?.('(display-mode: standalone)');
+    const mqHandler = (e: MediaQueryListEvent) => {
+      if (e.matches) setOpen(false);
+    };
+    standaloneMq?.addEventListener?.('change', mqHandler);
+
+    let dismissedThisSession = false;
     try {
-      dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || '0');
+      dismissedThisSession = sessionStorage.getItem(SESSION_DISMISS_KEY) === '1';
     } catch {
-      dismissedAt = 0;
+      dismissedThisSession = false;
     }
-    const hoursSince = (Date.now() - dismissedAt) / (1000 * 60 * 60);
-    if (hoursSince > DISMISS_HOURS) {
+    if (!dismissedThisSession) {
       setOpen(true);
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installedHandler);
+      standaloneMq?.removeEventListener?.('change', mqHandler);
+    };
   }, []);
 
   function close() {
     try {
-      localStorage.setItem(DISMISS_KEY, String(Date.now()));
+      sessionStorage.setItem(SESSION_DISMISS_KEY, '1');
     } catch {
       /* noop */
     }
@@ -64,7 +76,6 @@ export default function InstallAppPrompt() {
 
   async function install() {
     if (!deferred) {
-      // Fallback for browsers that don't fire the event (iOS, etc.)
       close();
       return;
     }
