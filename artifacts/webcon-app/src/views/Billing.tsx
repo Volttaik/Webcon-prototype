@@ -1,12 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import AppHeader from '@/components/layout/AppHeader';
 import PageTransition from '@/components/PageTransition';
 import { Toaster } from '@/components/ui/sonner';
 import {
   Crown, Zap, Star, Check, Loader2, CreditCard,
-  Gift, ArrowRight, BadgeCheck, AlertCircle, Banknote,
+  Gift, ArrowRight, BadgeCheck, AlertCircle, Banknote, Pencil, Building2,
 } from 'lucide-react';
+
+const NIGERIAN_BANKS = [
+  'Access Bank', 'Citibank Nigeria', 'Ecobank Nigeria', 'Fidelity Bank',
+  'First Bank of Nigeria', 'First City Monument Bank (FCMB)', 'Globus Bank',
+  'Guaranty Trust Bank (GTBank)', 'Heritage Bank', 'Keystone Bank',
+  'Kuda Bank', 'Moniepoint', 'OPay', 'PalmPay', 'Polaris Bank',
+  'Providus Bank', 'Stanbic IBTC Bank', 'Standard Chartered Bank',
+  'Sterling Bank', 'SunTrust Bank', 'Titan Trust Bank', 'Union Bank',
+  'United Bank for Africa (UBA)', 'Unity Bank', 'VFD Microfinance Bank',
+  'Wema Bank', 'Zenith Bank',
+];
 
 interface CreditPackage {
   id: string;

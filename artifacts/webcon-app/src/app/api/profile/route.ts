@@ -19,6 +19,9 @@ export async function PATCH(request: NextRequest) {
     if (body.institution !== undefined) allowed.institution = body.institution;
     if (body.avatarUrl !== undefined) allowed.avatarUrl = body.avatarUrl;
     if (body.paystackRecipientCode !== undefined) allowed.paystackRecipientCode = body.paystackRecipientCode;
+    if (body.bankAccountNumber !== undefined) allowed.bankAccountNumber = String(body.bankAccountNumber).trim();
+    if (body.bankName !== undefined) allowed.bankName = String(body.bankName).trim();
+    if (body.bankAccountName !== undefined) allowed.bankAccountName = String(body.bankAccountName).trim();
 
     if (Object.keys(allowed).length === 0) {
       return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });

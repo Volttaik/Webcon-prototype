@@ -43,6 +43,9 @@ export async function GET() {
       subscriptionPlan: effectivePlan,
       subscriptionExpiresAt: expiresAt,
       createdAt: user.createdAt,
+      bankAccountNumber: user.bankAccountNumber ?? null,
+      bankName: user.bankName ?? null,
+      bankAccountName: user.bankAccountName ?? null,
     });
   } catch (err) {
     console.error(err);

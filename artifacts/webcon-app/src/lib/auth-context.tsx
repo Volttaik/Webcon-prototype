@@ -11,6 +11,9 @@ export interface CurrentUser {
   subscriptionPlan: string;
   subscriptionExpiresAt: string | null;
   createdAt: string;
+  bankAccountNumber: string | null;
+  bankName: string | null;
+  bankAccountName: string | null;
 }
 
 export interface Profile {
