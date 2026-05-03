@@ -5,7 +5,7 @@ import PageTransition from '@/components/PageTransition';
 import { Toaster } from '@/components/ui/sonner';
 import {
   Crown, Zap, Star, Check, Loader2, CreditCard,
-  Gift, ArrowRight, BadgeCheck, AlertCircle,
+  Gift, ArrowRight, BadgeCheck, AlertCircle, Banknote,
 } from 'lucide-react';
 
 interface CreditPackage {
@@ -79,10 +79,41 @@ export function Billing() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [loadingPkg,  setLoadingPkg]  = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [loadingWithdraw, setLoadingWithdraw] = useState(false);
+  const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
 
   const showError = (msg: string) => {
     setErrorMsg(msg);
     setTimeout(() => setErrorMsg(null), 5000);
+  };
+
+  const handleWithdraw = async () => {
+    const amount = Number(withdrawAmount);
+    if (!Number.isFinite(amount) || amount < 1000) {
+      showError('Minimum withdrawal amount is ₦1,000.');
+      return;
+    }
+    setLoadingWithdraw(true);
+    setWithdrawSuccess(null);
+    try {
+      const res = await fetch('/api/credits/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount }),
+      });
+      const data = await res.json() as { ok?: boolean; reference?: string; error?: string };
+      if (!res.ok || !data.ok) {
+        showError(data.error || 'Withdrawal request failed. Please try again.');
+        return;
+      }
+      setWithdrawSuccess(data.reference ?? 'Submitted');
+      setWithdrawAmount('');
+    } catch {
+      showError('Network error. Please try again.');
+    } finally {
+      setLoadingWithdraw(false);
+    }
   };
 
   const handleBuyPlan = async (planId: string) => {
@@ -307,6 +338,72 @@ export function Billing() {
             <p className="text-[11px] text-muted-foreground/50 mt-3">
               1 credit per AI message · 100 credits per agent · 50 credits per hub subscription. Payments secured by Paystack.
             </p>
+          </section>
+
+          {/* Withdraw */}
+          <section>
+            <h2 className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-widest mb-4">
+              Withdraw Earnings
+            </h2>
+            <div className="rounded-2xl border border-border bg-card shadow-elevation-sm p-5">
+              {withdrawSuccess ? (
+                <div className="flex flex-col items-center gap-3 py-4 text-center">
+                  <div className="w-12 h-12 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                    <Check size={22} className="text-green-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-base">Withdrawal request submitted</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      A confirmation email has been sent to you. Your funds will arrive within <strong className="text-foreground">24–48 hours</strong>.
+                    </p>
+                    <p className="text-[11px] text-muted-foreground/50 mt-2 font-mono">{withdrawSuccess}</p>
+                  </div>
+                  <button
+                    onClick={() => setWithdrawSuccess(null)}
+                    className="mt-1 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition"
+                  >
+                    Make another withdrawal
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <Banknote size={16} className="text-green-500" />
+                    <p className="text-sm text-muted-foreground">
+                      Enter the amount you want to withdraw. Minimum is <strong className="text-foreground">₦1,000</strong>.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-center">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">₦</span>
+                      <input
+                        type="number"
+                        min={1000}
+                        step={100}
+                        placeholder="1000"
+                        value={withdrawAmount}
+                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                        className="w-full pl-7 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground/40"
+                      />
+                    </div>
+                    <button
+                      onClick={handleWithdraw}
+                      disabled={loadingWithdraw}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-50 shadow-elevation-sm shrink-0"
+                    >
+                      {loadingWithdraw ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <><Banknote size={14} /> Withdraw Now</>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/50">
+                    You will receive an email confirmation. Funds arrive in 24–48 hours to your registered account.
+                  </p>
+                </div>
+              )}
+            </div>
           </section>
 
         </div>

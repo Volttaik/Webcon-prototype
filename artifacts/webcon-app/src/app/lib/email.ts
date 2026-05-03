@@ -365,6 +365,74 @@ export async function sendPasswordResetEmail(
   });
 }
 
+export async function sendWithdrawalEmail(
+  to: string,
+  firstName: string,
+  amountNgn: number,
+  reference: string
+): Promise<void> {
+  const date = new Date().toLocaleString("en-NG", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  const billingUrl = `${siteUrl()}/billing`;
+
+  const inner = `
+    <p style="color:#9ca3af;font-size:13px;margin:0 0 6px 0;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;">Withdrawal request</p>
+    <h1 style="color:#ffffff;font-size:24px;font-weight:700;margin:0 0 12px 0;letter-spacing:-0.5px;line-height:1.25;">
+      Your withdrawal is being processed
+    </h1>
+    <p style="color:#9ca3af;font-size:14px;line-height:1.6;margin:0 0 28px 0;">
+      Hi ${firstName}, we've received your withdrawal request. Your funds will be transferred to your registered account within <strong style="color:#ffffff;">24 to 48 hours</strong>.
+    </p>
+
+    <div style="background:#0f0f12;border:1px solid #26262c;border-radius:14px;padding:18px 20px;margin-bottom:20px;">
+      <p style="color:#7a7a82;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;margin:0 0 12px 0;font-weight:600;">Withdrawal summary</p>
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+        ${receiptRow("Amount requested", `&#8358;${amountNgn.toLocaleString()}`, { accent: "#22c55e", strong: true })}
+        ${divider()}
+        ${receiptRow("Reference", `<span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#cbd5e1;">${reference}</span>`)}
+        ${receiptRow("Date", date)}
+        ${receiptRow("Status", "<span style=\"color:#fbbf24;font-weight:600;\">Processing</span>")}
+        ${receiptRow("Expected arrival", "24 – 48 hours")}
+      </table>
+    </div>
+
+    <div style="background:#0f0f12;border:1px solid #f59e0b30;border-radius:14px;padding:16px 20px;margin-bottom:24px;">
+      <p style="color:#fbbf24;font-size:13px;margin:0;line-height:1.6;">
+        <strong>What happens next?</strong> Our team will review and process your withdrawal. You'll receive the funds in your registered Nigerian bank account within 24–48 hours. If you have any questions, reply to this email.
+      </p>
+    </div>
+
+    ${ctaButton(billingUrl, "View Billing")}
+
+    <hr style="border:none;border-top:1px solid #26262c;margin:24px 0;" />
+
+    <p style="color:#5a5a62;font-size:12px;line-height:1.6;margin:0;">
+      Keep this email as your withdrawal reference. This is an automated notice; replies are read by our team.
+    </p>
+  `;
+
+  await transporter.sendMail({
+    from: `"EduBridge" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: `Withdrawal request received — ₦${amountNgn.toLocaleString()} being processed`,
+    html: shellHtml({
+      preheader: `Your withdrawal of ₦${amountNgn.toLocaleString()} is being processed. Funds arrive in 24–48 hours.`,
+      badge: "Withdrawal initiated",
+      badgeColor: "#fbbf24",
+      badgeBg: "#f59e0b18",
+      badgeBorder: "#f59e0b40",
+      title: "Withdrawal request — EduBridge",
+      inner,
+    }),
+  });
+}
+
 export async function sendVerificationEmail(
   to: string,
   token: string,
