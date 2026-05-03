@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import {
   BookOpen, FileText, Coins, Plus, Loader2, CheckCircle, AlertCircle,
   Users, Brain, TrendingUp, Trash2, User, MessageCircle, Send, BadgeCheck,
-  Building2, CreditCard
+  Building2, CreditCard, Banknote, Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +63,39 @@ export default function LearningHubDashboard() {
   const [savingBank, setSavingBank] = useState(false);
   const [bankStep, setBankStep] = useState<'form' | 'pick' | 'confirm' | 'done'>('form');
   const [bankMatches, setBankMatches] = useState<Array<{ bankCode: string; bankName: string; accountName: string }>>([]);
+
+  // Withdraw state
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [loadingWithdraw, setLoadingWithdraw] = useState(false);
+  const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
+
+  const handleWithdraw = async () => {
+    const amount = Number(withdrawAmount);
+    if (!Number.isFinite(amount) || amount < 1000) {
+      toast.error('Minimum withdrawal amount is ₦1,000.');
+      return;
+    }
+    setLoadingWithdraw(true);
+    setWithdrawSuccess(null);
+    try {
+      const res = await fetch('/api/credits/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount }),
+      });
+      const data = await res.json() as { ok?: boolean; reference?: string; error?: string };
+      if (!res.ok || !data.ok) {
+        toast.error(data.error || 'Withdrawal request failed. Please try again.');
+        return;
+      }
+      setWithdrawSuccess(data.reference ?? 'Submitted');
+      setWithdrawAmount('');
+    } catch {
+      toast.error('Network error. Please try again.');
+    } finally {
+      setLoadingWithdraw(false);
+    }
+  };
 
   const searchParams = new URLSearchParams(window.location.search);
   const urlToken = searchParams.get('token') ?? undefined;
@@ -616,6 +649,65 @@ export default function LearningHubDashboard() {
                         <Button size="sm" onClick={() => handleVerifyAccount()} disabled={verifying || accountNumber.length !== 10} className="w-full h-8 text-xs gap-1">
                           {verifying ? <><Loader2 className="h-3 w-3 animate-spin" /> Verifying…</> : <><Building2 className="h-3 w-3" /> Verify Account</>}
                         </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Withdraw Now */}
+                  <div className="border border-border rounded-xl overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+                      <Banknote className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} />
+                      <p className="text-xs font-medium">Withdraw Now</p>
+                    </div>
+                    {withdrawSuccess ? (
+                      <div className="p-4 flex flex-col items-center gap-2 text-center">
+                        <div className="w-10 h-10 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                          <Check className="h-4 w-4 text-green-500" strokeWidth={2.5} />
+                        </div>
+                        <p className="text-xs font-medium">Withdrawal request submitted</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          A confirmation email has been sent to you. Your funds will arrive within <strong className="text-foreground">24–48 hours</strong>.
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/50 font-mono mt-0.5">{withdrawSuccess}</p>
+                        <button
+                          onClick={() => setWithdrawSuccess(null)}
+                          className="text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground transition mt-1"
+                        >
+                          Make another withdrawal
+                        </button>
+                      </div>
+                    ) : !recipientData?.hasRecipient ? (
+                      <div className="p-4">
+                        <p className="text-[11px] text-muted-foreground">Link a bank account above before withdrawing.</p>
+                      </div>
+                    ) : (
+                      <div className="p-4 space-y-3">
+                        <p className="text-[11px] text-muted-foreground">Enter the amount to withdraw. Minimum is <strong className="text-foreground">₦1,000</strong>. Funds arrive in 24–48 hours.</p>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">₦</span>
+                            <Input
+                              type="number"
+                              min={1000}
+                              step={100}
+                              placeholder="1000"
+                              value={withdrawAmount}
+                              onChange={(e) => setWithdrawAmount(e.target.value)}
+                              className="h-8 text-sm pl-6 tracking-wide"
+                            />
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={handleWithdraw}
+                            disabled={loadingWithdraw}
+                            className="h-8 text-xs gap-1.5 bg-green-600 hover:bg-green-700 text-white shrink-0"
+                          >
+                            {loadingWithdraw
+                              ? <><Loader2 className="h-3 w-3 animate-spin" /> Processing…</>
+                              : <><Banknote className="h-3 w-3" /> Withdraw Now</>
+                            }
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
