@@ -161,13 +161,13 @@
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
   }
 
   .dark body,
   .dark {
     text-rendering: optimizeLegibility;
   }
-
 }
 
 @layer utilities {
@@ -335,66 +335,142 @@
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Keyframe animations                                                          */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 @keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px) scale(0.99); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    filter: blur(0px); }
 }
-
 .animate-fade-slide-up {
-  animation: fadeSlideUp 0.4s ease-out both;
+  animation: fadeSlideUp 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* ── Page-level enter transition ───────────────────────────────────── */
+/* ── Page-level enter / exit ────────────────────────────────────────────── */
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px) scale(0.995); filter: blur(3px); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);     filter: blur(0px); }
 }
 .page-enter {
-  animation: pageEnter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  will-change: transform, opacity;
+  animation: pageEnter 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity, filter;
 }
 
-/* ── Staggered children entry (set --i: 0,1,2... on each child) ──── */
+/* ── Staggered children entry ───────────────────────────────────────────── */
 @keyframes staggerIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(8px) scale(0.97); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    filter: blur(0px); }
 }
 .stagger-child {
   opacity: 0;
-  animation: staggerIn 380ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  animation-delay: calc(var(--i, 0) * 55ms + 60ms);
+  animation: staggerIn 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 50ms + 40ms);
+  will-change: transform, opacity, filter;
+}
+
+/* ── Faster stagger variant for dense lists ─────────────────────────────── */
+.stagger-child-fast {
+  opacity: 0;
+  animation: staggerIn 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 30ms + 20ms);
   will-change: transform, opacity;
 }
 
-/* ── Smooth GPU-accelerated card hover lift ──────────────────────── */
+/* ── GPU-accelerated card hover ─────────────────────────────────────────── */
 .card-lift {
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
-              border-color 220ms ease;
+  transition:
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 200ms ease,
+    background-color 200ms ease;
   will-change: transform;
 }
 .card-lift:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.005);
+}
+.card-lift:active {
+  transform: translateY(-1px) scale(1.002);
+  transition-duration: 100ms;
 }
 
-/* ── Soft pop-in (for dialogs / single elements) ─────────────────── */
+/* ── Soft pop-in (for dialogs / modals / toasts) ────────────────────────── */
 @keyframes softPop {
-  from { opacity: 0; transform: scale(0.96); }
-  to   { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.93) translateY(6px); filter: blur(4px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   filter: blur(0px); }
 }
 .animate-soft-pop {
-  animation: softPop 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: softPop 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Respect reduced motion users */
+/* ── Float in from bottom (for bottom sheets, tooltips) ─────────────────── */
+@keyframes floatUp {
+  from { opacity: 0; transform: translateY(16px); filter: blur(3px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0px); }
+}
+.animate-float-up {
+  animation: floatUp 350ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Slide in from right (for panels / drawers) ─────────────────────────── */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); filter: blur(2px); }
+  to   { opacity: 1; transform: translateX(0);    filter: blur(0px); }
+}
+.animate-slide-in-right {
+  animation: slideInRight 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Shimmer (for skeleton loaders) ─────────────────────────────────────── */
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--border)) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* ── Breathe (for ambient / idle elements) ──────────────────────────────── */
+@keyframes breathe {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.03); }
+}
+.animate-breathe {
+  animation: breathe 3.5s ease-in-out infinite;
+}
+
+/* ── Glow pulse (for highlighted elements) ──────────────────────────────── */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+  50%       { box-shadow: 0 0 0 6px hsl(var(--primary) / 0.12); }
+}
+.animate-glow-pulse {
+  animation: glowPulse 2.4s ease-in-out infinite;
+}
+
+/* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
   .stagger-child,
+  .stagger-child-fast,
   .animate-fade-slide-up,
-  .animate-soft-pop {
+  .animate-soft-pop,
+  .animate-float-up,
+  .animate-slide-in-right,
+  .animate-shimmer,
+  .animate-breathe,
+  .animate-glow-pulse {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+    filter: none !important;
   }
   .card-lift { transition: none !important; }
 }
@@ -403,46 +479,48 @@
   color: hsl(270 60% 60%);
 }
 
+/* ── Icon micro-animations ──────────────────────────────────────────────── */
 @keyframes iconPulse {
-  0%, 100% { transform: scale(1); opacity: 0.9; }
-  50% { transform: scale(1.15); opacity: 1; }
+  0%, 100% { transform: scale(1);    opacity: 0.9; }
+  50%       { transform: scale(1.15); opacity: 1; }
 }
 @keyframes iconBounce {
   0%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-4px); }
+  40%       { transform: translateY(-4px); }
 }
 @keyframes iconWiggle {
   0%, 100% { transform: rotate(0deg); }
-  20% { transform: rotate(-8deg); }
-  60% { transform: rotate(8deg); }
+  20%       { transform: rotate(-8deg); }
+  60%       { transform: rotate(8deg); }
 }
 @keyframes iconSpin {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to   { transform: rotate(360deg); }
 }
 @keyframes iconZoom {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
+  50%       { transform: scale(1.2); }
 }
 @keyframes iconExpand {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.18); opacity: 0.85; }
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%       { transform: scale(1.18); opacity: 0.85; }
 }
-.icon-pulse { animation: iconPulse 2.2s ease-in-out infinite; }
+.icon-pulse  { animation: iconPulse  2.2s ease-in-out infinite; }
 .icon-bounce { animation: iconBounce 1.8s ease-in-out infinite; }
-.icon-wiggle { animation: iconWiggle 2s ease-in-out infinite; }
-.icon-spin { animation: iconSpin 3s linear infinite; }
-.icon-zoom { animation: iconZoom 2.5s ease-in-out infinite; }
-.icon-expand { animation: iconExpand 2s ease-in-out infinite; }
+.icon-wiggle { animation: iconWiggle 2s   ease-in-out infinite; }
+.icon-spin   { animation: iconSpin   3s   linear     infinite; }
+.icon-zoom   { animation: iconZoom   2.5s ease-in-out infinite; }
+.icon-expand { animation: iconExpand 2s   ease-in-out infinite; }
 
+/* ── Tracer / rotating conic border ────────────────────────────────────── */
 @keyframes tracerRotate {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to   { transform: rotate(360deg); }
 }
 
 @keyframes splashDot {
   0%, 80%, 100% { opacity: 0.2; transform: scale(0.85); }
-  40% { opacity: 1; transform: scale(1.1); }
+  40%            { opacity: 1;   transform: scale(1.1); }
 }
 
 .brain-tracer-outer {
@@ -493,7 +571,7 @@
   box-shadow: 0 0 8px hsl(270 80% 65% / 0.25), 0 0 16px hsl(270 60% 55% / 0.12);
 }
 
-/* Agent avatar — cube icon with rotating reflection */
+/* ── Agent avatar rotating reflection ───────────────────────────────────── */
 .agent-avatar-tracer {
   position: relative;
   width: 22px;
@@ -533,3 +611,19 @@
   align-items: center;
   justify-content: center;
 }
+
+/* ── Smooth interactive button press ────────────────────────────────────── */
+.btn-press {
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.btn-press:hover  { transform: translateY(-1px); }
+.btn-press:active { transform: translateY(1px) scale(0.97); }
+
+/* ── Fade-in with delay utilities ───────────────────────────────────────── */
+.delay-75  { animation-delay: 75ms  !important; }
+.delay-100 { animation-delay: 100ms !important; }
+.delay-150 { animation-delay: 150ms !important; }
+.delay-200 { animation-delay: 200ms !important; }
+.delay-300 { animation-delay: 300ms !important; }
+.delay-500 { animation-delay: 500ms !important; }

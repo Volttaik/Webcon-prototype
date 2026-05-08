@@ -8,7 +8,14 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   transpilePackages: ["@workspace/db"],
-  serverExternalPackages: ["pg", "bcryptjs", "pg-protocol", "nodemailer"],
+  serverExternalPackages: [
+    "pg",
+    "bcryptjs",
+    "pg-protocol",
+    "nodemailer",
+    "@huggingface/transformers",
+    "onnxruntime-node",
+  ],
 };
 
 export default nextConfig;

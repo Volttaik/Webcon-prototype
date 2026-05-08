@@ -8,7 +8,7 @@ import {
 } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth-server";
-import Groq from "groq-sdk";
+import { aiChat } from "@/lib/ai-service";
 
 const BANNED_PATTERNS = [
   /lorem ipsum/i,
@@ -37,17 +37,9 @@ function calculateEarnings(wordCount: number, qualityScore: number): number {
 }
 
 async function validateContentWithAI(content: string, title: string): Promise<{ valid: boolean; score: number; reason: string }> {
-  const groqKey = process.env.GROQ_API_KEY;
-  if (!groqKey) {
-    return { valid: true, score: 7, reason: "AI validation not configured" };
-  }
-
   try {
-    const groq = new Groq({ apiKey: groqKey });
-    const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: 256,
-      messages: [
+    const result = await aiChat(
+      [
         {
           role: "system",
           content: `You are a content validator for an educational platform. Evaluate the following content for:
@@ -63,9 +55,10 @@ Score 1-4 = reject, 5-10 = accept. Be strict about factual accuracy.`,
           content: `Title: ${title}\n\nContent:\n${content.slice(0, 2000)}`,
         },
       ],
-    });
+      { maxTokens: 256, temperature: 0.2 }
+    );
 
-    const text = response.choices[0]?.message?.content || "";
+    const text = result.content;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]) as { valid: boolean; score: number; reason: string };
@@ -183,7 +176,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Content appears to be placeholder or test text. Please write genuine educational content." }, { status: 400 });
     }
 
-    // Check for duplicate content in same hub
     const existingFiles = await db
       .select()
       .from(hubFilesTable)
@@ -196,7 +188,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // AI validation
     const validation = await validateContentWithAI(content, title);
 
     if (!validation.valid || validation.score < 5) {
@@ -218,7 +209,6 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    // Calculate and record earnings
     const earningsNgn = calculateEarnings(wordCount, validation.score);
     if (earningsNgn > 0) {
       const transferRef = await triggerPaystackTransfer(

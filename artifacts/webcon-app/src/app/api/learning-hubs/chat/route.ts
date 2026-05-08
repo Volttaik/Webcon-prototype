@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import Groq from "groq-sdk";
+import { aiChat } from "@/lib/ai-service";
 import { db } from "@workspace/db";
 import { learningHubsTable, hubFilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -26,11 +26,6 @@ export async function POST(request: NextRequest) {
 
     const { messages } = await request.json() as { messages: { role: string; content: string }[] };
 
-    const groqKey = process.env.GROQ_API_KEY;
-    if (!groqKey) return NextResponse.json({ error: "AI not configured" }, { status: 503 });
-
-    const groq = new Groq({ apiKey: groqKey });
-
     const hubContext = files.length > 0
       ? files.map(f => `### ${f.title}\n${f.content}`).join("\n\n---\n\n")
       : "No documents have been added to this hub yet. Encourage the creator to add their first document.";
@@ -44,17 +39,13 @@ ${hubContext}
 
 Be conversational, curious, and intellectually engaged. You are learning from this creator and helping them refine their expertise.`;
 
-    const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: 1024,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...(messages as Groq.Chat.ChatCompletionMessageParam[]),
-      ],
-    });
+    const chatMessages = [
+      { role: "system" as const, content: systemPrompt },
+      ...messages.map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+    ];
 
-    const reply = response.choices[0]?.message?.content || "I couldn't generate a response.";
-    return NextResponse.json({ reply });
+    const result = await aiChat(chatMessages, { maxTokens: 1024, temperature: 0.7 });
+    return NextResponse.json({ reply: result.content || "I couldn't generate a response." });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
