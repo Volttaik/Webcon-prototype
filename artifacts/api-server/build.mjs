@@ -30,6 +30,8 @@ async function buildAll() {
     external: [
       "*.node",
       "sharp",
+      "@huggingface/transformers",
+      "onnxruntime-web",
       "better-sqlite3",
       "sqlite3",
       "canvas",

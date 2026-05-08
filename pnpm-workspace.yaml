@@ -37,7 +37,9 @@ onlyBuiltDependencies:
   - msw
   - unrs-resolver
   - onnxruntime-node
+  - onnxruntime-web
   - protobufjs
+  - sharp
 
 overrides:
   # replit uses linux-x64 only, we can exclude all other platforms

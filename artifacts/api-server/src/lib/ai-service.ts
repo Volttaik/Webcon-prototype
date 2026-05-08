@@ -1,9 +1,9 @@
 import { pipeline, TextStreamer, env } from "@huggingface/transformers";
 
-env.cacheDir = "/home/runner/workspace/.model-cache";
+env.cacheDir = "/tmp/model-cache";
 env.allowLocalModels = false;
 
-const MODEL_ID = "HuggingFaceTB/SmolLM2-1.7B-Instruct";
+const MODEL_ID = "HuggingFaceTB/SmolLM2-360M-Instruct";
 const MODEL_DTYPE = "q4";
 
 type TextGenPipeline = Awaited<ReturnType<typeof pipeline<"text-generation">>>;
@@ -18,11 +18,8 @@ async function getModel(): Promise<TextGenPipeline> {
   if (globalForAI._apiAiLoadPromise) return globalForAI._apiAiLoadPromise;
 
   globalForAI._apiAiLoadPromise = (async () => {
-    console.log("[AI] Loading SmolLM2-1.7B-Instruct (q4)…");
-    const p = await pipeline("text-generation", MODEL_ID, {
-      dtype: MODEL_DTYPE,
-      device: "cpu",
-    });
+    console.log("[AI] Loading SmolLM2-360M-Instruct (q4)…");
+    const p = await pipeline("text-generation", MODEL_ID, { dtype: MODEL_DTYPE });
     console.log("[AI] Model ready.");
     globalForAI._apiAiPipeline = p;
     return p;
@@ -54,7 +51,13 @@ export interface AiCompletionResult {
 
 function buildToolAppendix(tools: AiTool[]): string {
   if (!tools.length) return "";
-  const list = tools.map(t => `• **${t.name}**: ${t.description}`).join("\n");
+  const list = tools
+    .map(
+      (t) =>
+        `• **${t.name}**: ${t.description}` +
+        (t.parameters ? `\n  Params: ${JSON.stringify(t.parameters)}` : "")
+    )
+    .join("\n");
   return `\n\n## Tools available
 To call a tool output EXACTLY this format on its own line:
 <tool_call>{"name":"TOOL_NAME","arguments":{...}}</tool_call>
@@ -109,7 +112,6 @@ export async function aiChat(
         },
       }
     );
-
     await model(msgs as Parameters<typeof model>[0], {
       max_new_tokens: options.maxTokens ?? 1024,
       temperature: options.temperature ?? 0.7,
@@ -122,28 +124,45 @@ export async function aiChat(
       temperature: options.temperature ?? 0.7,
       do_sample: true,
     });
-
     const output = result as Array<{ generated_text: ChatMessage[] }>;
     fullContent = output[0]?.generated_text?.at(-1)?.content ?? "";
   }
 
   const toolCall = parseToolCall(fullContent);
-  const cleanContent = fullContent
-    .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "")
-    .trim();
-
+  const cleanContent = fullContent.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "").trim();
   return { content: cleanContent, toolCall };
 }
 
 export const CHAT_TOOLS: AiTool[] = [
   {
     name: "web_search",
-    description: "Search the web for current information, recent events, or facts you are unsure about.",
+    description:
+      "Search the web for current information, recent events, or facts. Always use before saying you don't know.",
     parameters: { query: "string" },
   },
   {
+    name: "fetch_webpage",
+    description: "Fetch and read the full content of a specific URL.",
+    parameters: { url: "string", reason: "string" },
+  },
+  {
+    name: "search_wikipedia",
+    description: "Search Wikipedia for encyclopaedic knowledge on any topic.",
+    parameters: { query: "string" },
+  },
+  {
+    name: "search_arxiv",
+    description: "Search arXiv for academic research papers.",
+    parameters: { query: "string", max_results: "number (default 5)" },
+  },
+  {
+    name: "search_openlibrary",
+    description: "Search Open Library for books, textbooks, and references.",
+    parameters: { query: "string", limit: "number (default 5)" },
+  },
+  {
     name: "calculate",
-    description: "Evaluate a math expression and return the result.",
+    description: "Evaluate a math expression precisely. Never do math in your head.",
     parameters: { expression: "string" },
   },
   {
@@ -152,7 +171,7 @@ export const CHAT_TOOLS: AiTool[] = [
   },
   {
     name: "create_document",
-    description: "Save a document (note, presentation, speech) to the student's workspace. Use only when explicitly asked.",
+    description: "Save a document to the student's workspace. Use only when explicitly asked.",
     parameters: {
       type: "note | presentation | speech",
       title: "string",

@@ -1,9 +1,11 @@
 import { pipeline, TextStreamer, env } from "@huggingface/transformers";
 
-env.cacheDir = "/home/runner/workspace/.model-cache";
+env.cacheDir = "/tmp/model-cache";
 env.allowLocalModels = false;
+env.backends.onnx.wasm.proxy = false;
+env.backends.onnx.wasm.numThreads = 2;
 
-const MODEL_ID = "HuggingFaceTB/SmolLM2-1.7B-Instruct";
+const MODEL_ID = "HuggingFaceTB/SmolLM2-360M-Instruct";
 const MODEL_DTYPE = "q4";
 
 type TextGenPipeline = Awaited<ReturnType<typeof pipeline<"text-generation">>>;
@@ -16,18 +18,13 @@ const globalForAI = globalThis as typeof globalThis & {
 async function getModel(): Promise<TextGenPipeline> {
   if (globalForAI._aiPipeline) return globalForAI._aiPipeline;
   if (globalForAI._aiLoadPromise) return globalForAI._aiLoadPromise;
-
   globalForAI._aiLoadPromise = (async () => {
-    console.log("[AI] Loading SmolLM2-1.7B-Instruct (q4)…");
-    const p = await pipeline("text-generation", MODEL_ID, {
-      dtype: MODEL_DTYPE,
-      device: "cpu",
-    });
+    console.log("[AI] Loading SmolLM2-360M-Instruct (q4, WASM)…");
+    const p = await pipeline("text-generation", MODEL_ID, { dtype: MODEL_DTYPE });
     console.log("[AI] Model ready.");
     globalForAI._aiPipeline = p;
     return p;
   })();
-
   return globalForAI._aiLoadPromise;
 }
 
@@ -58,9 +55,7 @@ function buildToolSystemAppendix(tools: AiTool[]): string {
     .map(
       (t) =>
         `• **${t.name}**: ${t.description}` +
-        (t.parameters
-          ? `\n  Params: ${JSON.stringify(t.parameters)}`
-          : "")
+        (t.parameters ? `\n  Params: ${JSON.stringify(t.parameters)}` : "")
     )
     .join("\n");
   return `\n\n## Tools available
@@ -94,7 +89,6 @@ export async function aiChat(
   } = {}
 ): Promise<AiCompletionResult> {
   const model = await getModel();
-
   const msgs: ChatMessage[] = [...messages];
   if (options.tools?.length) {
     const appendix = buildToolSystemAppendix(options.tools);
@@ -108,14 +102,16 @@ export async function aiChat(
   let fullContent = "";
 
   if (options.onToken) {
-    const streamer = new TextStreamer((model as unknown as { tokenizer: Parameters<typeof TextStreamer>[0] }).tokenizer, {
-      skip_prompt: true,
-      callback_function: (text: string) => {
-        fullContent += text;
-        options.onToken!(text);
-      },
-    });
-
+    const streamer = new TextStreamer(
+      (model as unknown as { tokenizer: Parameters<typeof TextStreamer>[0] }).tokenizer,
+      {
+        skip_prompt: true,
+        callback_function: (text: string) => {
+          fullContent += text;
+          options.onToken!(text);
+        },
+      }
+    );
     await model(msgs as Parameters<typeof model>[0], {
       max_new_tokens: options.maxTokens ?? 1024,
       temperature: options.temperature ?? 0.7,
@@ -128,16 +124,12 @@ export async function aiChat(
       temperature: options.temperature ?? 0.7,
       do_sample: true,
     });
-
     const output = result as Array<{ generated_text: ChatMessage[] }>;
     fullContent = output[0]?.generated_text?.at(-1)?.content ?? "";
   }
 
   const toolCall = parseToolCall(fullContent);
-  const cleanContent = fullContent
-    .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "")
-    .trim();
-
+  const cleanContent = fullContent.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "").trim();
   return { content: cleanContent, toolCall };
 }
 
@@ -145,39 +137,67 @@ export const AI_TOOLS: AiTool[] = [
   {
     name: "web_search",
     description:
-      "Search the web for current information, recent events, or things you are unsure about.",
+      "Search the web for current info, recent events, news, or anything you are unsure about. Always prefer this over guessing.",
     parameters: { query: "string — concise search query" },
+  },
+  {
+    name: "fetch_webpage",
+    description:
+      "Fetch and read the full text of a specific URL. Use after web_search to get deeper detail from a result link.",
+    parameters: { url: "string — full URL", reason: "string — why you need this page" },
+  },
+  {
+    name: "search_wikipedia",
+    description:
+      "Search Wikipedia for encyclopaedic knowledge on any topic — concepts, people, history, science. Best for definitions and overviews.",
+    parameters: { query: "string — search term" },
+  },
+  {
+    name: "search_arxiv",
+    description:
+      "Search arXiv for academic research papers in maths, physics, CS, biology, economics. Use when the student asks about research or cutting-edge topics.",
+    parameters: { query: "string — topic or paper title", max_results: "number (default 5)" },
+  },
+  {
+    name: "search_openlibrary",
+    description:
+      "Search Open Library for books — textbooks, references, literature. Returns title, author, year, subject.",
+    parameters: { query: "string — title, author, or subject", limit: "number (default 5)" },
   },
   {
     name: "calculate",
     description:
-      "Evaluate a mathematical expression and return the result. Use for arithmetic, algebra, percentages, unit conversions.",
+      "Evaluate any mathematical expression precisely. Use for arithmetic, algebra, percentages, conversions. Never do math in your head.",
     parameters: { expression: "string — e.g. '(3.14 * 5^2) / 2'" },
   },
   {
     name: "get_datetime",
-    description: "Get the current date and time (ISO format). Use when the user asks about today's date or current time.",
+    description: "Get the current date and time. Use when the user asks about today's date, time, or deadlines.",
+  },
+  {
+    name: "query_student_data",
+    description:
+      "Read live data from the student's own account. Use when they ask about their schedule, documents, projects, agents, or credit balance.",
+    parameters: {
+      type: "schedule | workspace | projects | agents | credits",
+      filter: "string — optional keyword filter",
+    },
   },
   {
     name: "generate_quiz",
     description:
       "Generate quiz questions on a topic. Output JSON array of {question, options, answer, explanation}.",
-    parameters: {
-      topic: "string",
-      count: "number (default 5)",
-      difficulty: "easy | medium | hard",
-    },
+    parameters: { topic: "string", count: "number (default 5)", difficulty: "easy | medium | hard" },
   },
   {
     name: "create_flashcards",
-    description:
-      "Create a set of study flashcards. Output JSON array of {front, back}.",
+    description: "Create a set of study flashcards as JSON array of {front, back}.",
     parameters: { topic: "string", count: "number (default 8)" },
   },
   {
     name: "schedule_session",
     description:
-      "Add a study session to the student's calendar. Use only when they explicitly ask to book/schedule a time.",
+      "Add a study session to the student's calendar. Use ONLY when they explicitly ask to book/schedule a time.",
     parameters: {
       title: "string",
       date: "ISO 8601 datetime string",
@@ -190,7 +210,7 @@ export const AI_TOOLS: AiTool[] = [
   {
     name: "create_document",
     description:
-      "Save a document (note, study guide, summary, essay, plan, report) to the student's workspace. Use only when they explicitly ask to save/create/write something.",
+      "Save a document to the student's workspace. Use ONLY when they explicitly ask to save/create/write something.",
     parameters: {
       type: "note | presentation | speech | plan | report",
       title: "string",
@@ -200,8 +220,7 @@ export const AI_TOOLS: AiTool[] = [
   },
   {
     name: "create_project",
-    description:
-      "Create a multi-task project. Use only when they explicitly ask for a project.",
+    description: "Create a multi-task project. Use ONLY when they explicitly ask for a project.",
     parameters: {
       title: "string",
       subject: "string",
@@ -212,7 +231,7 @@ export const AI_TOOLS: AiTool[] = [
   {
     name: "plan_schedule",
     description:
-      "Save a written study plan as a document. Use only when they explicitly ask for a study plan document.",
+      "Save a written study plan as a document. Use ONLY when they explicitly ask for a study plan document.",
     parameters: { title: "string", content: "string", subject: "string" },
   },
 ];

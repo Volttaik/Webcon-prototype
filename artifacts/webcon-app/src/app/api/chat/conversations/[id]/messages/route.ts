@@ -15,7 +15,7 @@ import {
   hubFilesTable,
   scheduleSessionsTable,
 } from "@workspace/db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, like } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth-server";
 
 const COST_PER_MESSAGE = 1;
@@ -64,14 +64,12 @@ function buildSystemPrompt(
     `You are ${agent.name}, an expert AI study agent specializing in ${agent.subject} for a ${agent.level}-level student. Your tone: ${agent.tone}.`;
 
   const soulBlock = soulSection ? `\n\n## Personality\n${soulSection}` : "";
-  const memoryBlock = memory
-    ? `\n\n## What you remember about this student\n${memory}`
-    : "";
+  const memoryBlock = memory ? `\n\n## What you remember about this student\n${memory}` : "";
   const hubBlock = hubContext
     ? `\n\n## Knowledge base (cite when relevant)\nYou have access to the following course materials. Quote and reference them when answering:\n\n${hubContext}`
     : "";
   const agentFilesBlock = agentFilesContext
-    ? `\n\n## Personal study materials uploaded by the student to this agent\nThese are the student's own course documents (syllabus, lecture notes, textbook chapters). Treat them as the authoritative source for this course. Cite the document title in your answer when you use them. If a question can be answered from these materials, prefer them over generic knowledge.\n\n${agentFilesContext}`
+    ? `\n\n## Personal study materials uploaded by the student to this agent\nThese are the student's own course documents. Treat them as the authoritative source. Cite the document title when you use them.\n\n${agentFilesContext}`
     : "";
 
   const principles = `\n\n## How you respond
@@ -80,28 +78,35 @@ function buildSystemPrompt(
 - Use markdown: short paragraphs, bullets, **bold** key terms, and fenced code blocks for code or math.
 - For math, use LaTeX inside $$ ... $$ for displayed equations and $ ... $ inline.
 - When the student is stuck, scaffold: ask one clarifying question, then teach.
-- If you don't know something current or factual, say so AND use the web_search tool to find out.
+- Always search the web or knowledge bases before saying you don't know something.
 - Stay grounded in ${agent.subject}. If asked off-topic, briefly help, then bring focus back.`;
 
   const visionBlock = hasImage
-    ? `\n\n## Image attached\nThe student has attached an image. Analyze the context and any description they provided carefully. If they described what's in the image, engage with that content fully.`
+    ? `\n\n## Image attached\nThe student has attached an image. Analyze the context carefully and engage with it fully.`
     : "";
 
   const toolGuidance = `\n\n## Tool usage rules (critical)
 - Default behaviour is plain conversation. Just answer.
-- Use **web_search** for current events, recent papers, fact-checking.
+- Use **web_search** for current events, recent news, anything you are unsure about — always search before saying you don't know.
+- Use **fetch_webpage** after web_search to read full content of a specific result URL.
+- Use **search_wikipedia** for definitions, concepts, history, science — encyclopaedic knowledge.
+- Use **search_arxiv** for academic papers, research topics, cutting-edge science.
+- Use **search_openlibrary** when the student asks about books, textbooks, or reading material.
 - Use **calculate** for any math computation — never do it in your head.
 - Use **get_datetime** only when the user asks for the current date/time.
+- Use **query_student_data** when the student asks about their own schedule, documents, projects, or credits.
 - Use **generate_quiz** when user asks for quiz questions on a topic.
 - Use **create_flashcards** when user asks for flashcards.
 - Use **schedule_session** ONLY when user explicitly asks to book/schedule a time.
 - Use **create_document** ONLY when user explicitly asks to save/write/create a note or document.
 - Use **create_project** ONLY when user explicitly asks for a multi-step project.
 - Use **plan_schedule** ONLY when user explicitly asks for a written study plan document.
-- Greetings, explanations, summaries shown inline — NEVER need a tool. If unsure, don't call it.`;
+- Greetings, explanations, summaries shown inline — NEVER need a tool.`;
 
   return `${base}${soulBlock}${memoryBlock}${hubBlock}${agentFilesBlock}${principles}${visionBlock}${toolGuidance}`;
 }
+
+// ── Tool implementations ──────────────────────────────────────────────────────
 
 async function doWebSearch(query: string): Promise<string> {
   try {
@@ -148,10 +153,118 @@ async function doWebSearch(query: string): Promise<string> {
     }
 
     if (!lines.length)
-      return `No structured results for "${query}". Use general knowledge and mark any uncertainty.`;
+      return `No structured results for "${query}". Try search_wikipedia or use general knowledge.`;
     return lines.join("\n");
   } catch {
-    return `Web search failed for "${query}". Answer from general knowledge and tell the user the search couldn't complete.`;
+    return `Web search failed for "${query}". Try search_wikipedia instead.`;
+  }
+}
+
+async function doFetchWebpage(url: string): Promise<string> {
+  try {
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
+      headers: { "User-Agent": "EduBridge/1.0 (educational assistant)" },
+    });
+    const html = await response.text();
+    const text = html
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim()
+      .slice(0, 6000);
+    return text || "Could not extract readable content from this page.";
+  } catch {
+    return `Could not fetch ${url}. It may be blocked or unavailable.`;
+  }
+}
+
+async function doSearchWikipedia(query: string): Promise<string> {
+  try {
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&utf8=1&srlimit=3&origin=*`;
+    const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(8000) });
+    const searchData = (await searchRes.json()) as {
+      query?: { search?: Array<{ title: string; snippet: string; pageid: number }> };
+    };
+
+    const results = searchData.query?.search ?? [];
+    if (!results.length) return `No Wikipedia results for "${query}".`;
+
+    const summaries: string[] = [];
+    for (const r of results.slice(0, 2)) {
+      try {
+        const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(r.title)}`;
+        const summaryRes = await fetch(summaryUrl, { signal: AbortSignal.timeout(6000) });
+        const s = (await summaryRes.json()) as { extract?: string; content_urls?: { desktop?: { page?: string } } };
+        const excerpt = s.extract?.slice(0, 1200) ?? r.snippet.replace(/<[^>]+>/g, "");
+        summaries.push(`## ${r.title}\n${excerpt}\nSource: ${s.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(r.title)}`}`);
+      } catch {
+        summaries.push(`## ${r.title}\n${r.snippet.replace(/<[^>]+>/g, "")}`);
+      }
+    }
+
+    return summaries.join("\n\n---\n\n");
+  } catch {
+    return `Wikipedia search failed for "${query}".`;
+  }
+}
+
+async function doSearchArxiv(query: string, maxResults = 5): Promise<string> {
+  try {
+    const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=${maxResults}&sortBy=relevance`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const xml = await res.text();
+
+    const entries = xml.match(/<entry>([\s\S]*?)<\/entry>/g) ?? [];
+    if (!entries.length) return `No arXiv papers found for "${query}".`;
+
+    const papers = entries.slice(0, maxResults).map((e) => {
+      const title = e.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.trim().replace(/\n/g, " ") ?? "Unknown";
+      const summary = e.match(/<summary>([\s\S]*?)<\/summary>/)?.[1]?.trim().replace(/\n/g, " ").slice(0, 400) ?? "";
+      const published = e.match(/<published>([\s\S]*?)<\/published>/)?.[1]?.slice(0, 10) ?? "";
+      const idRaw = e.match(/<id>([\s\S]*?)<\/id>/)?.[1]?.trim() ?? "";
+      const authors = [...e.matchAll(/<name>([\s\S]*?)<\/name>/g)].map(m => m[1]).join(", ");
+      return `**${title}** (${published})\nAuthors: ${authors}\n${summary}\nLink: ${idRaw.replace("http://", "https://")}`;
+    });
+
+    return `## arXiv results for "${query}"\n\n${papers.join("\n\n---\n\n")}`;
+  } catch {
+    return `arXiv search failed for "${query}".`;
+  }
+}
+
+async function doSearchOpenLibrary(query: string, limit = 5): Promise<string> {
+  try {
+    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}&fields=title,author_name,first_publish_year,subject,number_of_pages_median,key`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const data = (await res.json()) as {
+      docs?: Array<{
+        title?: string;
+        author_name?: string[];
+        first_publish_year?: number;
+        subject?: string[];
+        number_of_pages_median?: number;
+        key?: string;
+      }>;
+    };
+
+    const docs = data.docs ?? [];
+    if (!docs.length) return `No books found on Open Library for "${query}".`;
+
+    const books = docs.slice(0, limit).map((d, i) => {
+      const title = d.title ?? "Unknown";
+      const authors = d.author_name?.slice(0, 3).join(", ") ?? "Unknown author";
+      const year = d.first_publish_year ?? "?";
+      const pages = d.number_of_pages_median ? ` · ${d.number_of_pages_median} pages` : "";
+      const subjects = d.subject?.slice(0, 3).join(", ") ?? "";
+      const link = d.key ? `https://openlibrary.org${d.key}` : "";
+      return `${i + 1}. **${title}** by ${authors} (${year})${pages}${subjects ? `\n   Topics: ${subjects}` : ""}${link ? `\n   ${link}` : ""}`;
+    });
+
+    return `## Books on Open Library for "${query}"\n\n${books.join("\n\n")}`;
+  } catch {
+    return `Open Library search failed for "${query}".`;
   }
 }
 
@@ -165,17 +278,92 @@ function doCalculate(expression: string): string {
   }
 }
 
+async function doQueryStudentData(
+  type: string,
+  filter: string | undefined,
+  userId: number
+): Promise<string> {
+  try {
+    if (type === "schedule") {
+      const rows = await db
+        .select()
+        .from(scheduleSessionsTable)
+        .where(eq(scheduleSessionsTable.userId, userId))
+        .orderBy(scheduleSessionsTable.date)
+        .limit(20);
+      if (!rows.length) return "No scheduled sessions found.";
+      const filtered = filter
+        ? rows.filter(r => r.title?.toLowerCase().includes(filter.toLowerCase()) || r.subject?.toLowerCase().includes(filter.toLowerCase()))
+        : rows;
+      return filtered.map(r => `• ${r.title} — ${r.subject ?? ""} — ${new Date(r.date).toLocaleString()} (${r.duration}min, ${r.type})`).join("\n");
+    }
+
+    if (type === "workspace") {
+      const rows = await db
+        .select()
+        .from(workspaceItemsTable)
+        .where(eq(workspaceItemsTable.userId, userId))
+        .orderBy(desc(workspaceItemsTable.createdAt))
+        .limit(20);
+      if (!rows.length) return "No workspace documents found.";
+      const filtered = filter
+        ? rows.filter(r => r.title?.toLowerCase().includes(filter.toLowerCase()))
+        : rows;
+      return filtered.map(r => `• [${r.type}] ${r.title} — ${r.subject ?? ""} (${new Date(r.createdAt!).toLocaleDateString()})`).join("\n");
+    }
+
+    if (type === "projects") {
+      const rows = await db
+        .select()
+        .from(projectsTable)
+        .where(eq(projectsTable.userId, userId))
+        .orderBy(desc(projectsTable.createdAt))
+        .limit(20);
+      if (!rows.length) return "No projects found.";
+      const filtered = filter
+        ? rows.filter(r => r.title?.toLowerCase().includes(filter.toLowerCase()))
+        : rows;
+      return filtered.map(r => `• ${r.title} — ${r.subject ?? ""} (${r.status}, ${r.type})`).join("\n");
+    }
+
+    if (type === "agents") {
+      const rows = await db
+        .select()
+        .from(agentsTable)
+        .where(eq(agentsTable.userId, userId))
+        .limit(20);
+      if (!rows.length) return "No agents found.";
+      return rows.map(r => `• ${r.name} — ${r.subject} (${r.level}, tone: ${r.tone})`).join("\n");
+    }
+
+    if (type === "credits") {
+      const [bal] = await db
+        .select()
+        .from(creditBalancesTable)
+        .where(eq(creditBalancesTable.userId, userId))
+        .limit(1);
+      return bal ? `Credit balance: ${bal.balance} credits` : "No credit balance found.";
+    }
+
+    return `Unknown data type: ${type}`;
+  } catch (err) {
+    return `Could not query student data: ${String(err)}`;
+  }
+}
+
 function detectVerbFromMessage(content: string, hasImage: boolean): string {
   if (hasImage) return "looking";
   const t = content.trim().toLowerCase();
   if (/schedul|plan.*(session|study|tomorrow|today|next week)|book.*time/i.test(t)) return "planning";
   if (/create\s+(a\s+)?project|new project|organize/i.test(t)) return "creating";
   if (/create\s+(a\s+)?(file|note|document|doc|plan|study guide|summary)/i.test(t)) return "creating";
-  if (/search|find|look up|latest|news|current/i.test(t)) return "searching";
+  if (/search|find|look up|latest|news|current|who is|what happened/i.test(t)) return "searching";
   if (/quiz|flashcard|test me/i.test(t)) return "thinking";
-  if (/explain|what is|who is|when did|where is|why/i.test(t)) return "thinking";
+  if (/explain|what is|how does|why|when did|where is/i.test(t)) return "thinking";
   return "thinking";
 }
+
+// ── Route handlers ────────────────────────────────────────────────────────────
 
 export async function GET(
   _request: NextRequest,
@@ -311,9 +499,7 @@ export async function POST(
       : [];
 
     const memoryContext = memoryRows.map(m => m.content).join("\n");
-
-    const userMessageContent =
-      content.trim() || (imageUrl ? "[Image attached — please analyze]" : "");
+    const userMessageContent = content.trim() || (imageUrl ? "[Image attached — please analyze]" : "");
 
     const [userMsg] = await db
       .insert(messages)
@@ -389,17 +575,16 @@ export async function POST(
             ...chatMessages,
           ];
 
-          // Tool-calling loop (max 3 rounds)
+          // Multi-step tool-calling loop — up to 5 rounds for deep research
           let loopMessages = [...aiMessages];
           let continueLoop = true;
           let loopCount = 0;
 
-          while (continueLoop && loopCount < 3) {
+          while (continueLoop && loopCount < 5) {
             loopCount++;
-            const isLastLoop = loopCount >= 3;
+            const isLastLoop = loopCount >= 5;
 
-            if (loopCount === 1) {
-              // First call: check for tool use without streaming
+            if (loopCount === 1 || loopCount < 5) {
               const result = await aiChat(loopMessages, {
                 tools: isLastLoop ? [] : AI_TOOLS,
                 maxTokens: 2048,
@@ -408,24 +593,65 @@ export async function POST(
 
               if (result.toolCall && !isLastLoop) {
                 const { name: toolName, arguments: toolArgs } = result.toolCall;
-
-                // Execute tool
                 let toolResult = "";
 
+                // ── Web & internet tools ──────────────────────────────────
                 if (toolName === "web_search") {
                   activeVerb = "searching";
                   send({ type: "verb", verb: "searching" });
                   send({ type: "tool_use", tool: "web_search", query: toolArgs.query });
                   toolResult = await doWebSearch(toolArgs.query as string);
 
-                } else if (toolName === "calculate") {
+                } else if (toolName === "fetch_webpage") {
+                  activeVerb = "reading";
+                  send({ type: "verb", verb: "reading" });
+                  send({ type: "tool_use", tool: "fetch_webpage", url: toolArgs.url, reason: toolArgs.reason });
+                  toolResult = await doFetchWebpage(toolArgs.url as string);
+
+                // ── Knowledge base tools ──────────────────────────────────
+                } else if (toolName === "search_wikipedia") {
+                  activeVerb = "searching";
+                  send({ type: "verb", verb: "searching" });
+                  send({ type: "tool_use", tool: "search_wikipedia", query: toolArgs.query });
+                  toolResult = await doSearchWikipedia(toolArgs.query as string);
+
+                } else if (toolName === "search_arxiv") {
+                  activeVerb = "searching";
+                  send({ type: "verb", verb: "searching" });
+                  send({ type: "tool_use", tool: "search_arxiv", query: toolArgs.query });
+                  toolResult = await doSearchArxiv(
+                    toolArgs.query as string,
+                    (toolArgs.max_results as number) ?? 5
+                  );
+
+                } else if (toolName === "search_openlibrary") {
+                  activeVerb = "searching";
+                  send({ type: "verb", verb: "searching" });
+                  send({ type: "tool_use", tool: "search_openlibrary", query: toolArgs.query });
+                  toolResult = await doSearchOpenLibrary(
+                    toolArgs.query as string,
+                    (toolArgs.limit as number) ?? 5
+                  );
+
+                // ── Student data tool ─────────────────────────────────────
+                } else if (toolName === "query_student_data") {
                   activeVerb = "thinking";
+                  send({ type: "verb", verb: "thinking" });
+                  toolResult = await doQueryStudentData(
+                    toolArgs.type as string,
+                    toolArgs.filter as string | undefined,
+                    session.userId
+                  );
+
+                // ── Utility tools ─────────────────────────────────────────
+                } else if (toolName === "calculate") {
                   send({ type: "verb", verb: "thinking" });
                   toolResult = doCalculate(toolArgs.expression as string);
 
                 } else if (toolName === "get_datetime") {
                   toolResult = new Date().toISOString();
 
+                // ── Scheduling & workspace tools ──────────────────────────
                 } else if (toolName === "schedule_session") {
                   activeVerb = "planning";
                   send({ type: "verb", verb: "planning" });
@@ -448,7 +674,7 @@ export async function POST(
                     toolResult = `Session scheduled for ${parsedDate.toLocaleString()}: "${scheduleSession.title}". Visible on the Schedule page.`;
                     send({ type: "tool_use", tool: "schedule_session", title: scheduleSession.title, path: "/schedule" });
                   } catch {
-                    toolResult = "Failed to schedule session — invalid date. Please retry with a valid date.";
+                    toolResult = "Failed to schedule session — invalid date.";
                   }
 
                 } else if (toolName === "create_document" || toolName === "plan_schedule") {
@@ -490,19 +716,18 @@ export async function POST(
                 } else if (toolName === "generate_quiz" || toolName === "create_flashcards") {
                   activeVerb = "thinking";
                   send({ type: "verb", verb: "thinking" });
-                  // The model will generate these inline — pass back a prompt signal
                   toolResult = `Generate ${toolName === "generate_quiz" ? "quiz questions" : "flashcards"} for topic: ${toolArgs.topic}. Count: ${toolArgs.count || (toolName === "generate_quiz" ? 5 : 8)}. Format as JSON array.`;
                 }
 
-                // Feed tool result back into context
+                // Feed tool result back and continue the loop
                 loopMessages = [
                   ...loopMessages,
                   { role: "assistant" as const, content: result.content || "" },
-                  { role: "user" as const, content: `[Tool: ${toolName}] Result: ${toolResult}` },
+                  { role: "user" as const, content: `[Tool: ${toolName}] Result:\n${toolResult}` },
                 ];
 
               } else {
-                // No tool call — stream the response
+                // No tool call — stream the final response
                 fullText = "";
                 send({ type: "verb", verb: activeVerb });
 
@@ -517,22 +742,6 @@ export async function POST(
 
                 continueLoop = false;
               }
-
-            } else {
-              // Follow-up after tool use — stream the response
-              fullText = "";
-              send({ type: "verb", verb: activeVerb });
-
-              await aiChat(loopMessages, {
-                maxTokens: 2048,
-                temperature: 0.7,
-                onToken: (token) => {
-                  fullText += token;
-                  send({ type: "text", text: token });
-                },
-              });
-
-              continueLoop = false;
             }
           }
 

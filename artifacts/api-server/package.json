@@ -21,6 +21,8 @@
     "express": "^5",
     "groq-sdk": "^1.1.2",
     "node-fetch": "^3.3.2",
+    "onnxruntime-node": "^1.26.0",
+    "onnxruntime-web": "^1.26.0",
     "pino": "^9",
     "pino-http": "^10",
     "uuid": "^11.1.0"

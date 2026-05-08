@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
     "pg-protocol",
     "nodemailer",
     "@huggingface/transformers",
+    "onnxruntime-web",
     "onnxruntime-node",
   ],
 };
